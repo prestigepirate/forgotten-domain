@@ -926,12 +926,12 @@ function promoteSummonedCreature(summoned) {
         atk: summoned.atk,
         def: summoned.def,
         level: summoned.level,
-        hp: summoned.hp,
-        attribute: summoned.attribute,
+        type: summoned.type || 'Shadow',
+        movement: summoned.movement || 1,
+        sprite: summoned.sprite || null,
         continent: summoned.continent,
-        synergy: summoned.synergy,
         effect: summoned.effect,
-        energy: summoned.energy,
+        flavor: summoned.flavor || '',
         positionIndex: countAtBase
     };
     state.renderer.addCreature(creature);

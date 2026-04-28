@@ -1,5 +1,10 @@
-// creatureVisuals.js - Multi-creature PNG rendering with polish
+// creatureVisuals.js - Creature rendering on the map field
 
+/**
+ * Create an SVG element for a creature placed on the map.
+ * Shows the creature's sprite with ATK/DEF badges and level badge.
+ * No card background — just the art floating on the field.
+ */
 export function createCreatureElement(creature) {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.classList.add('creature');
@@ -7,55 +12,39 @@ export function createCreatureElement(creature) {
   g.style.pointerEvents = 'all';
   g.style.cursor = 'pointer';
 
+  // Use the creature's sprite from the database
+  const spritePath = creature.sprite || 'assets/units/shadow-harvester.png';
+
   const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
-
-  // Configure based on creature type
-  if (creature.name === "Illusion Wisp") {
-    image.setAttribute('href', 'assets/units/illusion-wisp.png');
-    image.setAttribute('width', '52');
-    image.setAttribute('height', '62');
-    image.setAttribute('x', '-26');
-    image.setAttribute('y', '-36');
-    // White outline + soft blue glow
-    g.style.filter = 'drop-shadow(0 0 2px #ffffff) drop-shadow(0 0 8px #4a90d9) drop-shadow(0 0 16px #60a5fa)';
-  } else if (creature.name === "Shadow Harvester") {
-    image.setAttribute('href', 'assets/units/shadow-harvester.png');
-    image.setAttribute('width', '58');
-    image.setAttribute('height', '72');
-    image.setAttribute('x', '-29');
-    image.setAttribute('y', '-42');
-    g.style.filter = 'drop-shadow(0 0 12px #c026d3) drop-shadow(0 0 25px #a855f7)';
-  } else {
-    // Default fallback
-    image.setAttribute('href', 'assets/units/shadow-harvester.png');
-    image.setAttribute('width', '56');
-    image.setAttribute('height', '66');
-    image.setAttribute('x', '-28');
-    image.setAttribute('y', '-38');
-    g.style.filter = 'drop-shadow(0 0 12px #c026d3)';
-  }
-
+  image.setAttribute('href', spritePath);
+  image.setAttribute('width', '56');
+  image.setAttribute('height', '66');
+  image.setAttribute('x', '-28');
+  image.setAttribute('y', '-38');
   image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   image.style.transformOrigin = 'center';
   image.style.animation = 'creatureBreathe 3s ease-in-out infinite';
   image.style.pointerEvents = 'none';
 
+  // Purple shadow glow for Voxya faction
+  g.style.filter = 'drop-shadow(0 0 8px #800080) drop-shadow(0 0 16px #4a0050)';
+
   g.appendChild(image);
 
-  // === ATK / DEF TEXT ABOVE WITH BACKGROUND ===
+  // === ATK / DEF BADGE ABOVE ===
   const statsGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   statsGroup.setAttribute('transform', 'translate(0, -48)');
 
-  // Sleek rounded rectangle background behind stats
+  // Dark rounded rectangle behind stats
   const statsBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   statsBg.setAttribute('x', '-28');
   statsBg.setAttribute('y', '-10');
   statsBg.setAttribute('width', '56');
   statsBg.setAttribute('height', '18');
   statsBg.setAttribute('rx', '4');
-  statsBg.setAttribute('fill', 'rgba(10, 10, 15, 0.95)');
-  statsBg.setAttribute('stroke', '#ffffff');
-  statsBg.setAttribute('stroke-width', '1.5');
+  statsBg.setAttribute('fill', 'rgba(10, 10, 15, 0.85)');
+  statsBg.setAttribute('stroke', '#800080');
+  statsBg.setAttribute('stroke-width', '1');
   statsGroup.appendChild(statsBg);
 
   // ATK
@@ -90,6 +79,7 @@ export function createCreatureElement(creature) {
   bg.setAttribute('r', '9');
   bg.setAttribute('fill', '#111');
   bg.setAttribute('stroke', '#eab308');
+  bg.setAttribute('stroke-width', '1.5');
   badge.appendChild(bg);
 
   const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -121,11 +111,11 @@ export function showCreatureHoverCard(creature, x, y) {
 
   const typeLabel = creature.type || 'Unknown';
   const levelNum = creature.level ?? 1;
-  const creatureImage = creature.image || (creature.name === 'Illusion Wisp' ? 'assets/units/illusion-wisp-art.jpg' : 'assets/units/shadow-harvester-art.jpg');
+  const spritePath = creature.sprite || 'assets/units/shadow-harvester.png';
 
   hoverCard.innerHTML = `
     <div class="hover-card-image">
-      <img src="${creatureImage}" alt="${creature.name}" />
+      <img src="${spritePath}" alt="${creature.name}" />
     </div>
     <div class="hover-card-content">
       <div class="hover-card-header">
