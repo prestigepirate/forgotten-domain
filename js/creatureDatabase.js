@@ -5,7 +5,7 @@
  * for the summon creature menu and cost calculations.
  */
 
-const DB_PATH = '/creatures-database.json';
+const DB_PATH = 'creatures-database.json';
 
 /**
  * Fetch the creature database JSON.

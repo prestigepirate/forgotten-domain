@@ -14,10 +14,10 @@
 export const SIGIL_MANA_COST = 4;
 
 /** Ticks (turns) required to build a sigil */
-export const SIGIL_BUILD_TICKS = 30;
+export const SIGIL_BUILD_TICKS = 2;
 
 /** Base ticks (turns) required to summon a creature */
-export const SUMMON_BASE_TICKS = 15;
+export const SUMMON_BASE_TICKS = 1;
 
 // ============================================
 // SigilManager Class
