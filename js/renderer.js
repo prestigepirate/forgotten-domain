@@ -1498,8 +1498,6 @@ export class Renderer {
 
         this.layers.sigils.innerHTML = '';
 
-        const currentTick = state.tick || 0;
-
         // Render sigils
         if (hasSigils) {
             state.sigils.forEach((sigil, baseId) => {
@@ -1508,9 +1506,9 @@ export class Renderer {
 
                 const center = this.percentToPixels(base.x, base.y);
 
-                // Calculate build progress
+                // Calculate build progress from real time
                 const fraction = sigil.isComplete ? 1 :
-                    Math.min(1, (currentTick - sigil.buildStartTick) / sigil.buildDuration);
+                    Math.min(1, (Date.now() - sigil.buildStartTime) / sigil.buildDuration);
 
                 // Sigil rune
                 const rune = createSigilRuneSVG(center.x, center.y, 14, sigil.isComplete);
@@ -1550,7 +1548,7 @@ export class Renderer {
                         const scy = center.y + Math.sin(angle) * offsetR;
 
                         const summonFraction = sc.isComplete ? 1 :
-                            Math.min(1, (currentTick - sc.summonStartTick) / sc.summonDuration);
+                            Math.min(1, (Date.now() - sc.summonStartTime) / sc.summonDuration);
 
                         // Summoned creature card
                         const visual = createSummonedCreatureSVG(sc, scx, scy, sc.isComplete);

@@ -8,7 +8,7 @@
 import { createVoxyaSystem } from './provinces.js';
 import { Renderer } from './renderer.js';
 import { getElement, setEnabled, log } from './utils.js';
-import { SigilManager, SIGIL_MANA_COST } from './sigils.js';
+import { SigilManager, SIGIL_MANA_COST, formatTimeRemaining } from './sigils.js';
 import { loadCreatureDatabase, buildCreatureIndex, getCreaturesByContinent, getSummonCost } from './creatureDatabase.js';
 import { createToastContainer, showToast } from './toasts.js';
 
@@ -568,14 +568,14 @@ function showBasePopup(base, clientX, clientY) {
         actions.appendChild(craftBtn);
         console.log('[Main] Popup: added Build Sigil button, enabled:', canCraft, 'mana:', state.mana, 'actions:', state.actions);
     } else if (!sigilComplete) {
-        // Sigil building — show progress
-        const elapsed = state.tick - sigil.buildStartTick;
-        const remaining = Math.max(0, sigil.buildDuration - elapsed);
+        // Sigil building — show real-time progress
+        const remainingMs = state.sigilManager.getRemaining(sigil.buildStartTime, sigil.buildDuration);
+        const remainingStr = formatTimeRemaining(remainingMs);
         const progressDiv = document.createElement('div');
         progressDiv.className = 'popup-status';
         progressDiv.innerHTML = `
             <span class="popup-status-icon">&#10015;</span>
-            <span>Sigil building... ${remaining} turns remaining</span>
+            <span>Sigil building... ${remainingStr} remaining</span>
         `;
         actions.appendChild(progressDiv);
     } else {
@@ -697,7 +697,7 @@ function setStatus(message) {
 function handleSigilEvent(entity, eventType) {
     switch (eventType) {
         case 'sigil-started':
-            showToast('Crafting Sigil... (30 turns)', 'info', 4000);
+            showToast('Crafting Sigil... (2 min)', 'info', 4000);
             break;
         case 'sigil-complete':
             showToast('Sigil complete!', 'success', 3000);
@@ -706,7 +706,7 @@ function handleSigilEvent(entity, eventType) {
             showToast('Sigil destroyed', 'warning', 3000);
             break;
         case 'summon-started':
-            showToast(`Summoning ${entity.name} Lv.${entity.level}... (15 turns)`, 'info', 4000);
+            showToast(`Summoning ${entity.name} Lv.${entity.level}... (1 min)`, 'info', 4000);
             break;
         case 'summon-complete':
             promoteSummonedCreature(entity);
@@ -734,13 +734,13 @@ function craftSigil() {
         return;
     }
 
-    const sigil = state.sigilManager.craftSigil(state.selectedBaseId, state.tick);
+    const sigil = state.sigilManager.craftSigil(state.selectedBaseId);
     if (sigil) {
         state.actions--;
         state.renderer.renderSigilsAndSummoned();
         updateUI();
         updateButtonStates(state.baseSystem.getById(state.selectedBaseId));
-        setStatus('Sigil crafting started...');
+        setStatus('Sigil crafting started... (2 min)');
     }
 }
 
@@ -893,7 +893,6 @@ function confirmSummonCreature(dbEntry, summonCost) {
         sigil.id,
         state.selectedBaseId,
         dbEntry,
-        state.tick,
         summonCost
     );
 
@@ -902,7 +901,7 @@ function confirmSummonCreature(dbEntry, summonCost) {
         state.renderer.renderSigilsAndSummoned();
         updateUI();
         updateButtonStates(state.baseSystem.getById(state.selectedBaseId));
-        setStatus(`Summoning ${dbEntry.name} Lv.${dbEntry.level}...`);
+        setStatus(`Summoning ${dbEntry.name} Lv.${dbEntry.level}... (1 min)`);
     }
 }
 
@@ -940,9 +939,11 @@ function promoteSummonedCreature(summoned) {
     showToast(`${summoned.name} Lv.${summoned.level} joins your army!`, 'success', 4000);
 }
 
-// Sigil render loop — updates progress rings smoothly
+// Sigil render loop — updates progress rings smoothly AND checks completions
 function sigilRenderLoop(timestamp) {
-    if (state.renderer) {
+    if (state.renderer && state.sigilManager) {
+        // Check for real-time completions every frame
+        state.sigilManager.checkCompletions();
         state.renderer.renderSigilsAndSummoned();
     }
     requestAnimationFrame(sigilRenderLoop);
@@ -952,11 +953,6 @@ function endTurn() {
     state.tick++;
     state.actions = state.maxActions;
     state.mana = Math.min(state.mana + 2, state.maxMana);
-
-    // Tick sigil manager to check build/summon completion
-    if (state.sigilManager) {
-        state.sigilManager.tick(state.tick);
-    }
 
     updateUI();
     state.renderer.renderSigilsAndSummoned();

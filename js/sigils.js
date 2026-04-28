@@ -1,23 +1,46 @@
 /**
- * SigilManager — Sigil Crafting & Creature Summoning System
+ * SigilManager — Real-Time Sigil Crafting & Creature Summoning System
  *
  * Manages sigil lifecycle (build timer, completion) and creature
  * summoning from sigils (summon timer, completion). Fires callbacks
  * on state changes so main.js can trigger re-renders and toasts.
+ *
+ * All timers run in real wall-clock time (milliseconds), not turns.
+ * Conflicts of Nations style — actions complete while you wait.
  */
 
 // ============================================
-// Constants
+// Constants (Real-Time)
 // ============================================
 
 /** Total mana cost to craft a sigil */
 export const SIGIL_MANA_COST = 4;
 
-/** Ticks (turns) required to build a sigil */
-export const SIGIL_BUILD_TICKS = 2;
+/** Milliseconds to build a sigil */
+export const SIGIL_BUILD_TIME_MS = 2 * 60 * 1000; // 2 minutes
 
-/** Base ticks (turns) required to summon a creature */
-export const SUMMON_BASE_TICKS = 1;
+/** Base milliseconds to summon a creature */
+export const SUMMON_BASE_TIME_MS = 1 * 60 * 1000; // 1 minute
+
+/** How often to check for completions (ms) */
+export const TICK_INTERVAL_MS = 1000; // every 1 second
+
+// ============================================
+// Helpers
+// ============================================
+
+/**
+ * Format ms as "M:SS" remaining.
+ * @param {number} ms
+ * @returns {string}
+ */
+export function formatTimeRemaining(ms) {
+    if (ms <= 0) return 'Complete!';
+    const totalSec = Math.ceil(ms / 1000);
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${min}:${String(sec).padStart(2, '0')}`;
+}
 
 // ============================================
 // SigilManager Class
@@ -43,7 +66,6 @@ export class SigilManager {
 
     /**
      * Check whether a sigil can be crafted on this base.
-     * Requirements: no sigil already exists, enough mana.
      */
     canCraftSigil(baseId) {
         if (!baseId) return false;
@@ -56,18 +78,17 @@ export class SigilManager {
      * Start crafting a sigil on the given base.
      * Deducts mana and returns the new Sigil object.
      * @param {string} baseId
-     * @param {number} currentTick
      * @returns {Object|null} The created Sigil, or null if requirements not met
      */
-    craftSigil(baseId, currentTick) {
+    craftSigil(baseId) {
         if (this.sigils.has(baseId)) return null;
 
         const sigil = {
             id: `sigil-${baseId}`,
             baseId,
             owner: 'player-1',
-            buildStartTick: currentTick,
-            buildDuration: SIGIL_BUILD_TICKS,
+            buildStartTime: Date.now(),
+            buildDuration: SIGIL_BUILD_TIME_MS,
             isComplete: false
         };
 
@@ -104,15 +125,13 @@ export class SigilManager {
      * @param {string} sigilId - The sigil's id
      * @param {string} baseId - Base where sigil exists
      * @param {Object} dbEntry - Creature entry from the database
-     * @param {number} currentTick
-     * @param {number} summonCost - Mana cost (computed by caller from creatureDatabase.js)
+     * @param {number} summonCost - Mana cost (computed by caller)
      * @returns {Object|null} The created SummonedCreature, or null
      */
-    startSummonCreature(sigilId, baseId, dbEntry, currentTick, summonCost) {
+    startSummonCreature(sigilId, baseId, dbEntry, summonCost) {
         const sigil = this.sigils.get(baseId);
         if (!sigil || sigil.id !== sigilId) return null;
 
-        // Determine stack position for radial placement
         const existingAtBase = this.summoned.filter(
             sc => sc.baseId === baseId
         );
@@ -134,8 +153,8 @@ export class SigilManager {
             restriction: dbEntry.restriction,
             energy: dbEntry.energy || '',
             synergy: dbEntry.synergy,
-            summonStartTick: currentTick,
-            summonDuration: SUMMON_BASE_TICKS,
+            summonStartTime: Date.now(),
+            summonDuration: SUMMON_BASE_TIME_MS,
             isComplete: false,
             positionIndex
         };
@@ -154,25 +173,23 @@ export class SigilManager {
     }
 
     // ============================================
-    // Tick Processing
+    // Real-Time Processing (replaces tick-based)
     // ============================================
 
     /**
-     * Process all in-progress sigils and summons.
-     * Marks completed items and fires callbacks.
-     * Called from endTurn() in main.js.
-     *
-     * @param {number} currentTick
+     * Check all in-progress sigils and summons using wall-clock time.
+     * Call this periodically (e.g. every 1s from requestAnimationFrame).
      * @returns {{ completedSigils: Array, completedSummons: Array }}
      */
-    tick(currentTick) {
+    checkCompletions() {
+        const now = Date.now();
         const completedSigils = [];
         const completedSummons = [];
 
         // Check in-progress sigils
         for (const [baseId, sigil] of this.sigils) {
             if (!sigil.isComplete) {
-                const elapsed = currentTick - sigil.buildStartTick;
+                const elapsed = now - sigil.buildStartTime;
                 if (elapsed >= sigil.buildDuration) {
                     sigil.isComplete = true;
                     completedSigils.push(sigil);
@@ -186,7 +203,7 @@ export class SigilManager {
         // Check in-progress summoned creatures
         for (const sc of this.summoned) {
             if (!sc.isComplete) {
-                const elapsed = currentTick - sc.summonStartTick;
+                const elapsed = now - sc.summonStartTime;
                 if (elapsed >= sc.summonDuration) {
                     sc.isComplete = true;
                     completedSummons.push(sc);
@@ -202,11 +219,22 @@ export class SigilManager {
 
     /**
      * Get build or summon progress as a fraction (0.0 to 1.0).
-     * Used by renderer for progress rings.
+     * Uses wall-clock time if startTime is provided, otherwise tick-based fallback.
      */
-    getProgress(startTick, duration, currentTick) {
+    getProgress(startTime, duration) {
         if (duration <= 0) return 1;
-        return Math.min(1, Math.max(0, (currentTick - startTick) / duration));
+        return Math.min(1, Math.max(0, (Date.now() - startTime) / duration));
+    }
+
+    /**
+     * Get remaining time for an in-progress item.
+     * @param {number} startTime
+     * @param {number} duration - in ms
+     * @returns {number} remaining ms (0 if complete)
+     */
+    getRemaining(startTime, duration) {
+        const elapsed = Date.now() - startTime;
+        return Math.max(0, duration - elapsed);
     }
 
     // ============================================
@@ -218,7 +246,7 @@ export class SigilManager {
         return this.sigils.get(baseId) || null;
     }
 
-    /** Get all summoned creatures at a base (complete and in-progress). */
+    /** Get all summoned creatures at a base. */
     getSummonedAt(baseId) {
         return this.summoned.filter(sc => sc.baseId === baseId);
     }
@@ -236,18 +264,14 @@ export class SigilManager {
 
     /**
      * Destroy a sigil and all its summoned creatures.
-     * Called when a base is captured or lost.
      * @param {string} baseId
-     * @returns {{ sigil: Object|null, creatures: Array }} What was removed
+     * @returns {{ sigil: Object|null, creatures: Array }}
      */
     destroySigil(baseId) {
         const sigil = this.sigils.get(baseId) || null;
         const creatures = this.summoned.filter(sc => sc.baseId === baseId);
 
-        // Remove sigil
         this.sigils.delete(baseId);
-
-        // Remove all summoned creatures at this base
         this.summoned = this.summoned.filter(sc => sc.baseId !== baseId);
 
         if (sigil && this.onStateChanged) {
