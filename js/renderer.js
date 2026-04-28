@@ -82,6 +82,10 @@ export class Renderer {
         // Pan offset
         this.panOffset = { x: 0, y: 0 };
 
+        // Movement system state
+        this.movementRange = null;          // { creatureId, reachable: [{id, path, hops}] }
+        this.movingCreatures = new Map();   // creatureId -> moveState
+
         this._initFilters();
         this._initEditorEventListeners();
     }
@@ -1414,12 +1418,55 @@ export class Renderer {
 
     addCreature(creature) {
         this.creatures.set(creature.id, creature);
-        this.renderCreatures();
+        // Add incrementally to avoid disrupting moving creatures
+        this._addSingleCreature(creature);
     }
 
     removeCreature(creatureId) {
         this.creatures.delete(creatureId);
-        this.renderCreatures();
+        // Remove the DOM element if it exists
+        const group = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${creatureId}"]`);
+        if (group) group.remove();
+    }
+
+    _addSingleCreature(creature) {
+        // Build and append a single creature group without full re-render
+        const visual = createCreatureElement(creature);
+        const base = this.baseSystem.getById(creature.baseId);
+        if (!base) return;
+
+        const pos = this._getCreaturePosition(base, creature);
+
+        const creatureGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        creatureGroup.setAttribute('class', 'creature-group');
+        creatureGroup.setAttribute('data-creature-id', creature.id);
+        creatureGroup.setAttribute('transform', `translate(${Math.round(pos.x)}, ${Math.round(pos.y)})`);
+        creatureGroup.style.cursor = 'pointer';
+        creatureGroup.appendChild(visual);
+
+        // Click handler
+        creatureGroup.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.selectCreature(creature.id);
+            this.showMovementRange(creature.id);
+        });
+
+        // Hover handlers
+        creatureGroup.addEventListener('mouseenter', (e) => {
+            showCreatureHoverCard(creature, e.clientX, e.clientY);
+        });
+        creatureGroup.addEventListener('mousemove', (e) => {
+            const hoverCard = document.getElementById('creature-hover-card');
+            if (hoverCard) {
+                hoverCard.style.left = `${e.clientX + 15}px`;
+                hoverCard.style.top = `${e.clientY - 10}px`;
+            }
+        });
+        creatureGroup.addEventListener('mouseleave', () => {
+            hideCreatureHoverCard();
+        });
+
+        this.layers.creatures?.appendChild(creatureGroup);
     }
 
     getCreature(creatureId) {
@@ -1447,10 +1494,11 @@ export class Renderer {
                 creatureGroup.style.cursor = 'pointer';
                 creatureGroup.appendChild(visual);
 
-                // Click handler to select creature
+                // Click handler to select creature and show movement range
                 creatureGroup.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.selectCreature(creature.id);
+                    this.showMovementRange(creature.id);
                 });
 
                 // Hover handlers for creature card
@@ -1622,6 +1670,412 @@ export class Renderer {
             bubbles: true
         });
         this.svg.dispatchEvent(event);
+    }
+
+    // ============================================
+    // Movement System
+    // ============================================
+
+    /**
+     * Configuration for creature movement timing
+     * Base time per hop (in ms), modified by creature's movement stat
+     */
+    static MOVEMENT_CONFIG = {
+        baseHopDuration: 60000,  // 60s base per hop
+        // movement stat acts as speed multiplier: actual = baseHopDuration / movement
+        maxHops: 5,              // safety cap
+        rangeLineColor: '#7c3aed',
+        rangeLineOpacity: 0.5,
+        highlightColor: 'rgba(124, 58, 237, 0.4)',
+        highlightPulse: 'rgba(124, 58, 237, 0.7)',
+        destinationColor: '#a78bfa',
+        arrivalDelay: 500        // ms to wait at destination before snapping
+    };
+
+    /**
+     * Show movement range for a creature.
+     * BFS from creature's base, up to `movement` hops.
+     * Draws dashed lines to reachable nodes + clickable highlights.
+     */
+    showMovementRange(creatureId) {
+        const creature = this.creatures.get(creatureId);
+        if (!creature || creature._isMoving) return;
+
+        const movement = creature.movement || 1;
+        const startBase = this.baseSystem.getById(creature.baseId);
+        if (!startBase) return;
+
+        // Clear previous range
+        this.clearMovementRange();
+
+        // BFS to find all reachable nodes within movement range
+        const reachable = [];
+        const visited = new Set([creature.baseId]);
+        const queue = [{ id: creature.baseId, path: [creature.baseId], hops: 0 }];
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            if (current.hops > 0 && current.hops <= movement) {
+                reachable.push(current);
+            }
+            if (current.hops >= movement) continue;
+            const base = this.baseSystem.getById(current.id);
+            if (!base) continue;
+            for (const nid of base.neighbors) {
+                if (!visited.has(nid)) {
+                    visited.add(nid);
+                    queue.push({ id: nid, path: [...current.path, nid], hops: current.hops + 1 });
+                }
+            }
+        }
+
+        const sel = this.layers.selection;
+        sel.innerHTML = '';
+
+        const config = Renderer.MOVEMENT_CONFIG;
+
+        // Draw dashed paths from start to each reachable node
+        for (const node of reachable) {
+            // Draw full path as connected segments
+            for (let i = 0; i < node.path.length - 1; i++) {
+                const fromBase = this.baseSystem.getById(node.path[i]);
+                const toBase = this.baseSystem.getById(node.path[i + 1]);
+                if (!fromBase || !toBase) continue;
+
+                const fromPx = this.percentToPixels(fromBase.x, fromBase.y);
+                const toPx = this.percentToPixels(toBase.x, toBase.y);
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', fromPx.x);
+                line.setAttribute('y1', fromPx.y);
+                line.setAttribute('x2', toPx.x);
+                line.setAttribute('y2', toPx.y);
+                line.setAttribute('stroke', config.rangeLineColor);
+                line.setAttribute('stroke-width', '2.5');
+                line.setAttribute('stroke-dasharray', '6,4');
+                line.setAttribute('stroke-opacity', String(config.rangeLineOpacity));
+                line.setAttribute('class', 'movement-range-line');
+                sel.appendChild(line);
+            }
+
+            // Highlight circle on destination node
+            const destBase = this.baseSystem.getById(node.id);
+            if (!destBase) continue;
+            const destPx = this.percentToPixels(destBase.x, destBase.y);
+
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            group.style.cursor = 'pointer';
+            group.style.pointerEvents = 'all';
+            group.dataset.targetBaseId = node.id;
+            group.dataset.creatureId = creatureId;
+            group.classList.add('move-destination');
+
+            // Outer pulsing ring
+            const pulseRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            pulseRing.setAttribute('cx', destPx.x);
+            pulseRing.setAttribute('cy', destPx.y);
+            pulseRing.setAttribute('r', '16');
+            pulseRing.setAttribute('fill', 'none');
+            pulseRing.setAttribute('stroke', config.destinationColor);
+            pulseRing.setAttribute('stroke-width', '2');
+            pulseRing.style.animation = 'movePulse 1.5s ease-in-out infinite';
+            group.appendChild(pulseRing);
+
+            // Inner highlight
+            const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            inner.setAttribute('cx', destPx.x);
+            inner.setAttribute('cy', destPx.y);
+            inner.setAttribute('r', '8');
+            inner.setAttribute('fill', config.highlightColor);
+            inner.style.animation = 'movePulse 1.5s ease-in-out infinite';
+            group.appendChild(inner);
+
+            // "Move" label
+            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', destPx.x);
+            label.setAttribute('y', destPx.y + 30);
+            label.setAttribute('text-anchor', 'middle');
+            label.setAttribute('fill', config.destinationColor);
+            label.setAttribute('font-size', '10');
+            label.setAttribute('font-weight', 'bold');
+            label.textContent = `Move (${node.hops} hop${node.hops > 1 ? 's' : ''})`;
+            label.style.filter = 'url(#label-shadow)';
+            group.appendChild(label);
+
+            // Click handler to start movement
+            group.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.clearMovementRange();
+                this._initiateCreatureMove(creatureId, node.id);
+            });
+
+            sel.appendChild(group);
+        }
+
+        // Also highlight the creature itself
+        this._highlightSelectedCreature(creatureId);
+
+        this.movementRange = { creatureId, reachable };
+    }
+
+    /**
+     * Clear movement range display
+     */
+    clearMovementRange() {
+        if (this.movementRange) {
+            // Remove highlights from creature
+            const prevId = this.movementRange.creatureId;
+            const prevGroup = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${prevId}"]`);
+            if (prevGroup) {
+                prevGroup.style.filter = '';
+                prevGroup.style.opacity = '';
+            }
+        }
+        const sel = this.layers.selection;
+        if (sel) sel.innerHTML = '';
+        this.movementRange = null;
+    }
+
+    /**
+     * Highlight the selected creature visually
+     */
+    _highlightSelectedCreature(creatureId) {
+        const group = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${creatureId}"]`);
+        if (group) {
+            group.style.filter = 'brightness(1.3) drop-shadow(0 0 12px #a78bfa)';
+            group.style.opacity = '1';
+        }
+    }
+
+    /**
+     * Initiate creature movement along a path.
+     * Called when a valid destination is clicked.
+     */
+    _initiateCreatureMove(creatureId, targetBaseId) {
+        const creature = this.creatures.get(creatureId);
+        if (!creature || creature._isMoving) return;
+
+        const path = this.baseSystem.findPath(creature.baseId, targetBaseId);
+        if (!path || path.length < 2) return;
+
+        const movement = creature.movement || 1;
+        const durationPerHop = Math.max(5000, Renderer.MOVEMENT_CONFIG.baseHopDuration / movement);
+
+        // Get creature's current pixel position
+        const currentBase = this.baseSystem.getById(creature.baseId);
+        const startPos = this._getCreaturePosition(currentBase, creature);
+        const firstHop = this.baseSystem.getById(path[1]);
+        const firstHopPx = this.percentToPixels(firstHop.x, firstHop.y);
+
+        const moveState = {
+            creatureId,
+            path,
+            pathBaseIds: path,          // original path of base IDs
+            currentHopIndex: 1,          // index into path we're moving toward
+            startTime: Date.now(),
+            durationPerHop,
+            hopProgress: 0,              // 0..1
+            hopStartPos: { x: startPos.x, y: startPos.y },
+            hopEndPos: { x: firstHopPx.x, y: firstHopPx.y },
+            hopStartTime: Date.now(),
+            totalHops: path.length - 1,
+            completedHops: 0,
+            isMoving: true
+        };
+
+        this.movingCreatures.set(creatureId, moveState);
+
+        // Mark creature as moving
+        creature._isMoving = true;
+        creature._moveTarget = targetBaseId;
+
+        // Update the creature group appearance to show moving state
+        const group = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${creatureId}"]`);
+        if (group) {
+            group.style.opacity = '0.7';
+            group.style.filter = '';
+            // Add a moving label
+            const existingLabel = group.querySelector('.movement-label');
+            if (!existingLabel) {
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('class', 'movement-label');
+                label.setAttribute('x', '0');
+                label.setAttribute('y', '-50');
+                label.setAttribute('text-anchor', 'middle');
+                label.setAttribute('fill', '#a78bfa');
+                label.setAttribute('font-size', '9');
+                label.setAttribute('font-weight', 'bold');
+                label.textContent = 'Moving...';
+                label.style.filter = 'url(#label-shadow)';
+                group.appendChild(label);
+            }
+        }
+
+        // Dispatch movement start event
+        const event = new CustomEvent('creatureMoveStarted', {
+            detail: { creatureId, targetBaseId, path, durationPerHop, totalHops: path.length - 1 },
+            bubbles: true
+        });
+        this.svg.dispatchEvent(event);
+
+        // Clear movement range
+        this.clearMovementRange();
+    }
+
+    /**
+     * Update all moving creatures — interpolate positions along their paths.
+     * Called every frame from the render loop.
+     */
+    updateCreatureMovements() {
+        const now = Date.now();
+        const toRemove = [];
+
+        this.movingCreatures.forEach((moveState, creatureId) => {
+            if (!moveState.isMoving) {
+                toRemove.push(creatureId);
+                return;
+            }
+
+            const creature = this.creatures.get(creatureId);
+            if (!creature) {
+                toRemove.push(creatureId);
+                return;
+            }
+
+            // Calculate progress for current hop
+            const elapsed = now - moveState.hopStartTime;
+            moveState.hopProgress = Math.min(1, elapsed / moveState.durationPerHop);
+
+            // Interpolate creature position
+            const x = moveState.hopStartPos.x + (moveState.hopEndPos.x - moveState.hopStartPos.x) * moveState.hopProgress;
+            const y = moveState.hopStartPos.y + (moveState.hopEndPos.y - moveState.hopStartPos.y) * moveState.hopProgress;
+
+            // Update creature group position
+            const group = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${creatureId}"]`);
+            if (group) {
+                group.setAttribute('transform', `translate(${Math.round(x)}, ${Math.round(y)})`);
+                group.dataset.needsPosition = 'false';
+
+                // Update orientation (face direction of travel)
+                const movingRight = moveState.hopEndPos.x > moveState.hopStartPos.x;
+                this.updateCreatureOrientation(creatureId, movingRight);
+
+                // Update progress label
+                const label = group.querySelector('.movement-label');
+                if (label) {
+                    const overallProgress = moveState.hopProgress > 0.99
+                        ? `${moveState.completedHops + 1}/${moveState.totalHops}`
+                        : `${moveState.completedHops + moveState.hopProgress}/${moveState.totalHops}`;
+                    const remaining = Math.round((moveState.totalHops - moveState.completedHops - moveState.hopProgress) * moveState.durationPerHop / 1000);
+                    label.textContent = remaining > 60
+                        ? `${Math.ceil(remaining / 60)}m ${remaining % 60}s`
+                        : `${remaining}s`;
+                }
+
+                // Draw progress ring on selection layer
+                this._drawMovementProgress(creatureId, x, y, moveState);
+            }
+
+            // Check if hop is complete
+            if (moveState.hopProgress >= 1) {
+                // Snap to exact end of this hop
+                const currentHopBaseId = moveState.pathBaseIds[moveState.currentHopIndex];
+                moveState.completedHops++;
+
+                // Are we at the final destination?
+                if (moveState.currentHopIndex >= moveState.pathBaseIds.length - 1) {
+                    // Movement complete!
+                    creature.baseId = currentHopBaseId;
+                    creature._isMoving = false;
+                    creature._moveTarget = null;
+
+                    // Update creature visual state
+                    if (group) {
+                        group.style.opacity = '1';
+                        const label = group.querySelector('.movement-label');
+                        if (label) label.remove();
+                        // Snap to correct base position
+                        group.dataset.needsPosition = 'true';
+                    }
+
+                    toRemove.push(creatureId);
+
+                    // Dispatch arrival event
+                    const event = new CustomEvent('creatureMoveArrived', {
+                        detail: { creatureId, targetBaseId: currentHopBaseId },
+                        bubbles: true
+                    });
+                    this.svg.dispatchEvent(event);
+                } else {
+                    // Move to next hop
+                    moveState.currentHopIndex++;
+                    moveState.hopStartTime = now;
+                    moveState.hopProgress = 0;
+
+                    const fromBase = this.baseSystem.getById(moveState.pathBaseIds[moveState.currentHopIndex - 1]);
+                    const toBase = this.baseSystem.getById(moveState.pathBaseIds[moveState.currentHopIndex]);
+                    if (fromBase && toBase) {
+                        moveState.hopStartPos = this.percentToPixels(fromBase.x, fromBase.y);
+                        moveState.hopEndPos = this.percentToPixels(toBase.x, toBase.y);
+                    }
+                }
+            }
+        });
+
+        // Clean up completed movements
+        toRemove.forEach(id => {
+            this.movingCreatures.delete(id);
+            // Clean up progress circles
+            const sel = this.layers.selection;
+            const progressRing = sel?.querySelector(`.move-progress[data-creature-id="${id}"]`);
+            if (progressRing) progressRing.remove();
+        });
+    }
+
+    /**
+     * Draw the movement progress ring under a moving creature
+     */
+    _drawMovementProgress(creatureId, x, y, moveState) {
+        const sel = this.layers.selection;
+        if (!sel) return;
+
+        // Remove existing progress ring for this creature
+        const existing = sel.querySelector(`.move-progress[data-creature-id="${creatureId}"]`);
+        if (existing) existing.remove();
+
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'move-progress');
+        group.dataset.creatureId = creatureId;
+
+        const overallProgress = (moveState.completedHops + moveState.hopProgress) / moveState.totalHops;
+        const radius = 28;
+        const circumference = 2 * Math.PI * radius;
+
+        // Background circle
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        bg.setAttribute('cx', String(x));
+        bg.setAttribute('cy', String(y));
+        bg.setAttribute('r', String(radius));
+        bg.setAttribute('fill', 'none');
+        bg.setAttribute('stroke', 'rgba(255,255,255,0.1)');
+        bg.setAttribute('stroke-width', '3');
+        group.appendChild(bg);
+
+        // Progress arc
+        const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        arc.setAttribute('cx', String(x));
+        arc.setAttribute('cy', String(y));
+        arc.setAttribute('r', String(radius));
+        arc.setAttribute('fill', 'none');
+        arc.setAttribute('stroke', '#a78bfa');
+        arc.setAttribute('stroke-width', '3');
+        arc.setAttribute('stroke-linecap', 'round');
+        arc.setAttribute('stroke-dasharray', `${circumference}`);
+        arc.setAttribute('stroke-dashoffset', String(circumference * (1 - overallProgress)));
+        arc.setAttribute('transform', `rotate(-90, ${x}, ${y})`);
+        group.appendChild(arc);
+
+        sel.appendChild(group);
     }
 
     // ============================================

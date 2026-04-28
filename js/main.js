@@ -182,6 +182,7 @@ function setupEventListeners() {
             const base = state.baseSystem.getById(baseId);
             if (base) {
                 e.stopPropagation();
+                state.renderer.clearMovementRange();
                 state.renderer.selectedBaseId = baseId;
                 state.renderer.renderSelection();
                 onBaseSelected(baseId, e.clientX, e.clientY);
@@ -204,6 +205,20 @@ function setupEventListeners() {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyDown);
+
+    // Listen for creature movement arrivals
+    svgOverlay.addEventListener('creatureMoveArrived', (e) => {
+        const { creatureId, targetBaseId } = e.detail;
+        const creature = state.renderer.getCreature(creatureId);
+        const destBase = state.baseSystem.getById(targetBaseId);
+        const destName = destBase ? destBase.name : targetBaseId;
+        if (creature) {
+            showToast(`${creature.name} has arrived at ${destName}`, 'success', 3000);
+            setStatus(`${creature.name} finished moving to ${destName}`);
+        }
+        state.renderer.renderCreatures();
+        state.renderer.renderSelection();
+    });
 }
 
 function handleKeyDown(e) {
@@ -515,6 +530,7 @@ window.handleBaseSelected = onBaseSelected;
 function clearSelection() {
     state.selectedBaseId = null;
     state.renderer.clearSelection();
+    state.renderer.clearMovementRange();
     hideBasePopup();
     setStatus('Select a base to begin');
 }
@@ -947,6 +963,8 @@ function sigilRenderLoop(timestamp) {
         // Check for real-time completions every frame
         state.sigilManager.checkCompletions();
         state.renderer.renderSigilsAndSummoned();
+        // Update creature movement interpolations
+        state.renderer.updateCreatureMovements();
     }
     requestAnimationFrame(sigilRenderLoop);
 }
