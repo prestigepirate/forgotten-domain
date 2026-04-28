@@ -283,7 +283,6 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
 
     // Summoning progress ring for incomplete creatures
     if (!isComplete) {
-        g.style.animation = 'sigilBuildPulse 1.5s ease-in-out infinite';
 
         // Small "Summoning..." text
         const statusText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
