@@ -1407,11 +1407,9 @@ body {
 }
 
 .sigil-rune {
-    transition: opacity 0.5s ease;
 }
 
 .summoned-creature {
-    transition: filter 0.5s ease, opacity 0.5s ease;
 }
 
 /* ============================================

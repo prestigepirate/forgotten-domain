@@ -38,9 +38,6 @@ export function createSigilRuneSVG(cx, cy, radius = 16, isComplete = false) {
     glowRing.setAttribute('stroke-width', isComplete ? '2' : '1.5');
     glowRing.setAttribute('opacity', isComplete ? '0.7' : '0.4');
     glowRing.style.filter = 'url(#soft-glow)';
-    if (!isComplete) {
-        glowRing.style.animation = 'sigilBuildPulse 1.5s ease-in-out infinite';
-    }
     g.appendChild(glowRing);
 
     // Main circle
