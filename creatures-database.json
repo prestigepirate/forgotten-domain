@@ -131,7 +131,7 @@
       "movement": 2,
       "type": "Undead / Shadow",
       "effect": "Whenever it destroys a creature, gain 5 Essence. King's Aura: All your Level 1 creatures gain +300 ATK.",
-      "sprite": null
+      "sprite": "assets/units/voxya-shadow-throne-tyrant.png"
     },
     {
       "id": "voxya-archipelago-leviathan",
