@@ -17,10 +17,10 @@
 export const SIGIL_MANA_COST = 4;
 
 /** Milliseconds to build a sigil */
-export const SIGIL_BUILD_TIME_MS = 2 * 60 * 1000; // 2 minutes
+export const SIGIL_BUILD_TIME_MS = 20 * 1000; // 20 seconds
 
 /** Base milliseconds to summon a creature */
-export const SUMMON_BASE_TIME_MS = 1 * 60 * 1000; // 1 minute
+export const SUMMON_BASE_TIME_MS = 10 * 1000; // 10 seconds
 
 /** How often to check for completions (ms) */
 export const TICK_INTERVAL_MS = 1000; // every 1 second

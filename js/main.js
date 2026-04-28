@@ -740,7 +740,7 @@ function craftSigil() {
         state.renderer.renderSigilsAndSummoned();
         updateUI();
         updateButtonStates(state.baseSystem.getById(state.selectedBaseId));
-        setStatus('Sigil crafting started... (2 min)');
+        setStatus('Sigil crafting started... (20 sec)');
     }
 }
 
@@ -903,7 +903,7 @@ function confirmSummonCreature(dbEntry, summonCost) {
         state.renderer.renderSigilsAndSummoned();
         updateUI();
         updateButtonStates(state.baseSystem.getById(state.selectedBaseId));
-        setStatus(`Summoning ${dbEntry.name} Lv.${dbEntry.level}... (1 min)`);
+        setStatus(`Summoning ${dbEntry.name} Lv.${dbEntry.level}... (10 sec)`);
     }
 }
 
