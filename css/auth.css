@@ -1,0 +1,449 @@
+/* ============================================
+   AUTH PAGES (Login/Register)
+   Dark Cosmic Theme
+   ============================================ */
+
+:root {
+    --bg-dark: #050508;
+    --bg-panel: rgba(20, 20, 30, 0.8);
+    --bg-input: rgba(10, 10, 15, 0.6);
+    --primary: #7c3aed;
+    --primary-light: #a78bfa;
+    --primary-dark: #5b21b6;
+    --primary-glow: rgba(124, 58, 237, 0.5);
+    --text-primary: #f0f0f5;
+    --text-secondary: #a0a0b0;
+    --text-muted: #606070;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --error: #dc2626;
+    --success: #10b981;
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   COSMIC BACKGROUND (shared with menu)
+   ============================================ */
+
+.cosmic-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background: #000000;
+    overflow: hidden;
+}
+
+.stars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(1px 1px at 12% 18%, #fff 1px, transparent 1px),
+        radial-gradient(2px 2px at 28% 42%, rgba(255,255,255,0.9) 2px, transparent 2px),
+        radial-gradient(1px 1px at 45% 15%, #fff 1px, transparent 1px),
+        radial-gradient(1.5px 1.5px at 67% 33%, rgba(255,255,255,0.85) 1.5px, transparent 1.5px),
+        radial-gradient(1px 1px at 83% 61%, #fff 1px, transparent 1px),
+        radial-gradient(2px 2px at 19% 74%, rgba(255,255,255,0.8) 2px, transparent 2px),
+        radial-gradient(1px 1px at 54% 82%, #fff 1px, transparent 1px),
+        radial-gradient(1.5px 1.5px at 91% 23%, rgba(255,255,255,0.9) 1.5px, transparent 1.5px),
+        radial-gradient(1px 1px at 36% 56%, #fff 1px, transparent 1px),
+        radial-gradient(2px 2px at 76% 88%, rgba(255,255,255,0.85) 2px, transparent 2px),
+        radial-gradient(1px 1px at 8% 91%, #fff 1px, transparent 1px),
+        radial-gradient(1px 1px at 62% 7%, #fff 1px, transparent 1px);
+    background-size: 100% 100%;
+}
+
+.star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: starTwinkle 4s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+.star.bright {
+    box-shadow: 0 0 4px rgba(255,255,255,0.8), 0 0 8px rgba(255,255,255,0.4);
+}
+
+.star.dim {
+    opacity: 0.4;
+}
+
+.nebula {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.15;
+    animation: nebulaFloat 30s ease-in-out infinite;
+}
+
+.nebula-1 {
+    top: -20%;
+    left: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.3) 0%, transparent 70%);
+    animation-delay: 0s;
+}
+
+.nebula-2 {
+    bottom: -30%;
+    right: -10%;
+    width: 70%;
+    height: 70%;
+    background: radial-gradient(ellipse at center, rgba(74, 144, 217, 0.2) 0%, transparent 70%);
+    animation-delay: -10s;
+}
+
+.nebula-3 {
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    height: 50%;
+    background: radial-gradient(ellipse at center, rgba(231, 76, 60, 0.15) 0%, transparent 70%);
+    animation-delay: -20s;
+}
+
+@keyframes nebulaFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(2%, 3%) scale(1.02); }
+    50% { transform: translate(-3%, 1%) scale(0.98); }
+    75% { transform: translate(1%, -2%) scale(1.01); }
+}
+
+@keyframes starFloat {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(1px, 2px); }
+    50% { transform: translate(-1px, 1px); }
+    75% { transform: translate(2px, -1px); }
+    100% { transform: translate(0, 0); }
+}
+
+/* ============================================
+   AUTH CONTAINER
+   ============================================ */
+
+.auth-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+.auth-logo {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.logo-title {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 2.5rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.5), 0 0 30px rgba(255,255,255,0.3);
+    margin-bottom: 8px;
+}
+
+.logo-subtitle {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 1.2rem;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    color: rgba(240, 240, 245, 0.8);
+    text-transform: uppercase;
+}
+
+/* ============================================
+   AUTH FORM
+   ============================================ */
+
+.auth-form {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 40px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.form-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 32px;
+    color: var(--text-primary);
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), 0 0 15px rgba(124, 58, 237, 0.2);
+}
+
+.form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+.input-hint {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-style: italic;
+}
+
+/* ============================================
+   FORM OPTIONS
+   ============================================ */
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    font-size: 0.85rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.forgot-link, .link {
+    color: var(--primary-light);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.forgot-link:hover, .link:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+/* ============================================
+   SUBMIT BUTTON
+   ============================================ */
+
+.submit-btn {
+    position: relative;
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.3) 0%, rgba(30, 30, 45, 0.8) 100%);
+    border: 1px solid rgba(124, 58, 237, 0.5);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.5) 0%, rgba(40, 40, 55, 0.9) 100%);
+    border-color: rgba(124, 58, 237, 0.8);
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.4);
+    transform: translateY(-1px);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.btn-glow {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.4), transparent);
+    transition: left 0.6s ease;
+}
+
+.submit-btn:hover .btn-glow {
+    left: 100%;
+}
+
+/* ============================================
+   FORM DIVIDER
+   ============================================ */
+
+.form-divider {
+    display: flex;
+    align-items: center;
+    margin: 28px 0;
+}
+
+.form-divider::before,
+.form-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+
+.form-divider span {
+    padding: 0 16px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* ============================================
+   FORM FOOTER
+   ============================================ */
+
+.form-footer {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* ============================================
+   MESSAGES
+   ============================================ */
+
+.error-message,
+.success-message {
+    margin-top: 20px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.error-message {
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    color: #fca5a5;
+}
+
+.success-message {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ============================================
+   BACK LINK
+   ============================================ */
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.back-link:hover {
+    color: var(--text-primary);
+}
+
+.back-link span {
+    transition: transform 0.2s ease;
+}
+
+.back-link:hover span {
+    transform: translateX(-4px);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+    .auth-form {
+        padding: 32px 24px;
+    }
+
+    .logo-title {
+        font-size: 1.8rem;
+    }
+
+    .logo-subtitle {
+        font-size: 1rem;
+    }
+
+    .form-options {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+}

@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxya - The Shattered Archipelago</title>
+    <style>
+        :root {
+            --voxya-primary: #1a0a2e;
+            --voxya-secondary: #4b0082;
+            --voxya-glow: #7c3aed;
+            --voxya-accent: #a78bfa;
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: #050508;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+
+        .map-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.8) 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 40px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title-text {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 1.3rem;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.5), 0 0 30px rgba(255,255,255,0.3);
+        }
+
+        .title-subtitle {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 0.65rem;
+            font-weight: 400;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .back-menu-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: rgba(10, 10, 15, 0.8);
+            border: 1px solid rgba(124, 58, 237, 0.5);
+            border-radius: 20px;
+            color: #f0f0f5;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+        }
+
+        .back-menu-btn:hover {
+            background: rgba(124, 58, 237, 0.3);
+            border-color: #7c3aed;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+        }
+
+        /* ============================================
+           MAP CONTAINER
+           ============================================ */
+
+        #map-viewport {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100vw;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+            background: radial-gradient(ellipse at center, #1a0a2e 0%, #050508 100%);
+            cursor: grab;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #map-viewport.dragging {
+            cursor: grabbing;
+        }
+
+        #map-world {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        /* ============================================
+           MAP LAYERS
+           ============================================ */
+
+        .map-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: opacity 0.4s ease;
+        }
+
+        .map-layer img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        #low-detail-layer { opacity: 1; z-index: 1; }
+        #high-detail-layer { opacity: 0; z-index: 2; }
+        #interactive-overlay { z-index: 3; }
+
+        /* ============================================
+           SVG OVERLAY
+           ============================================ */
+
+        #interactive-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .province-marker {
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.2s ease;
+        }
+
+        .province-marker:hover {
+            filter: drop-shadow(0 0 15px #a78bfa);
+        }
+
+        /* ============================================
+           ANIMATIONS
+           ============================================ */
+
+        @keyframes emberFloat {
+            0%, 100% { opacity: 0.4; transform: translateY(0) scale(1); }
+            50% { opacity: 0.8; transform: translateY(-10px) scale(1.1); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; stroke-width: 2; }
+            50% { opacity: 0.7; stroke-width: 3; }
+        }
+
+        @keyframes mistDrift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(8px, -5px) scale(1.1); }
+        }
+
+        @keyframes starTwinkle {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes lightningFlash {
+            0%, 92%, 100% { opacity: 0; }
+            94% { opacity: 0.15; }
+            96% { opacity: 0; }
+            98% { opacity: 0.1; }
+        }
+
+        /* ============================================
+           STARFIELD
+           ============================================ */
+
+        .starfield {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: starTwinkle 3s ease-in-out infinite;
+        }
+
+        /* ============================================
+           LIGHTNING OVERLAY
+           ============================================ */
+
+        #lightning-overlay {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            pointer-events: none;
+            z-index: 100;
+            background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
+            animation: lightningFlash 10s ease-in-out infinite;
+        }
+
+        /* ============================================
+           CONTROLS
+           ============================================ */
+
+        .map-controls {
+            position: fixed;
+            right: 20px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(30, 30, 45, 0.85);
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            border-radius: 8px;
+            color: #f0f0f5;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: rgba(124, 58, 237, 0.35);
+            border-color: #7c3aed;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+        }
+
+        /* ============================================
+           TOOLTIP
+           ============================================ */
+
+        .province-tooltip {
+            position: fixed;
+            background: rgba(10, 10, 15, 0.98);
+            border: 1px solid rgba(124, 58, 237, 0.6);
+            border-radius: 8px;
+            padding: 14px 18px;
+            max-width: 280px;
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            box-shadow: 0 4px 30px rgba(124, 58, 237, 0.4);
+        }
+
+        .province-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .province-tooltip h3 {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 1rem;
+            color: #f0f0f5;
+            margin-bottom: 6px;
+            letter-spacing: 0.08em;
+        }
+
+        .province-tooltip .type {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            color: #a78bfa;
+            letter-spacing: 0.15em;
+            margin-bottom: 10px;
+        }
+
+        .province-tooltip p {
+            font-size: 0.8rem;
+            color: #a0a0b0;
+            line-height: 1.45;
+        }
+
+        /* ============================================
+           ZOOM INDICATOR
+           ============================================ */
+
+        .zoom-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(10, 10, 15, 0.85);
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            border-radius: 6px;
+            padding: 8px 14px;
+            color: #a0a0b0;
+            font-size: 0.75rem;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .zoom-indicator span {
+            color: #a78bfa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="map-header">
+        <a href="index.html" class="back-menu-btn">
+            <span>&#8592;</span>
+            <span>Back to Menu</span>
+        </a>
+        <div class="header-title">
+            <span class="title-text">VOXYA</span>
+            <span class="title-subtitle">The Shattered Archipelago</span>
+        </div>
+    </header>
+
+    <!-- Lightning Flash Overlay -->
+    <div id="lightning-overlay"></div>
+
+    <!-- Starfield Background -->
+    <div class="starfield" id="starfield"></div>
+
+    <!-- Map Viewport -->
+    <div id="map-viewport">
+        <div id="map-world">
+            <!-- Low Detail Layer (Continent View) -->
+            <div id="low-detail-layer" class="map-layer">
+                <img src="assets/maps/voxya-continent.jpg?v=3" alt="Voxya Continent View">
+            </div>
+
+            <!-- High Detail Layer (Detailed View) -->
+            <div id="high-detail-layer" class="map-layer">
+                <img src="assets/maps/voxya-detailed.jpg?v=3" alt="Voxya Detailed View">
+            </div>
+
+            <!-- SVG Overlay -->
+            <svg id="interactive-overlay" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <filter id="strong-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="6" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <radialGradient id="mistGradient" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:0.35"/>
+                        <stop offset="50%" style="stop-color:#4c1d95;stop-opacity:0.12"/>
+                        <stop offset="100%" style="stop-color:#1e1b4b;stop-opacity:0"/>
+                    </radialGradient>
+                </defs>
+                <g id="connection-paths"></g>
+                <g id="province-markers"></g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="map-controls">
+        <button class="control-btn" id="zoom-in" title="Zoom In">+</button>
+        <button class="control-btn" id="zoom-out" title="Zoom Out">&minus;</button>
+        <button class="control-btn" id="reset-view" title="Reset View">&#8635;</button>
+    </div>
+
+    <!-- Zoom Indicator -->
+    <div class="zoom-indicator" id="zoom-indicator">Zoom: <span id="zoom-level">100%</span></div>
+
+    <!-- Province Tooltip -->
+    <div class="province-tooltip" id="province-tooltip">
+        <h3 id="tooltip-name"></h3>
+        <div class="type" id="tooltip-type"></div>
+        <p id="tooltip-desc"></p>
+    </div>
+
+    <script type="module">
+        // ============================================
+        // PROVINCE DATA
+        // ============================================
+
+        const PROVINCES = [];
+
+        const CONNECTIONS = [];
+
+        // ============================================
+        // ZOOM STATE
+        // ============================================
+
+        const viewport = document.getElementById('map-viewport');
+        const world = document.getElementById('map-world');
+        const overlay = document.getElementById('interactive-overlay');
+
+        const MIN_SCALE = 0.5;
+        const MAX_SCALE = 1.8;
+        const LOD_THRESHOLD_IN = 1.2;
+        const LOD_THRESHOLD_OUT = 0.9;
+
+        let currentScale = 0.3;
+        let translateX = 0;
+        let translateY = 0;
+
+        // Calculate initial center offset based on viewport
+        function getInitialOffset() {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight - 60;
+            const mapAspect = 1408 / 768;
+            const viewAspect = vw / vh;
+            let initialWidth, initialHeight;
+            if (viewAspect > mapAspect) {
+                initialHeight = vh;
+                initialWidth = initialHeight * mapAspect;
+            } else {
+                initialWidth = vw;
+                initialHeight = initialWidth / mapAspect;
+            }
+            const scaledWidth = initialWidth * currentScale;
+            const scaledHeight = initialHeight * currentScale;
+            return {
+                x: (vw - scaledWidth) / 2,
+                y: (vh - scaledHeight) / 2
+            };
+        }
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        function init() {
+            initStarfield();
+            renderMapElements();
+            setupZoom();
+            setupControls();
+            // Center the map initially
+            const offset = getInitialOffset();
+            translateX = offset.x;
+            translateY = offset.y;
+            updateTransform();
+            updateLOD();
+            updateZoomIndicator();
+        }
+
+        function initStarfield() {
+            const starfield = document.getElementById('starfield');
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.width = (0.5 + Math.random() * 1.5) + 'px';
+                star.style.height = star.style.width;
+                starfield.appendChild(star);
+            }
+        }
+
+        // ============================================
+        // RENDER MAP ELEMENTS
+        // ============================================
+
+        function renderMapElements() {
+            const pathsGroup = document.getElementById('connection-paths');
+            const markersGroup = document.getElementById('province-markers');
+            const width = viewport.clientWidth;
+            const height = viewport.clientHeight;
+
+            // Render connections
+            CONNECTIONS.forEach(conn => {
+                const from = PROVINCES.find(p => p.id === conn[0]);
+                const to = PROVINCES.find(p => p.id === conn[1]);
+                if (!from || !to) return;
+
+                const x1 = (from.x / 100) * width;
+                const y1 = (from.y / 100) * height;
+                const x2 = (to.x / 100) * width;
+                const y2 = (to.y / 100) * height;
+
+                pathsGroup.appendChild(createConnection(x1, y1, x2, y2));
+            });
+
+            // Render markers
+            PROVINCES.forEach(province => {
+                const x = (province.x / 100) * width;
+                const y = (province.y / 100) * height;
+                markersGroup.appendChild(createMarker(province, x, y));
+            });
+        }
+
+        function createConnection(x1, y1, x2, y2) {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const curveOffset = dist * 0.02;
+            const cx = midX - (dy / dist) * curveOffset;
+            const cy = midY + (dx / dist) * curveOffset;
+            const d = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+
+            // Base trail
+            const base = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            base.setAttribute('d', d);
+            base.setAttribute('fill', 'none');
+            base.setAttribute('stroke', '#1a0f0a');
+            base.setAttribute('stroke-width', '10');
+            base.setAttribute('stroke-linecap', 'round');
+            base.setAttribute('opacity', '0.7');
+            g.appendChild(base);
+
+            // Moss layer
+            const moss = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            moss.setAttribute('d', d);
+            moss.setAttribute('fill', 'none');
+            moss.setAttribute('stroke', '#2d4a2d');
+            moss.setAttribute('stroke-width', '6');
+            moss.setAttribute('stroke-linecap', 'round');
+            moss.setAttribute('opacity', '0.5');
+            g.appendChild(moss);
+
+            // Energy vein
+            const energy = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            energy.setAttribute('d', d);
+            energy.setAttribute('fill', 'none');
+            energy.setAttribute('stroke', '#7c3aed');
+            energy.setAttribute('stroke-width', '2');
+            energy.setAttribute('stroke-linecap', 'round');
+            energy.setAttribute('opacity', '0.5');
+            energy.style.filter = 'url(#soft-glow)';
+            energy.style.animation = 'pulse 2.5s ease-in-out infinite';
+            g.appendChild(energy);
+
+            // Stepping stones
+            const stones = Math.floor(dist / 50);
+            for (let i = 0; i <= stones; i++) {
+                const t = i / stones;
+                const sx = x1 + (x2 - x1) * t + (Math.random() - 0.5) * 8;
+                const sy = y1 + (y2 - y1) * t + (Math.random() - 0.5) * 8;
+                const stone = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                stone.setAttribute('cx', sx);
+                stone.setAttribute('cy', sy);
+                stone.setAttribute('rx', 4 + Math.random() * 3);
+                stone.setAttribute('ry', 3 + Math.random() * 2);
+                stone.setAttribute('fill', '#3a3a4a');
+                stone.setAttribute('opacity', '0.6');
+                g.appendChild(stone);
+            }
+
+            // Embers
+            const embers = Math.floor(dist / 40);
+            for (let i = 0; i < embers; i++) {
+                const t = (i + Math.random()) / embers;
+                const ex = x1 + (x2 - x1) * t;
+                const ey = y1 + (y2 - y1) * t;
+                const ember = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                ember.setAttribute('cx', ex + (Math.random() - 0.5) * 15);
+                ember.setAttribute('cy', ey + (Math.random() - 0.5) * 15);
+                ember.setAttribute('r', 1.5 + Math.random());
+                ember.setAttribute('fill', '#a78bfa');
+                ember.setAttribute('opacity', '0.5');
+                ember.style.animation = `emberFloat ${2 + Math.random() * 2}s ease-in-out infinite`;
+                g.appendChild(ember);
+            }
+
+            // Mist
+            const mists = Math.floor(dist / 70);
+            for (let i = 0; i < mists; i++) {
+                const t = (i + 0.5) / mists;
+                const mx = x1 + (x2 - x1) * t;
+                const my = y1 + (y2 - y1) * t;
+                const mist = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                mist.setAttribute('cx', mx);
+                mist.setAttribute('cy', my);
+                mist.setAttribute('rx', 15 + Math.random() * 10);
+                mist.setAttribute('ry', 6 + Math.random() * 5);
+                mist.setAttribute('fill', 'url(#mistGradient)');
+                mist.setAttribute('opacity', '0.35');
+                mist.style.animation = `mistDrift ${4 + Math.random() * 3}s ease-in-out infinite`;
+                g.appendChild(mist);
+            }
+
+            return g;
+        }
+
+        function createMarker(province, x, y) {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', 'province-marker');
+            g.setAttribute('transform', `translate(${x}, ${y})`);
+            g.dataset.province = JSON.stringify(province);
+
+            const isKing = province.type === 'King Base';
+            const outerR = isKing ? 22 : 16;
+            const innerR = isKing ? 14 : 10;
+
+            // Glow ring
+            const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            glow.setAttribute('r', outerR);
+            glow.setAttribute('fill', 'rgba(124, 58, 237, 0.25)');
+            glow.setAttribute('stroke', '#7c3aed');
+            glow.setAttribute('stroke-width', '2');
+            glow.style.filter = 'url(#strong-glow)';
+            g.appendChild(glow);
+
+            // Inner circle
+            const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            inner.setAttribute('r', innerR);
+            inner.setAttribute('fill', '#1a0a2e');
+            inner.setAttribute('stroke', '#a78bfa');
+            inner.setAttribute('stroke-width', '2');
+            g.appendChild(inner);
+
+            // Center symbol
+            if (isKing) {
+                const crown = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                crown.setAttribute('text-anchor', 'middle');
+                crown.setAttribute('dominant-baseline', 'central');
+                crown.setAttribute('fill', '#a78bfa');
+                crown.setAttribute('font-size', '16');
+                crown.textContent = '♧';
+                g.appendChild(crown);
+            } else {
+                const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.setAttribute('r', '4');
+                dot.setAttribute('fill', '#a78bfa');
+                g.appendChild(dot);
+            }
+
+            g.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showTooltip(province, e.clientX, e.clientY);
+            });
+
+            return g;
+        }
+
+        // ============================================
+        // ZOOM SYSTEM
+        // ============================================
+
+        function setupZoom() {
+            // Mouse wheel
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 1.1 : 0.9;
+                zoomToPoint(delta, e.clientX, e.clientY);
+            }, { passive: false });
+
+            // Drag
+            viewport.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                if (e.target.closest('.province-marker')) return;
+                isDragging = true;
+                dragStartX = e.clientX - translateX;
+                dragStartY = e.clientY - translateY;
+                viewport.classList.add('dragging');
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                translateX = e.clientX - dragStartX;
+                translateY = e.clientY - dragStartY;
+                updateTransform();
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                viewport.classList.remove('dragging');
+            });
+
+            // Double click zoom
+            viewport.addEventListener('dblclick', (e) => {
+                if (e.target.closest('.province-marker')) return;
+                zoomToPoint(1.5, e.clientX, e.clientY);
+            });
+
+            // Touch
+            let initialPinchDistance = null;
+            let initialPinchCenter = null;
+
+            viewport.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    dragStartX = e.touches[0].clientX - translateX;
+                    dragStartY = e.touches[0].clientY - translateY;
+                } else if (e.touches.length === 2) {
+                    isDragging = false;
+                    initialPinchDistance = getTouchDistance(e.touches);
+                    initialPinchCenter = getTouchCenter(e.touches);
+                }
+            });
+
+            viewport.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && isDragging) {
+                    translateX = e.touches[0].clientX - dragStartX;
+                    translateY = e.touches[0].clientY - dragStartY;
+                    updateTransform();
+                } else if (e.touches.length === 2 && initialPinchDistance) {
+                    e.preventDefault();
+                    const dist = getTouchDistance(e.touches);
+                    const center = getTouchCenter(e.touches);
+                    const delta = dist / initialPinchDistance;
+                    zoomToPoint(delta, center.x, center.y);
+                    initialPinchDistance = dist;
+                }
+            });
+
+            viewport.addEventListener('touchend', () => {
+                isDragging = false;
+                initialPinchDistance = null;
+            });
+        }
+
+        function getTouchDistance(touches) {
+            const dx = touches[1].clientX - touches[0].clientX;
+            const dy = touches[1].clientY - touches[0].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function getTouchCenter(touches) {
+            return {
+                x: (touches[0].clientX + touches[1].clientX) / 2,
+                y: (touches[0].clientY + touches[1].clientY) / 2
+            };
+        }
+
+        function zoomToPoint(factor, pointX, pointY) {
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = pointX - rect.left;
+            const mouseY = pointY - rect.top;
+
+            // Calculate mouse position in world coordinates before zoom
+            const worldX = (mouseX - translateX) / currentScale;
+            const worldY = (mouseY - translateY) / currentScale;
+
+            // Apply zoom
+            currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, currentScale * factor));
+
+            // Calculate new translate to keep mouse over same world point
+            translateX = mouseX - worldX * currentScale;
+            translateY = mouseY - worldY * currentScale;
+
+            updateTransform();
+            updateLOD();
+            updateZoomIndicator();
+        }
+
+        function updateTransform() {
+            world.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+            overlay.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+        }
+
+        function updateLOD() {
+            const lowDetail = document.getElementById('low-detail-layer');
+            const highDetail = document.getElementById('high-detail-layer');
+
+            if (currentScale < LOD_THRESHOLD_OUT) {
+                lowDetail.style.opacity = 1;
+                highDetail.style.opacity = 0;
+            } else if (currentScale > LOD_THRESHOLD_IN) {
+                lowDetail.style.opacity = 0;
+                highDetail.style.opacity = 1;
+            } else {
+                const t = (currentScale - LOD_THRESHOLD_OUT) / (LOD_THRESHOLD_IN - LOD_THRESHOLD_OUT);
+                lowDetail.style.opacity = 1 - t;
+                highDetail.style.opacity = t;
+            }
+        }
+
+        function updateZoomIndicator() {
+            const pct = Math.round((currentScale / MAX_SCALE) * 100);
+            document.getElementById('zoom-level').textContent = pct + '%';
+        }
+
+        // ============================================
+        // CONTROLS
+        // ============================================
+
+        function setupControls() {
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                const rect = viewport.getBoundingClientRect();
+                zoomToPoint(1.4, rect.left + rect.width / 2, rect.top + rect.height / 2);
+            });
+
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                const rect = viewport.getBoundingClientRect();
+                zoomToPoint(0.7, rect.left + rect.width / 2, rect.top + rect.height / 2);
+            });
+
+            document.getElementById('reset-view').addEventListener('click', () => {
+                currentScale = 0.3;
+                const offset = getInitialOffset();
+                translateX = offset.x;
+                translateY = offset.y;
+                updateTransform();
+                updateLOD();
+                updateZoomIndicator();
+            });
+        }
+
+        // ============================================
+        // TOOLTIP
+        // ============================================
+
+        function showTooltip(province, mouseX, mouseY) {
+            const tooltip = document.getElementById('province-tooltip');
+            document.getElementById('tooltip-name').textContent = province.name;
+            document.getElementById('tooltip-type').textContent = province.type;
+            document.getElementById('tooltip-desc').textContent = province.description;
+
+            const rect = tooltip.getBoundingClientRect();
+            let x = mouseX + 12;
+            let y = mouseY + 12;
+
+            if (x + rect.width > window.innerWidth - 10) {
+                x = mouseX - rect.width - 12;
+            }
+            if (y + rect.height > window.innerHeight - 10) {
+                y = mouseY - rect.height - 12;
+            }
+
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+            tooltip.classList.add('visible');
+
+            setTimeout(() => {
+                document.addEventListener('click', hideTooltip, { once: true });
+            }, 50);
+        }
+
+        function hideTooltip() {
+            document.getElementById('province-tooltip').classList.remove('visible');
+        }
+
+        // ============================================
+        // START
+        // ============================================
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>

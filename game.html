@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxya - The Shattered Archipelago</title>
+    <link rel="stylesheet" href="css/style.css?v=4">
+    <style>
+        /* Page-specific overrides */
+        :root {
+            --voxya-primary: #1a0a2e;
+            --voxya-secondary: #4b0082;
+            --voxya-glow: #7c3aed;
+            --voxya-accent: #a78bfa;
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: #050508;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+
+        .game-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.8) 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            color: #a0a0b0;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            border-color: rgba(124,58,237,0.4);
+            color: #fff;
+        }
+
+        .header-title-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header-title {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 1.3rem;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        .header-subtitle {
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 60px;
+        }
+
+        .header-stat-label {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .header-stat-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #e0e0e0;
+            font-family: monospace;
+        }
+
+        .header-stat-value.mana { color: #a78bfa; }
+        .header-stat-value.tick { color: #60a5fa; }
+
+        /* ============================================
+           MAP VIEWPORT
+           ============================================ */
+
+        #map-viewport {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+        }
+
+        #map-wrapper {
+            position: absolute;
+            inset: 0;
+            transform-origin: center center;
+            transition: transform 0.05s ease-out;
+        }
+
+#map-world {
+    position: absolute;
+    inset: 0;
+}
+
+.map-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: auto;
+            pointer-events: none;
+        }
+
+        #map-overlay {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        /* ============================================
+           STARFIELD
+           ============================================ */
+
+        .starfield {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: starTwinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes starTwinkle {
+            0%, 100% { opacity: 0.3; }
+            50%      { opacity: 1; }
+        }
+
+        /* ============================================
+           BOTTOM ACTION BAR
+           ============================================ */
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: linear-gradient(0deg, rgba(10,10,15,0.96) 0%, rgba(10,10,15,0.85) 100%);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 20px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: #a0a0b0;
+            cursor: pointer;
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            transition: all 0.15s;
+            min-width: 100px;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background: rgba(124,58,237,0.15);
+            border-color: rgba(124,58,237,0.4);
+            color: #e0e0e0;
+            transform: translateY(-1px);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .action-btn .btn-icon {
+            font-size: 1.1rem;
+        }
+
+        .action-btn.primary {
+            background: rgba(124,58,237,0.25);
+            border-color: rgba(124,58,237,0.5);
+            color: #c084fc;
+        }
+
+        .action-btn.primary:hover:not(:disabled) {
+            background: rgba(124,58,237,0.4);
+            color: #e0e0ff;
+        }
+
+        .action-btn.danger {
+            border-color: rgba(239,68,68,0.3);
+        }
+
+        .action-btn.danger:hover:not(:disabled) {
+            background: rgba(239,68,68,0.15);
+            border-color: rgba(239,68,68,0.5);
+            color: #fca5a5;
+        }
+
+        /* ============================================
+           STATUS MESSAGE
+           ============================================ */
+
+        .status-bar {
+            position: fixed;
+            bottom: 72px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10,10,15,0.85);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 6px 20px;
+            z-index: 1001;
+            backdrop-filter: blur(8px);
+            transition: opacity 0.2s;
+        }
+
+        .status-text {
+            font-size: 0.75rem;
+            color: #a0a0b0;
+            letter-spacing: 0.03em;
+        }
+
+        /* ============================================
+           ZOOM CONTROLS
+           ============================================ */
+
+        .zoom-controls {
+            position: fixed;
+            bottom: 88px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 1000;
+        }
+
+        .zoom-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(10,10,15,0.85);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            color: #a0a0b0;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            backdrop-filter: blur(8px);
+        }
+
+        .zoom-btn:hover {
+            border-color: rgba(124,58,237,0.4);
+            color: #fff;
+            background: rgba(124,58,237,0.15);
+        }
+
+        /* ============================================
+           CREATURE CONTEXT MENU
+           ============================================ */
+
+        .context-menu {
+            position: fixed;
+            background: rgba(10,10,15,0.94);
+            border: 1px solid rgba(124,58,237,0.3);
+            border-radius: 8px;
+            padding: 4px 0;
+            min-width: 150px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            z-index: 5000;
+            backdrop-filter: blur(8px);
+        }
+
+        .context-menu.hidden { display: none; }
+
+        .context-menu-item {
+            display: block;
+            width: 100%;
+            padding: 10px 16px;
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.1s;
+            letter-spacing: 0.03em;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(124,58,237,0.2);
+        }
+
+        /* ============================================
+           EDIT MODE TOGGLE (hidden by default, Shift+E)
+           ============================================ */
+
+        .edit-toggle {
+            position: fixed;
+            bottom: 90px;
+            left: 20px;
+            z-index: 2000;
+            background: rgba(124, 58, 237, 0.2);
+            border: 2px solid rgba(124, 58, 237, 0.6);
+            border-radius: 10px;
+            color: #c084fc;
+            padding: 12px 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+            letter-spacing: 0.06em;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+            animation: editorPulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes editorPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
+            50%      { box-shadow: 0 0 36px rgba(124, 58, 237, 0.6); }
+        }
+
+        .edit-toggle:hover {
+            background: rgba(124, 58, 237, 0.35);
+            border-color: #a78bfa;
+            color: #fff;
+            box-shadow: 0 0 40px rgba(124, 58, 237, 0.7);
+            transform: translateY(-2px);
+        }
+
+        .edit-toggle.active {
+            background: rgba(124, 58, 237, 0.4);
+            border-color: #a78bfa;
+            color: #e9d5ff;
+            animation: none;
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.5);
+        }
+
+        /* ============================================
+           LOADING / EMPTY STATE
+           ============================================ */
+
+        .empty-state {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+            pointer-events: none;
+        }
+
+        .empty-state-text {
+            font-family: 'Times New Roman', serif;
+            font-size: 1.4rem;
+            color: rgba(255,255,255,0.2);
+            letter-spacing: 0.12em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="game-header">
+        <div class="header-left">
+            <a href="index.html" class="back-btn">
+                <span>&#8592;</span> Menu
+            </a>
+        </div>
+        <div class="header-title-group">
+            <span class="header-title">VOXYA</span>
+            <span class="header-subtitle">The Shattered Archipelago</span>
+        </div>
+        <div class="header-right">
+            <div class="header-stat">
+                <span class="header-stat-label">Turn</span>
+                <span class="header-stat-value tick" id="tick-count">0</span>
+            </div>
+            <div class="header-stat">
+                <span class="header-stat-label">Mana</span>
+                <span class="header-stat-value mana" id="mana-count">5/10</span>
+            </div>
+            <div class="header-stat">
+                <span class="header-stat-label">Actions</span>
+                <span class="header-stat-value" id="actions-count">3</span>
+            </div>
+            <div class="header-stat">
+                <span class="header-stat-label">Origin</span>
+                <span class="header-stat-value" id="origin-name">-</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Starfield -->
+    <div class="starfield" id="starfield"></div>
+
+    <!-- Map Viewport -->
+    <div id="map-viewport">
+        <div id="map-wrapper">
+            <div id="map-world">
+                <img src="assets/maps/voxya-map-full.jpg?v=3" alt="Voxya" class="map-bg">
+            </div>
+
+            <!-- SVG Interactive Overlay -->
+            <svg id="map-overlay" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <filter id="strong-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="8" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <filter id="medium-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="5" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="4" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <filter id="unit-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="6" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <filter id="label-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.9"/>
+                    </filter>
+                    <filter id="editor-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="10" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                <!-- SVG Layers (order = z-order) -->
+                <g id="connection-paths"></g>
+                <g id="base-borders"></g>
+                <g id="sigils-layer"></g>
+                <g id="base-markers"></g>
+                <g id="units-layer"></g>
+                <g id="selection-layer"></g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="status-bar">
+        <span class="status-text" id="status-message">Select a base to begin</span>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+        <button class="zoom-btn" id="zoom-out" title="Zoom Out">&minus;</button>
+        <button class="zoom-btn" id="reset-view" title="Reset View">&#8635;</button>
+    </div>
+
+    <!-- Editor Toggle -->
+    <button class="edit-toggle" id="btn-edit-map" title="Toggle Map Editor (Shift+E)">
+        &#9998; Edit Map
+    </button>
+
+    <!-- Bottom Action Bar -->
+    <footer class="bottom-bar">
+        <button class="action-btn" id="btn-sigil" disabled>
+            <span class="btn-icon">&#10015;</span>
+            Craft Sigil
+        </button>
+        <button class="action-btn primary" id="btn-summon" disabled>
+            <span class="btn-icon">&#9733;</span>
+            Summon Creature
+        </button>
+        <button class="action-btn" id="btn-end-turn">
+            <span class="btn-icon">&#8634;</span>
+            End Turn
+        </button>
+    </footer>
+
+<!-- Base Tooltip -->
+    <div class="base-tooltip" id="base-tooltip" style="
+        position: fixed;
+        background: rgba(10,10,15,0.94);
+        border: 1px solid rgba(124,58,237,0.3);
+        border-radius: 8px;
+        padding: 12px 16px;
+        color: #e0e0e0;
+        z-index: 2000;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.2s, transform 0.2s;
+        max-width: 220px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        font-size: 0.8rem;
+    ">
+        <h3 id="tooltip-name" style="font-family:'Times New Roman',serif;font-size:1rem;color:#f0f0f5;margin-bottom:4px;"></h3>
+        <div id="tooltip-type" style="font-size:0.65rem;color:#a78bfa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;"></div>
+        <p id="tooltip-desc" style="font-size:0.78rem;color:#a0a0b0;line-height:1.4;"></p>
+    </div>
+
+    <!-- Additional Base Button (edit mode) -->
+    <button class="edit-toggle hidden" id="btn-add-base" style="bottom:130px;">
+        + Add Base
+    </button>
+
+    <script type="module" src="js/main.js?v=15"></script>
+</body>
+</html>

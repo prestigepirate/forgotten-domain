@@ -1,0 +1,2286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxya - The Shattered Archipelago</title>
+    <link rel="stylesheet" href="css/menu.css?v=3">
+    <style>
+        :root {
+            --voxya-primary: #1a0a2e;
+            --voxya-secondary: #4b0082;
+            --voxya-glow: #7c3aed;
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: #050508;
+        }
+
+        /* Main map container */
+        .map-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .map-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+            transition: transform 0.15s ease-out;
+        }
+
+        .map-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+        }
+
+        .map-overlay g {
+            pointer-events: auto;
+        }
+
+        /* Starfield background */
+        .starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: starTwinkle 4s ease-in-out infinite;
+        }
+
+        @keyframes starTwinkle {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Waypoint markers */
+        .waypoint-marker {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .waypoint-marker:hover {
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 15px #7c3aed);
+        }
+
+        .waypoint-marker.king-base {
+            filter: drop-shadow(0 0 20px #fbbf24);
+        }
+
+        .waypoint-marker.waypoint-diamond {
+            cursor: pointer;
+        }
+
+        .waypoint-marker.waypoint-diamond:hover {
+            filter: drop-shadow(0 0 12px #7c3aed);
+        }
+
+        /* Connection paths */
+        .connection-path {
+            pointer-events: none;
+        }
+
+        /* Animations */
+        @keyframes emberFloat {
+            0%, 100% {
+                opacity: 0.3;
+                transform: translateY(0) scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: translateY(-15px) scale(1.2);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.3;
+                stroke-width: 2;
+            }
+            50% {
+                opacity: 0.6;
+                stroke-width: 3;
+            }
+        }
+
+        @keyframes mistDrift {
+            0%, 100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            33% {
+                transform: translate(5px, -3px) rotate(5deg);
+            }
+            66% {
+                transform: translate(-3px, 5px) rotate(-5deg);
+            }
+        }
+
+        /* Waypoint tooltip */
+        .waypoint-tooltip {
+            position: fixed;
+            background: rgba(10, 10, 15, 0.95);
+            border: 1px solid rgba(124, 58, 237, 0.5);
+            border-radius: 8px;
+            padding: 16px 20px;
+            max-width: 280px;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.3);
+        }
+
+        .waypoint-tooltip.visible {
+            opacity: 1;
+        }
+
+        .waypoint-tooltip h3 {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 1.1rem;
+            color: #f0f0f5;
+            margin-bottom: 8px;
+            letter-spacing: 0.1em;
+        }
+
+        .waypoint-tooltip.type {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #7c3aed;
+            letter-spacing: 0.15em;
+            margin-bottom: 12px;
+        }
+
+        .waypoint-tooltipp {
+            font-size: 0.85rem;
+            color: #a0a0b0;
+            line-height: 1.5;
+        }
+
+        /* Pan/Zoom controls */
+        .map-controls {
+            position: fixed;
+            right: 15px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(30, 30, 45, 0.85);
+            border: 1px solid rgba(124, 58, 237, 0.35);
+            border-radius: 8px;
+            color: #f0f0f5;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: rgba(124, 58, 237, 0.3);
+            border-color: #7c3aed;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+        }
+
+        /* Header */
+        .map-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.8) 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 40px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title-text {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 1.3rem;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.5), 0 0 30px rgba(255,255,255,0.3);
+        }
+
+        .title-subtitle {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 0.65rem;
+            font-weight: 400;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Back to menu button */
+        .back-menu-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: rgba(10, 10, 15, 0.8);
+            border: 1px solid rgba(124, 58, 237, 0.5);
+            border-radius: 20px;
+            color: #f0f0f5;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+        }
+
+        .back-menu-btn:hover {
+            background: rgba(124, 58, 237, 0.3);
+            border-color: #7c3aed;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+        }
+
+        /* Bottom Action Bar */
+        .bottom-action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: linear-gradient(180deg, rgba(5,5,8,0) 0%, rgba(5,5,8,0.98) 100%);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            z-index: 1000;
+            backdrop-filter: blur(15px);
+        }
+
+        .action-tabs-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .action-tab {
+            min-width: 100px;
+            height: 52px;
+            background: linear-gradient(135deg, rgba(26,10,46,0.8) 0%, rgba(10,10,15,0.9) 100%);
+            border: 1px solid rgba(124, 58, 237, 0.35);
+            border-radius: 12px;
+            color: #a78bfa;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .tab-icon {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .tab-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+        }
+
+        .action-tab:hover {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(76, 29, 149, 0.4) 100%);
+            border-color: #a78bfa;
+            color: #f0f0f5;
+            box-shadow: 0 0 25px rgba(124, 58, 237, 0.4), inset 0 0 20px rgba(124, 58, 237, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .action-tab:active {
+            transform: translateY(0);
+        }
+
+        /* Edit Mode Overlay */
+        .edit-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: none;
+        }
+
+        .edit-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .edit-overlay.hidden {
+            display: none;
+        }
+
+        .edit-overlay * {
+            pointer-events: auto;
+        }
+
+        /* Edit mode cursors - only change on specific elements */
+        .edit-mode .map-overlay {
+            cursor: grab;
+        }
+
+        .edit-mode .map-overlay:active {
+            cursor: grabbing;
+        }
+
+        .edit-mode .waypoint-marker {
+            cursor: move !important;
+        }
+
+        .edit-mode .waypoint-marker.carried {
+            filter: drop-shadow(0 0 20px #fbbf24) drop-shadow(0 0 40px rgba(251, 191, 36, 0.5));
+            animation: carryPulse 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes carryPulse {
+            from { opacity: 0.85; }
+            to { opacity: 1; }
+        }
+
+        .edit-panel {
+            background: linear-gradient(135deg, rgba(26, 10, 46, 0.95) 0%, rgba(10, 10, 15, 0.98) 100%);
+            border: 1px solid rgba(124, 58, 237, 0.5);
+            border-radius: 16px;
+            padding: 24px;
+            min-width: 280px;
+            box-shadow: 0 0 40px rgba(124, 58, 237, 0.3), inset 0 0 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .edit-panel.minimized {
+            padding: 10px 24px;
+            min-width: auto;
+            border-radius: 12px;
+        }
+
+        .edit-panel.minimized .edit-panel-inner {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.35s ease;
+        }
+
+        .edit-panel-inner {
+            max-height: 800px;
+            opacity: 1;
+            transition: max-height 0.35s ease, opacity 0.25s ease 0.1s, margin 0.35s ease;
+        }
+
+        .edit-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .edit-panel-title {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 1.2rem;
+            color: #f0f0f5;
+            letter-spacing: 0.15em;
+            text-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .edit-panel.minimized .edit-panel-title {
+            margin-bottom: 0;
+        }
+
+        .minimize-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            border-radius: 8px;
+            color: #a78bfa;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .minimize-btn:hover {
+            background: rgba(124, 58, 237, 0.4);
+            border-color: #a78bfa;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
+        }
+
+        .edit-tools {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .edit-tool {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 48px;
+            background: rgba(30, 30, 45, 0.6);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 10px;
+            color: #a78bfa;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .edit-tool:hover {
+            background: rgba(124, 58, 237, 0.25);
+            border-color: #a78bfa;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .edit-tool.active {
+            background: rgba(124, 58, 237, 0.4);
+            border-color: #a78bfa;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+            color: #f0f0f5;
+        }
+
+        .edit-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .edit-action-btn {
+            width: 100%;
+            height: 40px;
+            background: rgba(30, 30, 45, 0.5);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 8px;
+            color: #a78bfa;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+        }
+
+        .edit-action-btn:hover {
+            background: rgba(124, 58, 237, 0.25);
+            border-color: #a78bfa;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .edit-action-btn.danger {
+            border-color: rgba(220, 38, 38, 0.4);
+            color: #f87171;
+        }
+
+        .edit-action-btn.danger:hover {
+            background: rgba(220, 38, 38, 0.2);
+            border-color: #f87171;
+            box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .close-edit-btn {
+            width: 100%;
+            height: 44px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.4) 0%, rgba(76, 29, 149, 0.5) 100%);
+            border: 1px solid rgba(124, 58, 237, 0.6);
+            border-radius: 10px;
+            color: #f0f0f5;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .close-edit-btn:hover {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.6) 0%, rgba(76, 29, 149, 0.7) 100%);
+            border-color: #a78bfa;
+            box-shadow: 0 0 25px rgba(124, 58, 237, 0.5);
+        }
+
+        /* Edit mode markers styling */
+        .edit-mode .waypoint-marker {
+            cursor: move;
+        }
+
+        .edit-mode .waypoint-marker:hover {
+            filter: drop-shadow(0 0 25px #f87171);
+        }
+
+        .edit-mode .trail-segment {
+            cursor: pointer;
+        }
+
+        .edit-mode .trail-segment:hover {
+            filter: drop-shadow(0 0 15px #f87171);
+        }
+
+        /* Asset Library */
+        .asset-library {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(10, 10, 15, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .asset-library-title {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 0.9rem;
+            color: #a78bfa;
+            text-align: center;
+            margin-bottom: 12px;
+            letter-spacing: 0.1em;
+        }
+
+        .asset-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .asset-category {
+            flex: 1;
+            min-width: 70px;
+            padding: 8px 12px;
+            background: rgba(30, 30, 45, 0.5);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 6px;
+            color: #a78bfa;
+            font-size: 0.65rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .asset-category:hover {
+            background: rgba(124, 58, 237, 0.25);
+            border-color: #a78bfa;
+        }
+
+        .asset-category.active {
+            background: rgba(124, 58, 237, 0.4);
+            border-color: #a78bfa;
+            color: #f0f0f5;
+        }
+
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 4px;
+            margin-bottom: 12px;
+        }
+
+        .asset-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .asset-grid::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .asset-grid::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.5);
+            border-radius: 3px;
+        }
+
+        .asset-item {
+            aspect-ratio: 1;
+            background: rgba(30, 30, 45, 0.4);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1.5rem;
+            position: relative;
+        }
+
+        .asset-item:hover {
+            background: rgba(124, 58, 237, 0.25);
+            border-color: #a78bfa;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
+        }
+
+        .asset-item.selected {
+            background: rgba(124, 58, 237, 0.4);
+            border-color: #a78bfa;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+        }
+
+        .asset-item img {
+            max-width: 80%;
+            max-height: 80%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.5));
+        }
+
+        .asset-size-control {
+            margin-bottom: 10px;
+        }
+
+        .asset-size-control label {
+            display: flex;
+            justify-content: space-between;
+            color: #a0a0b0;
+            font-size: 0.7rem;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .asset-size-control input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(124, 58, 237, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .asset-size-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #a78bfa;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+        }
+
+        .edit-tools {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .edit-tool {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 8px;
+            background: rgba(30, 30, 45, 0.6);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 10px;
+            color: #a78bfa;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            gap: 4px;
+        }
+
+        .edit-tool span:first-child {
+            font-size: 1.2rem;
+        }
+
+        .tool-label {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: center;
+        }
+
+        .edit-tool:hover {
+            background: rgba(124, 58, 237, 0.25);
+            border-color: #a78bfa;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .edit-tool.active {
+            background: rgba(124, 58, 237, 0.4);
+            border-color: #a78bfa;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+            color: #f0f0f5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="map-header">
+        <div class="header-title">
+            <span class="title-text">VOXYA</span>
+            <span class="title-subtitle">The Shattered Archipelago</span>
+        </div>
+    </header>
+
+    <!-- Back to Menu -->
+    <a href="index.html" class="back-menu-btn">
+        <span>&#8592;</span>
+        <span>Back to Menu</span>
+    </a>
+
+    <!-- Starfield Background -->
+    <div class="starfield" id="starfield"></div>
+
+    <!-- Map Viewer -->
+    <div class="map-viewer">
+        <div class="map-wrapper" id="map-wrapper">
+            <!-- Map Background -->
+            <img
+                src="assets/maps/voxya-map-full.jpg"
+                alt="Voxya - The Shattered Archipelago"
+                class="map-background"
+                id="map-background"
+                draggable="false"
+            />
+
+            <!-- SVG Overlay for Interactive Elements -->
+            <svg
+                class="map-overlay"
+                id="map-overlay"
+                xmlns="http://www.w3.org/2000/svg"
+                preserveAspectRatio="xMidYMid slice"
+            >
+                <defs>
+                    <filter id="strong-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="8" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="4" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <radialGradient id="mistGradient" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:0.4" />
+                        <stop offset="50%" style="stop-color:#4c1d95;stop-opacity:0.15" />
+                        <stop offset="100%" style="stop-color:#1e1b4b;stop-opacity:0" />
+                    </radialGradient>
+                </defs>
+                <g id="map-transform-group">
+                    <g id="connection-paths"></g>
+                    <g id="waypoint-markers"></g>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Pan/Zoom Controls -->
+    <div class="map-controls">
+        <button class="control-btn" id="zoom-in" title="Zoom In (Scroll)">+</button>
+        <button class="control-btn" id="zoom-out" title="Zoom Out">&minus;</button>
+        <button class="control-btn" id="reset-view" title="Reset View">&#8635;</button>
+        <button class="control-btn" id="edit-mode-btn" title="Edit Map" style="background: rgba(124, 58, 237, 0.3); border-color: #a78bfa;">&#9998;</button>
+    </div>
+
+    <!-- Edit Mode Overlay -->
+    <div class="edit-overlay hidden" id="edit-overlay">
+        <div class="edit-panel" id="edit-panel">
+            <div class="edit-panel-header">
+                <h3 class="edit-panel-title">Prestige Map Editor</h3>
+                <button class="minimize-btn" id="minimize-panel-btn" title="Minimize Panel">−</button>
+            </div>
+            <div class="edit-panel-inner">
+            <div class="edit-tools">
+                <button class="edit-tool active" data-tool="select" title="Select/Move">
+                    <span>&#9654;</span>
+                    <span class="tool-label">Select</span>
+                </button>
+                <button class="edit-tool" data-tool="add-king-base" title="Add King Base">
+                    <span>&#9813;</span>
+                    <span class="tool-label">King Base</span>
+                </button>
+                <button class="edit-tool" data-tool="add-base" title="Add Base">
+                    <span>+</span>
+                    <span class="tool-label">Add Base</span>
+                </button>
+                <button class="edit-tool" data-tool="add-waypoint" title="Add Waypoint">
+                    <span>&#9670;</span>
+                    <span class="tool-label">Waypoint</span>
+                </button>
+                <button class="edit-tool" data-tool="add-trail" title="Add Trail">
+                    <span>&#9998;</span>
+                    <span class="tool-label">Add Trail</span>
+                </button>
+                <button class="edit-tool" data-tool="remove-trail" title="Remove Trail">
+                    <span>&#10005;</span>
+                    <span class="tool-label">Remove Trail</span>
+                </button>
+                <button class="edit-tool" data-tool="remove-waypoint" title="Remove Waypoint">
+                    <span>&#128465;</span>
+                    <span class="tool-label">Remove Waypoint</span>
+                </button>
+                <button class="edit-tool" data-tool="place-asset" title="Place Asset">
+                    <span>&#127912;</span>
+                    <span class="tool-label">Place Asset</span>
+                </button>
+                <button class="edit-tool" data-tool="remove-asset" title="Remove Asset">
+                    <span>&#128465;</span>
+                    <span class="tool-label">Remove Asset</span>
+                </button>
+            </div>
+
+            <!-- Asset Library -->
+            <div class="asset-library" id="asset-library">
+                <h4 class="asset-library-title">Asset Library</h4>
+                <div class="asset-categories">
+                    <button class="asset-category active" data-category="trees">Trees</button>
+                    <button class="asset-category" data-category="structures">Structures</button>
+                    <button class="asset-category" data-category="decorations">Decorations</button>
+                    <button class="asset-category" data-category="custom">Custom</button>
+                </div>
+                <div class="asset-grid" id="asset-grid">
+                    <!-- Assets populated by JS -->
+                </div>
+                <div class="asset-size-control">
+                    <label>Asset Size: <span id="asset-size-value">1.0</span>x</label>
+                    <input type="range" id="asset-size-slider" min="0.3" max="3" step="0.1" value="1">
+                </div>
+                <div class="asset-size-control">
+                    <label>Asset Rotation: <span id="asset-rotation-value">0°</span></label>
+                    <input type="range" id="asset-rotation-slider" min="0" max="360" step="15" value="0">
+                </div>
+            </div>
+
+            <div class="edit-actions">
+                <button class="edit-action-btn" id="export-map-btn">Export JSON</button>
+                <button class="edit-action-btn" id="import-map-btn">Import JSON</button>
+                <button class="edit-action-btn danger" id="clear-trails-btn">Clear All Trails</button>
+                <button class="edit-action-btn danger" id="clear-assets-btn">Clear All Assets</button>
+            </div>
+            <button class="close-edit-btn" id="close-edit-btn">Done</button>
+            </div><!-- end edit-panel-inner -->
+        </div>
+        <input type="file" id="import-file" accept=".json" style="display:none">
+        <input type="file" id="custom-asset-file" accept="image/*" style="display:none">
+    </div>
+
+    <!-- Bottom Action Bar -->
+    <footer class="bottom-action-bar">
+        <div class="action-tabs-center">
+            <button class="action-tab" id="btn-home">
+                <span class="tab-icon">&#8962;</span>
+                <span class="tab-label">Home</span>
+            </button>
+            <button class="action-tab" id="btn-profile">
+                <span class="tab-icon">&#9786;</span>
+                <span class="tab-label">Profile</span>
+            </button>
+            <button class="action-tab" id="btn-spellbook">
+                <span class="tab-icon">&#9998;</span>
+                <span class="tab-label">Spellbook</span>
+            </button>
+            <button class="action-tab" id="btn-academics">
+                <span class="tab-icon">&#128218;</span>
+                <span class="tab-label">Academics</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Waypoint Tooltip -->
+    <div class="waypoint-tooltip" id="waypoint-tooltip">
+        <h3 id="tooltip-name"></h3>
+        <div class="type" id="tooltip-type"></div>
+        <p id="tooltip-desc"></p>
+    </div>
+
+    <script type="module">
+        // ============================================
+        // Voxya Waypoint Data
+        // ============================================
+
+        const WAYPOINTS = [
+            {"id":"custom-waypoint-1777253748873","name":"New Waypoint","type":"Base","x":39,"y":23,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253753191","name":"New Waypoint","type":"Base","x":58,"y":21,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253756341","name":"New Waypoint","type":"Base","x":65,"y":50,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253759489","name":"New Waypoint","type":"Base","x":53,"y":35,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253764607","name":"New Waypoint","type":"Base","x":43,"y":61,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253772672","name":"New Waypoint","type":"Base","x":33,"y":81,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253779441","name":"New Waypoint","type":"Base","x":58,"y":80,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253897193","name":"New King Base","type":"King Base","x":20,"y":33,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253907258","name":"New Waypoint","type":"Base","x":34,"y":46,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253913026","name":"New Waypoint","type":"Base","x":16,"y":66,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777253928260","name":"New Waypoint","type":"Base","x":7,"y":44,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254509654","name":"New Waypoint","type":"Waypoint","x":41,"y":29,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254518669","name":"New Waypoint","type":"Waypoint","x":37,"y":31,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254529205","name":"New Waypoint","type":"Waypoint","x":33,"y":28,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254533404","name":"New Waypoint","type":"Waypoint","x":26,"y":32,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254540571","name":"New Waypoint","type":"Waypoint","x":22,"y":39,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254551053","name":"New Waypoint","type":"Waypoint","x":15,"y":40,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254555136","name":"New Waypoint","type":"Waypoint","x":12,"y":44,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254570572","name":"New Waypoint","type":"Waypoint","x":18,"y":71,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254578136","name":"New Waypoint","type":"Waypoint","x":20,"y":73,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254581304","name":"New Waypoint","type":"Waypoint","x":22,"y":63,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254585738","name":"New Waypoint","type":"Waypoint","x":25,"y":78,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254590521","name":"New Waypoint","type":"Waypoint","x":37,"y":76,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254593139","name":"New Waypoint","type":"Waypoint","x":40,"y":67,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254598273","name":"New Waypoint","type":"Waypoint","x":48,"y":66,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254604119","name":"New Waypoint","type":"Waypoint","x":53,"y":74,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254608987","name":"New Waypoint","type":"Waypoint","x":60,"y":71,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254611787","name":"New Waypoint","type":"Waypoint","x":62,"y":61,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254615795","name":"New Waypoint","type":"Waypoint","x":78,"y":72,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254977214","name":"New King Base","type":"King Base","x":76,"y":32,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255897924","name":"New Waypoint","type":"Base","x":89,"y":52,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777254996978","name":"New Waypoint","type":"Base","x":82,"y":77,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255021045","name":"New Waypoint","type":"Waypoint","x":63,"y":24,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255025479","name":"New Waypoint","type":"Waypoint","x":69,"y":30,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255029711","name":"New Waypoint","type":"Waypoint","x":73,"y":38,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255033062","name":"New Waypoint","type":"Waypoint","x":80,"y":39,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255877491","name":"New Waypoint","type":"Waypoint","x":85,"y":50,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255883775","name":"New Waypoint","type":"Waypoint","x":86,"y":58,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255050078","name":"New Waypoint","type":"Waypoint","x":83,"y":67,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255059178","name":"New Waypoint","type":"Waypoint","x":87,"y":71,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255065679","name":"New Waypoint","type":"Waypoint","x":89,"y":85,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255069579","name":"New Waypoint","type":"Waypoint","x":85,"y":87,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255077079","name":"New Waypoint","type":"Waypoint","x":79,"y":84,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255082911","name":"New Waypoint","type":"Waypoint","x":75,"y":75,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255098962","name":"New Waypoint","type":"Waypoint","x":68,"y":62,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777255101246","name":"New Waypoint","type":"Waypoint","x":72,"y":60,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256549281","name":"New Waypoint","type":"Waypoint","x":55,"y":44,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256554827","name":"New Waypoint","type":"Waypoint","x":58,"y":48,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256558843","name":"New Waypoint","type":"Waypoint","x":51,"y":44,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256578544","name":"New Waypoint","type":"Waypoint","x":47,"y":38,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256598109","name":"New Waypoint","type":"Waypoint","x":30,"y":53,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256608792","name":"New Waypoint","type":"Waypoint","x":13,"y":75,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256613125","name":"New Waypoint","type":"Waypoint","x":10,"y":69,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256683243","name":"New Waypoint","type":"Waypoint","x":18,"y":60,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256730629","name":"New Waypoint","type":"Waypoint","x":28,"y":46,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256738513","name":"New Waypoint","type":"Waypoint","x":35,"y":41,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256788344","name":"New Waypoint","type":"Waypoint","x":33,"y":54,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256796743","name":"New Waypoint","type":"Waypoint","x":31,"y":51,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256836042","name":"New Waypoint","type":"Waypoint","x":43,"y":23,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777256845807","name":"New Waypoint","type":"Waypoint","x":45,"y":26,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777257597647","name":"New Waypoint","type":"Waypoint","x":59,"y":36,"description":"A newly established waypoint"},
+            {"id":"custom-waypoint-1777257607130","name":"New Waypoint","type":"Waypoint","x":55,"y":32,"description":"A newly established waypoint"}
+        ];
+        const CONNECTIONS = [
+            ["custom-waypoint-1777253897193","custom-waypoint-1777254540571"],
+            ["custom-waypoint-1777254540571","custom-waypoint-1777254551053"],
+            ["custom-waypoint-1777254551053","custom-waypoint-1777254555136"],
+            ["custom-waypoint-1777254555136","custom-waypoint-1777253928260"],
+            ["custom-waypoint-1777254540571","custom-waypoint-1777254533404"],
+            ["custom-waypoint-1777254533404","custom-waypoint-1777254529205"],
+            ["custom-waypoint-1777254529205","custom-waypoint-1777254518669"],
+            ["custom-waypoint-1777254518669","custom-waypoint-1777254509654"],
+            ["custom-waypoint-1777254509654","custom-waypoint-1777253748873"],
+            ["custom-waypoint-1777253913026","custom-waypoint-1777254570572"],
+            ["custom-waypoint-1777254570572","custom-waypoint-1777254578136"],
+            ["custom-waypoint-1777254578136","custom-waypoint-1777254581304"],
+            ["custom-waypoint-1777254578136","custom-waypoint-1777254585738"],
+            ["custom-waypoint-1777254585738","custom-waypoint-1777253772672"],
+            ["custom-waypoint-1777253772672","custom-waypoint-1777254590521"],
+            ["custom-waypoint-1777254590521","custom-waypoint-1777254593139"],
+            ["custom-waypoint-1777254593139","custom-waypoint-1777253764607"],
+            ["custom-waypoint-1777253764607","custom-waypoint-1777254598273"],
+            ["custom-waypoint-1777254598273","custom-waypoint-1777254604119"],
+            ["custom-waypoint-1777254604119","custom-waypoint-1777253779441"],
+            ["custom-waypoint-1777253779441","custom-waypoint-1777254608987"],
+            ["custom-waypoint-1777255897924","custom-waypoint-1777255883775"],
+            ["custom-waypoint-1777255883775","custom-waypoint-1777255050078"],
+            ["custom-waypoint-1777255050078","custom-waypoint-1777255059178"],
+            ["custom-waypoint-1777255059178","custom-waypoint-1777255065679"],
+            ["custom-waypoint-1777255065679","custom-waypoint-1777255069579"],
+            ["custom-waypoint-1777255069579","custom-waypoint-1777255077079"],
+            ["custom-waypoint-1777255077079","custom-waypoint-1777254996978"],
+            ["custom-waypoint-1777255077079","custom-waypoint-1777255082911"],
+            ["custom-waypoint-1777255082911","custom-waypoint-1777254615795"],
+            ["custom-waypoint-1777254615795","custom-waypoint-1777255101246"],
+            ["custom-waypoint-1777255101246","custom-waypoint-1777255098962"],
+            ["custom-waypoint-1777255098962","custom-waypoint-1777255082911"],
+            ["custom-waypoint-1777255098962","custom-waypoint-1777254611787"],
+            ["custom-waypoint-1777254611787","custom-waypoint-1777253756341"],
+            ["custom-waypoint-1777254611787","custom-waypoint-1777254608987"],
+            ["custom-waypoint-1777255877491","custom-waypoint-1777255897924"],
+            ["custom-waypoint-1777255877491","custom-waypoint-1777255033062"],
+            ["custom-waypoint-1777255033062","custom-waypoint-1777255029711"],
+            ["custom-waypoint-1777255029711","custom-waypoint-1777254977214"],
+            ["custom-waypoint-1777255029711","custom-waypoint-1777255025479"],
+            ["custom-waypoint-1777255025479","custom-waypoint-1777255021045"],
+            ["custom-waypoint-1777255021045","custom-waypoint-1777253753191"],
+            ["custom-waypoint-1777253764607","custom-waypoint-1777253907258"],
+            ["custom-waypoint-1777254611787","custom-waypoint-1777256554827"],
+            ["custom-waypoint-1777256554827","custom-waypoint-1777256549281"],
+            ["custom-waypoint-1777256549281","custom-waypoint-1777256558843"],
+            ["custom-waypoint-1777256558843","custom-waypoint-1777256578544"],
+            ["custom-waypoint-1777254581304","custom-waypoint-1777256598109"],
+            ["custom-waypoint-1777254570572","custom-waypoint-1777256608792"],
+            ["custom-waypoint-1777256608792","custom-waypoint-1777256613125"],
+            ["custom-waypoint-1777254581304","custom-waypoint-1777256683243"],
+            ["custom-waypoint-1777256598109","custom-waypoint-1777253907258"],
+            ["custom-waypoint-1777256598109","custom-waypoint-1777256730629"],
+            ["custom-waypoint-1777256730629","custom-waypoint-1777253907258"],
+            ["custom-waypoint-1777253907258","custom-waypoint-1777256738513"],
+            ["custom-waypoint-1777256796743","custom-waypoint-1777256788344"],
+            ["custom-waypoint-1777254509654","custom-waypoint-1777256845807"],
+            ["custom-waypoint-1777256845807","custom-waypoint-1777256836042"],
+            ["custom-waypoint-1777256730629","custom-waypoint-1777254540571"],
+            ["custom-waypoint-1777256730629","custom-waypoint-1777256796743"],
+            ["custom-waypoint-1777256578544","custom-waypoint-1777254509654"],
+            ["custom-waypoint-1777254518669","custom-waypoint-1777256738513"],
+            ["custom-waypoint-1777256558843","custom-waypoint-1777253759489"],
+            ["custom-waypoint-1777257607130","custom-waypoint-1777253753191"],
+            ["custom-waypoint-1777257597647","custom-waypoint-1777257607130"],
+            ["custom-waypoint-1777256549281","custom-waypoint-1777257597647"]
+        ];
+
+        // ============================================
+        // Map State
+        // ============================================
+
+        const mapState = {
+            scale: 1.3,
+            panX: 0,
+            panY: 0,
+            isPanning: false,
+            panStartX: 0,
+            panStartY: 0
+        };
+
+        // ============================================
+        // Initialize
+        // ============================================
+
+        function init() {
+            initStarfield();
+            renderMap();
+            setupMapInteraction();
+            setupControls();
+        }
+
+        // ============================================
+        // Starfield
+        // ============================================
+
+        function initStarfield() {
+            const starfield = document.getElementById('starfield');
+            const starCount = 150;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.width = (0.5 + Math.random() * 1.5) + 'px';
+                star.style.height = star.style.width;
+                starfield.appendChild(star);
+            }
+        }
+
+        // ============================================
+        // Render Map
+        // ============================================
+
+        // Asset Library Data
+        const ASSET_LIBRARY = {
+            trees: [
+                { id: 'tree-dead', emoji: '🌲', name: 'Dead Tree' },
+                { id: 'tree-twisted', emoji: '🌳', name: 'Twisted Tree' },
+                { id: 'tree-bare', emoji: '🎋', name: 'Bare Tree' },
+                { id: 'tree-spooky', emoji: '🌿', name: 'Spooky Bush' }
+            ],
+            structures: [
+                { id: 'castle', emoji: '🏰', name: 'Castle' },
+                { id: 'temple', emoji: '⛩️', name: 'Temple' },
+                { id: 'church', emoji: '⛪', name: 'Church' },
+                { id: 'ruins', emoji: '🏛️', name: 'Ruins' }
+            ],
+            decorations: [
+                { id: 'crown', emoji: '👑', name: 'Crown' },
+                { id: 'skull', emoji: '💀', name: 'Skull' },
+                { id: 'crystal', emoji: '🔮', name: 'Crystal' },
+                { id: 'flame', emoji: '🔥', name: 'Dark Flame' },
+                { id: 'statue', emoji: '🗿', name: 'Statue' },
+                { id: 'door', emoji: '🚪', name: 'Door' }
+            ],
+            custom: []
+        };
+
+        let selectedAsset = null;
+        let assetSize = 1.0;
+        let assetRotation = 0;
+        let placedAssets = [];
+
+        function renderAssetLibrary() {
+            const grid = document.getElementById('asset-grid');
+            if (!grid) return;
+
+            const category = document.querySelector('.asset-category.active')?.dataset.category || 'trees';
+            const assets = ASSET_LIBRARY[category] || [];
+
+            grid.innerHTML = assets.map(asset => `
+                <div class="asset-item ${selectedAsset?.id === asset.id ? 'selected' : ''}" data-asset-id="${asset.id}">
+                    ${asset.emoji}
+                </div>
+            `).join('');
+
+            grid.querySelectorAll('.asset-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.asset-item').forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+                    const assetId = item.dataset.assetId;
+                    const categoryAssets = ASSET_LIBRARY[category] || [];
+                    selectedAsset = categoryAssets.find(a => a.id === assetId);
+                    console.log('Asset selected:', selectedAsset);
+                });
+            });
+        }
+
+        function renderPlacedAssets() {
+            const assetsGroup = document.getElementById('placed-assets');
+            if (!assetsGroup) return;
+
+            assetsGroup.innerHTML = '';
+            const wrapper = document.getElementById('map-wrapper');
+            if (!wrapper) return;
+
+            const rect = wrapper.getBoundingClientRect();
+
+            placedAssets.forEach(asset => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', `translate(${asset.x}, ${asset.y}) rotate(${asset.rotation}) scale(${asset.size})`);
+                g.setAttribute('class', 'placed-asset');
+                g.dataset.asset = JSON.stringify(asset);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'central');
+                text.setAttribute('font-size', '40');
+                text.textContent = asset.emoji;
+                g.appendChild(text);
+
+                // Edit mode click handler
+                g.addEventListener('click', (e) => {
+                    if (!editMode) return;
+                    if (currentTool === 'remove-asset') {
+                        e.stopPropagation();
+                        const idx = placedAssets.findIndex(a => a.id === asset.id);
+                        if (idx >= 0) {
+                            placedAssets.splice(idx, 1);
+                            renderPlacedAssets();
+                        }
+                    } else if (currentTool === 'select') {
+                        e.stopPropagation();
+                        // Select for moving
+                        selectedAssetInstance = asset;
+                        document.querySelectorAll('.placed-asset').forEach(a => {
+                            a.querySelector('.selection-indicator')?.remove();
+                        });
+                        const indicator = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        indicator.setAttribute('class', 'selection-indicator');
+                        indicator.setAttribute('r', '25');
+                        indicator.setAttribute('fill', 'none');
+                        indicator.setAttribute('stroke', '#fbbf24');
+                        indicator.setAttribute('stroke-width', '2');
+                        indicator.setAttribute('stroke-dasharray', '4 2');
+                        g.insertBefore(indicator, g.firstChild);
+                    }
+                });
+
+                assetsGroup.appendChild(g);
+            });
+        }
+
+        function renderMap() {
+            const svg = document.getElementById('map-overlay');
+            const pathsGroup = document.getElementById('connection-paths');
+            const markersGroup = document.getElementById('waypoint-markers');
+            const wrapper = document.getElementById('map-wrapper');
+
+            if (!svg || !pathsGroup || !markersGroup || !wrapper) return;
+
+            // Clear existing content to avoid duplication
+            pathsGroup.innerHTML = '';
+            markersGroup.innerHTML = '';
+
+            const { w: svgW, h: svgH } = getSVGDimensions();
+
+            // Create or get placed assets group
+            let assetsGroup = document.getElementById('placed-assets');
+            if (!assetsGroup) {
+                assetsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                assetsGroup.setAttribute('id', 'placed-assets');
+                svg.insertBefore(assetsGroup, svg.firstChild);
+            }
+
+            renderPlacedAssets();
+
+            // Render connection paths (using SVG-internal coordinates)
+            CONNECTIONS.forEach(conn => {
+                const from = WAYPOINTS.find(p => p.id === conn[0]);
+                const to = WAYPOINTS.find(p => p.id === conn[1]);
+                if (!from || !to) return;
+
+                const fromX = (from.x / 100) * svgW;
+                const fromY = (from.y / 100) * svgH;
+                const toX = (to.x / 100) * svgW;
+                const toY = (to.y / 100) * svgH;
+
+                const connectionGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                connectionGroup.dataset.connection = JSON.stringify([conn[0], conn[1]]);
+                connectionGroup.classList.add('trail-segment');
+
+                // Base path - dark earthy trail
+                const basePath = createPath(fromX, fromY, toX, toY, '#1a0f0a', 12, 0.6);
+                connectionGroup.appendChild(basePath);
+
+                // Forest floor layer
+                const mossPath = createPath(fromX, fromY, toX, toY, '#2d4a2d', 8, 0.5);
+                connectionGroup.appendChild(mossPath);
+
+                // Stepping stones
+                const dist = Math.sqrt((toX - fromX) ** 2 + (toY - fromY) ** 2);
+                const stoneCount = Math.floor(dist / 40);
+                for (let i = 0; i <= stoneCount; i++) {
+                    const t = i / stoneCount;
+                    const stoneX = lerp(fromX, toX, t) + (Math.random() - 0.5) * 10;
+                    const stoneY = lerp(fromY, toY, t) + (Math.random() - 0.5) * 10;
+
+                    const stone = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                    stone.setAttribute('cx', stoneX);
+                    stone.setAttribute('cy', stoneY);
+                    stone.setAttribute('rx', 6 + Math.random() * 4);
+                    stone.setAttribute('ry', 4 + Math.random() * 3);
+                    stone.setAttribute('fill', '#3a3a4a');
+                    stone.setAttribute('opacity', '0.7');
+                    connectionGroup.appendChild(stone);
+                }
+
+                // Damaged trees
+                const treeCount = Math.floor(dist / 60);
+                for (let i = 0; i < treeCount; i++) {
+                    const t = (i + 0.5) / treeCount;
+                    const treeX = lerp(fromX, toX, t);
+                    const treeY = lerp(fromY, toY, t);
+                    const side = i % 2 === 0 ? 1 : -1;
+                    const perpX = -((toY - fromY) / dist) * 25 * side;
+                    const perpY = ((toX - fromX) / dist) * 25 * side;
+
+                    const treeGroup = createDamagedTree(treeX + perpX, treeY + perpY);
+                    connectionGroup.appendChild(treeGroup);
+                }
+
+                // Mystical purple energy
+                const energyPath = createPath(fromX, fromY, toX, toY, '#7c3aed', 2, 0.4);
+                energyPath.style.filter = 'url(#soft-glow)';
+                energyPath.style.animation = 'pulse 3s ease-in-out infinite';
+                connectionGroup.appendChild(energyPath);
+
+                // Floating embers
+                const emberCount = Math.floor(dist / 50);
+                for (let i = 0; i < emberCount; i++) {
+                    const t = (i + Math.random() * 0.5) / emberCount;
+                    const emberX = lerp(fromX, toX, t) + (Math.random() - 0.5) * 20;
+                    const emberY = lerp(fromY, toY, t) + (Math.random() - 0.5) * 20;
+
+                    const ember = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    ember.setAttribute('cx', emberX);
+                    ember.setAttribute('cy', emberY);
+                    ember.setAttribute('r', 1.5 + Math.random());
+                    ember.setAttribute('fill', '#a78bfa');
+                    ember.setAttribute('opacity', '0.5');
+                    ember.style.animation = `emberFloat ${3 + Math.random() * 2}s ease-in-out infinite`;
+                    ember.style.animationDelay = `${Math.random() * 2}s`;
+                    connectionGroup.appendChild(ember);
+                }
+
+                // Mist patches
+                const mistCount = Math.floor(dist / 80);
+                for (let i = 0; i < mistCount; i++) {
+                    const t = (i + 0.5) / mistCount;
+                    const mistX = lerp(fromX, toX, t);
+                    const mistY = lerp(fromY, toY, t);
+
+                    const mist = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                    mist.setAttribute('cx', mistX);
+                    mist.setAttribute('cy', mistY);
+                    mist.setAttribute('rx', 20 + Math.random() * 15);
+                    mist.setAttribute('ry', 8 + Math.random() * 6);
+                    mist.setAttribute('fill', 'url(#mistGradient)');
+                    mist.setAttribute('opacity', '0.3');
+                    mist.style.animation = `mistDrift ${5 + Math.random() * 5}s ease-in-out infinite`;
+                    connectionGroup.appendChild(mist);
+                }
+
+                pathsGroup.appendChild(connectionGroup);
+            });
+
+            // Render waypoint markers (using SVG-internal coordinates)
+            WAYPOINTS.forEach(waypoint => {
+                const px = (waypoint.x / 100) * svgW;
+                const py = (waypoint.y / 100) * svgH;
+
+                const markerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                markerGroup.setAttribute('class', `waypoint-marker ${waypoint.type === 'King Base' ? 'king-base' : ''} ${waypoint.type === 'Waypoint' ? 'waypoint-diamond' : ''}`);
+                markerGroup.setAttribute('transform', `translate(${px}, ${py})`);
+                markerGroup.dataset.waypoint = JSON.stringify(waypoint);
+
+                if (waypoint.type === 'Waypoint') {
+                    // Simple diamond shape — no outer ring
+                    const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                    diamond.setAttribute('points', '0,-10 7,0 0,10 -7,0');
+                    diamond.setAttribute('fill', '#a78bfa');
+                    diamond.setAttribute('stroke', '#7c3aed');
+                    diamond.setAttribute('stroke-width', '1.5');
+                    diamond.style.filter = 'url(#soft-glow)';
+                    markerGroup.appendChild(diamond);
+                } else {
+                    // Outer glow ring (Base and King Base)
+                    const glowRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    glowRing.setAttribute('r', waypoint.type === 'King Base' ? '28' : '20');
+                    glowRing.setAttribute('fill', waypoint.type === 'King Base' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(124, 58, 237, 0.2)');
+                    glowRing.setAttribute('stroke', waypoint.type === 'King Base' ? '#fbbf24' : '#7c3aed');
+                    glowRing.setAttribute('stroke-width', waypoint.type === 'King Base' ? '3' : '2');
+                    glowRing.style.filter = 'url(#strong-glow)';
+                    markerGroup.appendChild(glowRing);
+
+                    // Inner circle
+                    const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    innerCircle.setAttribute('r', waypoint.type === 'King Base' ? '18' : '12');
+                    innerCircle.setAttribute('fill', '#1a0a2e');
+                    innerCircle.setAttribute('stroke', waypoint.type === 'King Base' ? '#fbbf24' : '#a78bfa');
+                    innerCircle.setAttribute('stroke-width', '2');
+                    markerGroup.appendChild(innerCircle);
+
+                    // King base crown or regular dot
+                    if (waypoint.type === 'King Base') {
+                        const crown = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        crown.setAttribute('text-anchor', 'middle');
+                        crown.setAttribute('dominant-baseline', 'central');
+                        crown.setAttribute('fill', '#fbbf24');
+                        crown.setAttribute('font-size', '22');
+                        crown.style.filter = 'url(#soft-glow)';
+                        crown.textContent = '♛';
+                        markerGroup.appendChild(crown);
+                    } else {
+                        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        dot.setAttribute('r', '5');
+                        dot.setAttribute('fill', '#a78bfa');
+                        markerGroup.appendChild(dot);
+                    }
+                }
+
+                // Click handler — in edit mode let event bubble to SVG for tool handling
+                markerGroup.addEventListener('click', (e) => {
+                    if (!editMode) {
+                        e.stopPropagation();
+                        showTooltip(waypoint, e.clientX, e.clientY);
+                    }
+                });
+
+                // Hover handler
+                markerGroup.addEventListener('mouseenter', () => {
+                    markerGroup.style.transform = `translate(${px}px, ${py}px) scale(1.2)`;
+                });
+                markerGroup.addEventListener('mouseleave', () => {
+                    markerGroup.style.transform = `translate(${px}px, ${py}px) scale(1)`;
+                });
+
+                markersGroup.appendChild(markerGroup);
+            });
+        }
+
+        function createPath(x1, y1, x2, y2, color, width, opacity) {
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const offset = dist * 0.03;
+            const curveX = midX - (dy / dist) * offset;
+            const curveY = midY + (dx / dist) * offset;
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M ${x1} ${y1} Q ${curveX} ${curveY} ${x2} ${y2}`);
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', width);
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('opacity', opacity);
+            path.setAttribute('class', 'connection-path');
+            return path;
+        }
+
+        function createDamagedTree(x, y) {
+            const treeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+            const trunk = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            trunk.setAttribute('d', `M ${x} ${y} Q ${x - 3} ${y - 20} ${x + 2} ${y - 35}`);
+            trunk.setAttribute('stroke', '#2a1a1a');
+            trunk.setAttribute('stroke-width', '4');
+            trunk.setAttribute('fill', 'none');
+            trunk.setAttribute('stroke-linecap', 'round');
+            trunk.setAttribute('opacity', '0.6');
+            treeGroup.appendChild(trunk);
+
+            const branch1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            branch1.setAttribute('x1', x - 2);
+            branch1.setAttribute('y1', y - 15);
+            branch1.setAttribute('x2', x - 12);
+            branch1.setAttribute('y2', y - 8);
+            branch1.setAttribute('stroke', '#2a1a1a');
+            branch1.setAttribute('stroke-width', '2');
+            branch1.setAttribute('opacity', '0.6');
+            treeGroup.appendChild(branch1);
+
+            const branch2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            branch2.setAttribute('x1', x + 1);
+            branch2.setAttribute('y1', y - 25);
+            branch2.setAttribute('x2', x + 10);
+            branch2.setAttribute('y2', y - 20);
+            branch2.setAttribute('stroke', '#2a1a1a');
+            branch2.setAttribute('stroke-width', '2');
+            branch2.setAttribute('opacity', '0.6');
+            treeGroup.appendChild(branch2);
+
+            return treeGroup;
+        }
+
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        // ============================================
+        // Tooltip
+        // ============================================
+
+        function showTooltip(waypoint, mouseX, mouseY) {
+            const tooltip = document.getElementById('waypoint-tooltip');
+            const nameEl = document.getElementById('tooltip-name');
+            const typeEl = document.getElementById('tooltip-type');
+            const descEl = document.getElementById('tooltip-desc');
+
+            nameEl.textContent = waypoint.name;
+            typeEl.textContent = waypoint.type;
+            descEl.textContent = waypoint.description;
+
+            // Position tooltip
+            const rect = tooltip.getBoundingClientRect();
+            let x = mouseX + 15;
+            let y = mouseY + 15;
+
+            if (x + rect.width > window.innerWidth) {
+                x = mouseX - rect.width - 15;
+            }
+            if (y + rect.height > window.innerHeight) {
+                y = mouseY - rect.height - 15;
+            }
+
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+            tooltip.classList.add('visible');
+
+            // Hide on click outside
+            setTimeout(() => {
+                document.addEventListener('click', hideTooltip, { once: true });
+            }, 100);
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('waypoint-tooltip');
+            tooltip.classList.remove('visible');
+        }
+
+        // ============================================
+        // Map Interaction (Pan + Zoom)
+        // ============================================
+
+        function setupMapInteraction() {
+            const viewer = document.querySelector('.map-viewer');
+            const wrapper = document.getElementById('map-wrapper');
+            const svg = document.getElementById('map-overlay');
+
+            // Mouse wheel zoom
+            viewer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 0.1 : -0.1;
+                const newScale = Math.max(0.5, Math.min(3, mapState.scale + delta));
+                if (newScale !== mapState.scale) {
+                    mapState.scale = newScale;
+                    applyMapTransform();
+                }
+            }, { passive: false });
+
+            svg.addEventListener('mousedown', (e) => {
+                // Don't pan when clicking on markers or placed assets
+                if (e.target.closest('.waypoint-marker') || e.target.closest('.placed-asset')) return;
+
+                mapState.isPanning = true;
+                mapState.panStartX = e.clientX - mapState.panX;
+                mapState.panStartY = e.clientY - mapState.panY;
+                wrapper.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!mapState.isPanning) return;
+                mapState.panX = e.clientX - mapState.panStartX;
+                mapState.panY = e.clientY - mapState.panStartY;
+                applyMapTransform();
+            });
+
+            document.addEventListener('mouseup', () => {
+                mapState.isPanning = false;
+                wrapper.style.cursor = 'grab';
+            });
+        }
+
+        function applyMapTransform() {
+            const wrapper = document.getElementById('map-wrapper');
+            if (wrapper) {
+                wrapper.style.transform = `translate(${mapState.panX}px, ${mapState.panY}px) scale(${mapState.scale})`;
+            }
+        }
+
+        /**
+         * Convert screen (viewport) coordinates to SVG-internal coordinates.
+         * Uses the SVG's native getScreenCTM() which correctly handles all
+         * CSS transforms (pan, zoom, transform-origin) on ancestor elements.
+         */
+        function screenToSVG(clientX, clientY) {
+            const svg = document.getElementById('map-overlay');
+            if (!svg) return { x: clientX, y: clientY };
+            const pt = svg.createSVGPoint();
+            pt.x = clientX;
+            pt.y = clientY;
+            const ctm = svg.getScreenCTM();
+            if (!ctm) return { x: clientX, y: clientY };
+            const inv = ctm.inverse();
+            const svgPt = pt.matrixTransform(inv);
+            return { x: svgPt.x, y: svgPt.y };
+        }
+
+        /**
+         * Get the SVG's internal dimensions (layout size, not affected by CSS transforms).
+         */
+        function getSVGDimensions() {
+            const svg = document.getElementById('map-overlay');
+            if (!svg) return { w: 1000, h: 800 };
+            return { w: svg.clientWidth || 1000, h: svg.clientHeight || 800 };
+        }
+
+        // ============================================
+        // Controls
+        // ============================================
+
+        function setupControls() {
+            document.getElementById('zoom-in')?.addEventListener('click', () => {
+                mapState.scale = Math.min(3, mapState.scale + 0.2);
+                applyMapTransform();
+            });
+
+            document.getElementById('zoom-out')?.addEventListener('click', () => {
+                mapState.scale = Math.max(0.5, mapState.scale - 0.2);
+                applyMapTransform();
+            });
+
+            document.getElementById('reset-view')?.addEventListener('click', () => {
+                mapState.scale = 1.3;
+                mapState.panX = 0;
+                mapState.panY = 0;
+                applyMapTransform();
+            });
+
+            // Minimize panel button
+            document.getElementById('minimize-panel-btn')?.addEventListener('click', () => {
+                const panel = document.getElementById('edit-panel');
+                const btn = document.getElementById('minimize-panel-btn');
+                if (panel) {
+                    panel.classList.toggle('minimized');
+                    btn.textContent = panel.classList.contains('minimized') ? '+' : '−';
+                    btn.title = panel.classList.contains('minimized') ? 'Maximize Panel' : 'Minimize Panel';
+                }
+            });
+
+            // Edit mode button
+            const editBtn = document.getElementById('edit-mode-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', (e) => {
+                    console.log('Edit button clicked!');
+                    toggleEditMode();
+                });
+            }
+
+            // Close edit button
+            const closeEditBtn = document.getElementById('close-edit-btn');
+            if (closeEditBtn) {
+                closeEditBtn.addEventListener('click', (e) => {
+                    console.log('Close edit button clicked!');
+                    toggleEditMode();
+                });
+            }
+
+            // Export button
+            document.getElementById('export-map-btn')?.addEventListener('click', exportMapData);
+
+            // Import button
+            document.getElementById('import-map-btn')?.addEventListener('click', () => {
+                document.getElementById('import-file').click();
+            });
+
+            document.getElementById('import-file')?.addEventListener('change', importMapData);
+
+            // Clear trails button
+            document.getElementById('clear-trails-btn')?.addEventListener('click', clearAllTrails);
+
+            // Clear assets button
+            document.getElementById('clear-assets-btn')?.addEventListener('click', () => {
+                if (confirm('Clear all placed assets?')) {
+                    placedAssets.length = 0;
+                    renderPlacedAssets();
+                }
+            });
+
+            // Custom asset upload button - add to UI dynamically
+            const assetLibrary = document.getElementById('asset-library');
+            if (assetLibrary) {
+                const uploadBtn = document.createElement('button');
+                uploadBtn.className = 'edit-action-btn';
+                uploadBtn.id = 'upload-custom-asset-btn';
+                uploadBtn.textContent = 'Upload Custom Asset';
+                uploadBtn.style.marginTop = '8px';
+                uploadBtn.addEventListener('click', () => {
+                    document.getElementById('custom-asset-file').click();
+                });
+                assetLibrary.appendChild(uploadBtn);
+            }
+        }
+
+        // ============================================
+        // Edit Mode Functions
+        // ============================================
+
+        let editMode = false;
+        let currentTool = 'select';
+        let selectedWaypoint = null;
+        let trailStartWaypoint = null;
+        let carryingWaypoint = null;
+        let _justHandledPickDrop = false;
+        let isDraggingAsset = false;
+        let dragOffset = { x: 0, y: 0 };
+
+        function toggleEditMode() {
+            editMode = !editMode;
+            console.log('toggleEditMode called, editMode is now:', editMode);
+            const overlay = document.getElementById('edit-overlay');
+            const editBtn = document.getElementById('edit-mode-btn');
+            const viewer = document.querySelector('.map-viewer');
+
+            if (editMode) {
+                console.log('Enabling edit mode overlay');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.add('visible'), 10);
+                viewer.classList.add('edit-mode');
+                editBtn.style.background = 'rgba(124, 58, 237, 0.4)';
+                editBtn.style.borderColor = '#a78bfa';
+                renderAssetLibrary();
+                setupEditModeHandlers();
+                console.log('Edit mode enabled, currentTool:', currentTool);
+            } else {
+                console.log('Disabling edit mode');
+                overlay.classList.remove('visible');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+                viewer.classList.remove('edit-mode');
+                editBtn.style.background = '';
+                editBtn.style.borderColor = '';
+                if (carryingWaypoint) _dropCarriedWaypoint();
+                selectedWaypoint = null;
+                trailStartWaypoint = null;
+                editModeHandlersSetup = false; // Allow re-setup when edit mode is enabled again
+            }
+        }
+
+        let editModeHandlersSetup = false;
+
+        function setupEditModeHandlers() {
+            if (editModeHandlersSetup) return; // Prevent duplicate setup
+            editModeHandlersSetup = true;
+
+            const svg = document.getElementById('map-overlay');
+            const wrapper = document.getElementById('map-wrapper');
+
+            // Update cursor based on tool (only for empty map areas, not markers)
+            function updateCursor() {
+                // Default cursor for map panning
+                let mapCursor = 'grab';
+
+                if (currentTool === 'add-base' || currentTool === 'add-king-base' || currentTool === 'add-waypoint') {
+                    mapCursor = 'crosshair';
+                } else if (currentTool === 'add-trail') {
+                    mapCursor = trailStartWaypoint ? 'copy' : 'pointer';
+                } else if (currentTool === 'remove-trail') {
+                    mapCursor = 'not-allowed';
+                } else if (currentTool === 'remove-waypoint') {
+                    mapCursor = 'not-allowed';
+                } else if (currentTool === 'place-asset') {
+                    mapCursor = selectedAsset ? 'crosshair' : 'not-allowed';
+                } else if (currentTool === 'remove-asset') {
+                    mapCursor = 'not-allowed';
+                }
+
+                svg.style.cursor = mapCursor;
+            }
+
+            // Tool change listeners
+            document.querySelectorAll('.edit-tool').forEach(tool => {
+                tool.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.edit-tool').forEach(t => t.classList.remove('active'));
+                    tool.classList.add('active');
+                    currentTool = tool.dataset.tool;
+                    console.log('Tool changed to:', currentTool);
+                    updateCursor();
+                    if (carryingWaypoint) _dropCarriedWaypoint();
+                    trailStartWaypoint = null;
+                    selectedAssetInstance = null;
+                });
+            });
+
+            // Asset category listeners
+            document.querySelectorAll('.asset-category').forEach(cat => {
+                cat.addEventListener('click', () => {
+                    document.querySelectorAll('.asset-category').forEach(c => c.classList.remove('active'));
+                    cat.classList.add('active');
+                    selectedAsset = null;
+                    renderAssetLibrary();
+                });
+            });
+
+            // Asset size slider
+            document.getElementById('asset-size-slider')?.addEventListener('input', (e) => {
+                assetSize = parseFloat(e.target.value);
+                document.getElementById('asset-size-value').textContent = assetSize.toFixed(1);
+            });
+
+            // Asset rotation slider
+            document.getElementById('asset-rotation-slider')?.addEventListener('input', (e) => {
+                assetRotation = parseInt(e.target.value);
+                document.getElementById('asset-rotation-value').textContent = assetRotation + '°';
+            });
+
+            // Custom asset upload
+            document.getElementById('custom-asset-file')?.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const newAsset = {
+                            id: 'custom-' + Date.now(),
+                            emoji: '🖼️',
+                            name: file.name,
+                            image: event.target.result,
+                            custom: true
+                        };
+                        ASSET_LIBRARY.custom.push(newAsset);
+                        renderAssetLibrary();
+                    };
+                    reader.readAsDataURL(file);
+                }
+                e.target.value = '';
+            });
+
+            // SVG click handler for edit mode actions
+            svg.addEventListener('click', (e) => {
+                // Drop carried waypoint on background click (update position to click spot first)
+                if (carryingWaypoint && !e.target.closest('.waypoint-marker') && !e.target.closest('.placed-asset')) {
+                    const svgPt = screenToSVG(e.clientX, e.clientY);
+                    const { w: svgW, h: svgH } = getSVGDimensions();
+                    const waypoint = JSON.parse(carryingWaypoint.dataset.waypoint);
+                    waypoint.x = Math.round(Math.max(2, Math.min(98, (svgPt.x / svgW) * 100)));
+                    waypoint.y = Math.round(Math.max(2, Math.min(98, (svgPt.y / svgH) * 100)));
+                    carryingWaypoint.dataset.waypoint = JSON.stringify(waypoint);
+                    const idx = WAYPOINTS.findIndex(p => p.id === waypoint.id);
+                    if (idx >= 0) {
+                        WAYPOINTS[idx].x = waypoint.x;
+                        WAYPOINTS[idx].y = waypoint.y;
+                    }
+                    _dropCarriedWaypoint();
+                    return;
+                }
+                // Suppress after pick-up/drop handled in mousedown
+                if (_justHandledPickDrop) {
+                    _justHandledPickDrop = false;
+                    return;
+                }
+                handleEditClick(e);
+            });
+
+            // Waypoint picking and asset dragging - only intercept when clicking on markers/assets
+            svg.addEventListener('mousedown', (e) => {
+                if (!editMode) return;
+
+                const marker = e.target.closest('.waypoint-marker');
+                const assetEl = e.target.closest('.placed-asset');
+
+                // Click-to-pick-up / click-to-place in select mode
+                if (currentTool === 'select' && marker) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    _justHandledPickDrop = true;
+                    const waypoint = JSON.parse(marker.dataset.waypoint);
+                    if (carryingWaypoint === marker) {
+                        // Drop at current position
+                        _dropCarriedWaypoint();
+                    } else if (carryingWaypoint && carryingWaypoint !== marker) {
+                        // Drop current, pick up new
+                        _dropCarriedWaypoint();
+                        _pickUpWaypoint(marker, waypoint);
+                    } else if (!carryingWaypoint) {
+                        // Pick up
+                        _pickUpWaypoint(marker, waypoint);
+                    }
+                    return;
+                }
+
+                // Handle asset dragging in select mode
+                if (currentTool === 'select' && assetEl) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    isDraggingAsset = true;
+                    selectedAssetInstance = JSON.parse(assetEl.dataset.asset);
+                    const svgPt = screenToSVG(e.clientX, e.clientY);
+                    dragOffset.x = svgPt.x - selectedAssetInstance.x;
+                    dragOffset.y = svgPt.y - selectedAssetInstance.y;
+                    return;
+                }
+
+                // For all other cases, let the panning handler take over
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                // Carried waypoint follows cursor (lightweight update — no full re-render)
+                if (editMode && carryingWaypoint) {
+                    const svgPt = screenToSVG(e.clientX, e.clientY);
+                    const { w: svgW, h: svgH } = getSVGDimensions();
+                    const newPctX = Math.max(2, Math.min(98, (svgPt.x / svgW) * 100));
+                    const newPctY = Math.max(2, Math.min(98, (svgPt.y / svgH) * 100));
+                    const waypoint = JSON.parse(carryingWaypoint.dataset.waypoint);
+                    waypoint.x = Math.round(newPctX);
+                    waypoint.y = Math.round(newPctY);
+                    carryingWaypoint.dataset.waypoint = JSON.stringify(waypoint);
+                    carryingWaypoint.setAttribute('transform', `translate(${svgPt.x}, ${svgPt.y})`);
+                    // Update WAYPOINTS data without full re-render
+                    const idx = WAYPOINTS.findIndex(p => p.id === waypoint.id);
+                    if (idx >= 0) {
+                        WAYPOINTS[idx].x = waypoint.x;
+                        WAYPOINTS[idx].y = waypoint.y;
+                    }
+                    return;
+                }
+
+                // Asset dragging
+                if (editMode && isDraggingAsset && selectedAssetInstance) {
+                    const svgPt = screenToSVG(e.clientX, e.clientY);
+                    selectedAssetInstance.x = svgPt.x - dragOffset.x;
+                    selectedAssetInstance.y = svgPt.y - dragOffset.y;
+                    renderPlacedAssets();
+                    return;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDraggingAsset) {
+                    selectedAssetInstance = null;
+                }
+                isDraggingAsset = false;
+            });
+
+            // Escape key cancels carrying / trail creation
+            document.addEventListener('keydown', (e) => {
+                if (!editMode) return;
+                if (e.key === 'Escape') {
+                    if (carryingWaypoint) {
+                        _dropCarriedWaypoint();
+                        return;
+                    }
+                    if (trailStartWaypoint) {
+                        document.querySelectorAll('.waypoint-marker').forEach(m => {
+                            m.style.filter = '';
+                        });
+                        trailStartWaypoint = null;
+                        renderMap();
+                    }
+                }
+            });
+
+            updateCursor();
+        }
+
+        function handleEditClick(e) {
+            console.log('handleEditClick called, editMode:', editMode, 'currentTool:', currentTool);
+            if (!editMode) {
+                console.log('Not in edit mode, returning');
+                return;
+            }
+
+            const marker = e.target.closest('.waypoint-marker');
+
+            // Suppress click handling after pick-up/drop in mousedown
+            if (_justHandledPickDrop) {
+                _justHandledPickDrop = false;
+                return;
+            }
+
+            if (currentTool === 'select' && marker) {
+                // Deselect all
+                document.querySelectorAll('.waypoint-marker').forEach(m => {
+                    m.querySelector('.selection-ring')?.remove();
+                });
+                // Select this one
+                selectedWaypoint = marker;
+                const waypoint = JSON.parse(marker.dataset.waypoint);
+                const ringRadius = waypoint.type === 'Waypoint' ? 16 : (parseInt(marker.querySelector('circle')?.getAttribute('r') || '20') + 8);
+                const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                ring.setAttribute('class', 'selection-ring');
+                ring.setAttribute('r', ringRadius);
+                ring.setAttribute('fill', 'none');
+                ring.setAttribute('stroke', '#fbbf24');
+                ring.setAttribute('stroke-width', '2');
+                ring.setAttribute('stroke-dasharray', '4 2');
+                marker.insertBefore(ring, marker.firstChild);
+                console.log('Selected waypoint:', selectedWaypoint);
+            }
+
+            if (currentTool === 'add-base' || currentTool === 'add-king-base' || currentTool === 'add-waypoint') {
+                e.stopPropagation();
+                const svgPt = screenToSVG(e.clientX, e.clientY);
+                const { w: svgW, h: svgH } = getSVGDimensions();
+                const percentX = (svgPt.x / svgW) * 100;
+                const percentY = (svgPt.y / svgH) * 100;
+                let type = 'Base';
+                if (currentTool === 'add-king-base') type = 'King Base';
+                if (currentTool === 'add-waypoint') type = 'Waypoint';
+                addNewWaypoint(percentX, percentY, type);
+            }
+
+            if (currentTool === 'add-trail' && marker) {
+                e.stopPropagation();
+                const waypoint = JSON.parse(marker.dataset.waypoint);
+                console.log('Add trail - clicked waypoint:', waypoint.name);
+                if (!trailStartWaypoint) {
+                    trailStartWaypoint = waypoint;
+                    marker.style.filter = 'drop-shadow(0 0 25px #22c55e)';
+                    console.log('Trail start set to:', waypoint.name);
+                } else {
+                    if (trailStartWaypoint.id !== waypoint.id) {
+                        console.log('Creating trail from', trailStartWaypoint.name, 'to', waypoint.name);
+                        addTrail(trailStartWaypoint.id, waypoint.id);
+                    }
+                    // Reset highlights
+                    document.querySelectorAll('.waypoint-marker').forEach(m => {
+                        m.style.filter = '';
+                    });
+                    trailStartWaypoint = null;
+                }
+            }
+
+            if (currentTool === 'remove-trail') {
+                e.stopPropagation();
+                const svgPt = screenToSVG(e.clientX, e.clientY);
+                removeClosestTrail(svgPt.x, svgPt.y);
+            }
+
+            if (currentTool === 'remove-waypoint' && marker) {
+                e.stopPropagation();
+                const waypoint = JSON.parse(marker.dataset.waypoint);
+                console.log('Remove waypoint - clicked:', waypoint.name);
+                removeWaypoint(waypoint.id);
+                console.log('Waypoint removed successfully');
+            }
+
+            if (currentTool === 'place-asset' && selectedAsset) {
+                e.stopPropagation();
+                const svgPt = screenToSVG(e.clientX, e.clientY);
+                placeAsset(svgPt.x, svgPt.y);
+            } else if (currentTool === 'place-asset' && !selectedAsset) {
+                console.log('Place asset tool selected but no asset chosen from library');
+            }
+        }
+
+        let selectedAssetInstance = null;
+
+        function placeAsset(x, y) {
+            if (!selectedAsset) {
+                alert('Select an asset from the library first!');
+                return;
+            }
+
+            const newAsset = {
+                id: 'asset-' + Date.now(),
+                assetId: selectedAsset.id,
+                emoji: selectedAsset.emoji,
+                x: x,
+                y: y,
+                size: assetSize,
+                rotation: assetRotation
+            };
+
+            placedAssets.push(newAsset);
+            renderPlacedAssets();
+        }
+
+        function addNewWaypoint(x, y, type) {
+            const waypointId = 'custom-waypoint-' + Date.now();
+            const waypointType = type || 'Base';
+            const name = waypointType === 'King Base' ? 'New King Base' : 'New Waypoint';
+            const newWaypoint = {
+                id: waypointId,
+                name: name,
+                type: waypointType,
+                x: Math.round(x),
+                y: Math.round(y),
+                description: 'A newly established waypoint'
+            };
+            WAYPOINTS.push(newWaypoint);
+            renderMap();
+        }
+
+        function addTrail(fromId, toId) {
+            // Check if trail already exists
+            const exists = CONNECTIONS.some(c =>
+                (c[0] === fromId && c[1] === toId) ||
+                (c[0] === toId && c[1] === fromId)
+            );
+            if (!exists) {
+                CONNECTIONS.push([fromId, toId]);
+                renderMap();
+            }
+        }
+
+        function removeClosestTrail(mouseX, mouseY) {
+            let closestDist = Infinity;
+            let closestIndex = -1;
+
+            const { w: svgW, h: svgH } = getSVGDimensions();
+
+            CONNECTIONS.forEach((conn, idx) => {
+                const from = WAYPOINTS.find(p => p.id === conn[0]);
+                const to = WAYPOINTS.find(p => p.id === conn[1]);
+                if (!from || !to) return;
+
+                const x1 = (from.x / 100) * svgW;
+                const y1 = (from.y / 100) * svgH;
+                const x2 = (to.x / 100) * svgW;
+                const y2 = (to.y / 100) * svgH;
+
+                const dist = pointToCurveDistance(mouseX, mouseY, x1, y1, x2, y2);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestIndex = idx;
+                }
+            });
+
+            if (closestIndex >= 0 && closestDist < 50) {
+                CONNECTIONS.splice(closestIndex, 1);
+                renderMap();
+            }
+        }
+
+        function pointToCurveDistance(px, py, x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const offset = dist * 0.03;
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            const curveX = midX - (dy / dist) * offset;
+            const curveY = midY + (dx / dist) * offset;
+            // Sample 5 points along the bezier curve
+            let minDist = Infinity;
+            for (let t = 0; t <= 1; t += 0.25) {
+                const bx = (1-t)*(1-t)*x1 + 2*(1-t)*t*curveX + t*t*x2;
+                const by = (1-t)*(1-t)*y1 + 2*(1-t)*t*curveY + t*t*y2;
+                const d = Math.sqrt((px - bx) ** 2 + (py - by) ** 2);
+                if (d < minDist) minDist = d;
+            }
+            return minDist;
+        }
+
+        function removeWaypoint(waypointId) {
+            const idx = WAYPOINTS.findIndex(p => p.id === waypointId);
+            if (idx >= 0) {
+                WAYPOINTS.splice(idx, 1);
+                // Remove all connections to this waypoint
+                for (let i = CONNECTIONS.length - 1; i >= 0; i--) {
+                    if (CONNECTIONS[i][0] === waypointId || CONNECTIONS[i][1] === waypointId) {
+                        CONNECTIONS.splice(i, 1);
+                    }
+                }
+                renderMap();
+            }
+        }
+
+        function updateTrailsForWaypoint(waypointId) {
+            // Re-render to update connection positions
+            renderMap();
+        }
+
+        function _pickUpWaypoint(marker, waypoint) {
+            carryingWaypoint = marker;
+            marker.classList.add('carried');
+            selectedWaypoint = marker;
+        }
+
+        function _dropCarriedWaypoint() {
+            if (!carryingWaypoint) return;
+            carryingWaypoint.classList.remove('carried');
+            carryingWaypoint = null;
+            selectedWaypoint = null;
+            // Final sync to WAYPOINTS array for path re-rendering
+            renderMap();
+        }
+
+        function clearAllTrails() {
+            if (confirm('Clear all trail connections?')) {
+                CONNECTIONS.length = 0;
+                renderMap();
+            }
+        }
+
+        function exportMapData() {
+            const data = {
+                waypoints: WAYPOINTS,
+                connections: CONNECTIONS
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'voxya-map-data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importMapData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    const waypointList = data.waypoints || data.provinces;
+                    if (waypointList && data.connections) {
+                        WAYPOINTS.length = 0;
+                        CONNECTIONS.length = 0;
+                        WAYPOINTS.push(...waypointList);
+                        CONNECTIONS.push(...data.connections);
+                        renderMap();
+                        alert('Map data imported successfully!');
+                    }
+                } catch (err) {
+                    alert('Error importing map data: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        // ============================================
+        // Start
+        // ============================================
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>

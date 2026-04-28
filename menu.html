@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgotten Domain: Wyvvrstvrm</title>
+    <link rel="stylesheet" href="css/menu.css">
+</head>
+<body>
+    <!-- Cosmic Background -->
+    <div class="cosmic-bg">
+        <div class="stars" id="stars"></div>
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="nebula nebula-3"></div>
+    </div>
+
+    <!-- Main Menu Container -->
+    <div class="main-menu">
+        <!-- Epic Title -->
+        <div class="title-container">
+            <h1 class="game-title">
+                <span class="title-line title-glow">FORGOTTEN DOMAIN</span>
+            </h1>
+            <h2 class="game-subtitle title-glow-subtle">WORLD</h2>
+        </div>
+
+        <!-- Five Planets Container -->
+        <div class="planets-container">
+            <!-- Voxya - Deep Purple/Black -->
+            <a href="voxya.html" class="planet-link" data-continent="voxya">
+                <div class="planet planet-voxya">
+                    <div class="planet-glow"></div>
+                    <div class="planet-surface"></div>
+                    <div class="planet-atmosphere"></div>
+                </div>
+                <span class="planet-name">Voxya</span>
+            </a>
+
+            <!-- Arcanica - Bright Blue -->
+            <a href="arcanica.html" class="planet-link" data-continent="arcanica">
+                <div class="planet planet-arcanica">
+                    <div class="planet-glow"></div>
+                    <div class="planet-surface"></div>
+                    <div class="planet-atmosphere"></div>
+                </div>
+                <span class="planet-name">Arcanica</span>
+            </a>
+
+            <!-- Verdantia - Vibrant Green -->
+            <a href="verdantia.html" class="planet-link" data-continent="verdantia">
+                <div class="planet planet-verdantia">
+                    <div class="planet-glow"></div>
+                    <div class="planet-surface"></div>
+                    <div class="planet-atmosphere"></div>
+                </div>
+                <span class="planet-name">Verdantia</span>
+            </a>
+
+            <!-- Emboria - Fiery Orange/Red -->
+            <a href="emboria.html" class="planet-link" data-continent="emboria">
+                <div class="planet planet-emboria">
+                    <div class="planet-glow"></div>
+                    <div class="planet-surface"></div>
+                    <div class="planet-atmosphere"></div>
+                </div>
+                <span class="planet-name">Emboria</span>
+            </a>
+
+            <!-- Silvaryn - Mystical Pink/Violet -->
+            <a href="silvaryn.html" class="planet-link" data-continent="silvaryn">
+                <div class="planet planet-silvaryn">
+                    <div class="planet-glow"></div>
+                    <div class="planet-surface"></div>
+                    <div class="planet-atmosphere"></div>
+                </div>
+                <span class="planet-name">Silvaryn</span>
+            </a>
+        </div>
+
+        <!-- Continue Game Button -->
+        <div class="continue-section">
+            <button class="continue-btn" id="continue-btn">
+                <span class="btn-icon">&#9203;</span>
+                <span>Continue Game</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Entering <span id="loading-continent">...</span></p>
+            <div class="loading-bar">
+                <div class="loading-progress" id="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/menu.js" type="module"></script>
+</body>
+</html>

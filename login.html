@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Forgotten Domain: Wyvvrstvrm</title>
+    <link rel="stylesheet" href="css/auth.css?v=2">
+</head>
+<body>
+    <!-- Cosmic Background -->
+    <div class="cosmic-bg">
+        <div class="stars" id="stars"></div>
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="nebula nebula-3"></div>
+    </div>
+
+    <!-- Auth Container -->
+    <div class="auth-container">
+        <!-- Logo -->
+        <div class="auth-logo">
+            <h1 class="logo-title">FORGOTTEN DOMAIN</h1>
+            <h2 class="logo-subtitle">WYVVRSTVRM</h2>
+        </div>
+
+        <!-- Login Form -->
+        <form class="auth-form" id="login-form">
+            <h2 class="form-title">LOG IN</h2>
+
+            <div class="form-group">
+                <label for="login-username">Username</label>
+                <input type="text" id="login-username" placeholder="Enter your username" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" placeholder="Enter your password" required autocomplete="current-password">
+            </div>
+
+            <div class="form-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="remember-me">
+                    <span>Remember me</span>
+                </label>
+                <a href="#" class="forgot-link">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                <span>ENTER THE VOID</span>
+                <div class="btn-glow"></div>
+            </button>
+
+            <div class="form-divider">
+                <span>or</span>
+            </div>
+
+            <p class="form-footer">
+                New to Wyvvrstvrm? <a href="register.html" class="link">Create account</a>
+            </p>
+
+            <div class="error-message hidden" id="login-error"></div>
+        </form>
+
+        <!-- Back to Menu -->
+        <a href="index.html" class="back-link">
+            <span>&#8592;</span> Back to Menu
+        </a>
+    </div>
+
+    <script src="js/auth.js?v=2" type="module"></script>
+</body>
+</html>

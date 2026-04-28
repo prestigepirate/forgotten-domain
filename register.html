@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Forgotten Domain: Wyvvrstvrm</title>
+    <link rel="stylesheet" href="css/auth.css?v=2">
+</head>
+<body>
+    <!-- Cosmic Background -->
+    <div class="cosmic-bg">
+        <div class="stars" id="stars"></div>
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="nebula nebula-3"></div>
+    </div>
+
+    <!-- Auth Container -->
+    <div class="auth-container">
+        <!-- Logo -->
+        <div class="auth-logo">
+            <h1 class="logo-title">FORGOTTEN DOMAIN</h1>
+            <h2 class="logo-subtitle">WYVVRSTVRM</h2>
+        </div>
+
+        <!-- Register Form -->
+        <form class="auth-form" id="register-form">
+            <h2 class="form-title">CREATE ACCOUNT</h2>
+
+            <div class="form-group">
+                <label for="register-username">Username</label>
+                <input type="text" id="register-username" placeholder="Choose a username" required autocomplete="username">
+                <span class="input-hint">3-20 characters, letters and numbers only</span>
+            </div>
+
+            <div class="form-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" placeholder="Enter your email" required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label for="register-display-name">Display Name</label>
+                <input type="text" id="register-display-name" placeholder="How should we call you?" autocomplete="name">
+                <span class="input-hint">Optional - defaults to username</span>
+            </div>
+
+            <div class="form-group">
+                <label for="register-password">Password</label>
+                <input type="password" id="register-password" placeholder="Create a password" required autocomplete="new-password" minlength="6">
+                <span class="input-hint">At least 6 characters</span>
+            </div>
+
+            <div class="form-group">
+                <label for="register-confirm">Confirm Password</label>
+                <input type="password" id="register-confirm" placeholder="Confirm your password" required autocomplete="new-password">
+            </div>
+
+            <div class="form-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="terms-agree" required>
+                    <span>I agree to the <a href="#" class="link">Terms of Service</a> and <a href="#" class="link">Privacy Policy</a></span>
+                </label>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                <span>BEGIN YOUR JOURNEY</span>
+                <div class="btn-glow"></div>
+            </button>
+
+            <div class="form-divider">
+                <span>or</span>
+            </div>
+
+            <p class="form-footer">
+                Already have an account? <a href="login.html" class="link">Log in</a>
+            </p>
+
+            <div class="error-message hidden" id="register-error"></div>
+            <div class="success-message hidden" id="register-success"></div>
+        </form>
+
+        <!-- Back to Menu -->
+        <a href="index.html" class="back-link">
+            <span>&#8592;</span> Back to Menu
+        </a>
+    </div>
+
+    <script src="js/auth.js?v=2" type="module"></script>
+</body>
+</html>
