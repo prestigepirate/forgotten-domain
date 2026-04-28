@@ -21,6 +21,17 @@ export function createCreatureElement(creature) {
   };
   const s = sizes[level] || sizes[1];
 
+  // === Invisible click padding — makes creatures easier to tap ===
+  const clickPad = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  clickPad.setAttribute('x', '-30');
+  clickPad.setAttribute('y', String(s.yOff - 15));
+  clickPad.setAttribute('width', '60');
+  clickPad.setAttribute('height', String(s.h + 30));
+  clickPad.setAttribute('fill', 'transparent');
+  clickPad.style.pointerEvents = 'all';
+  clickPad.style.cursor = 'pointer';
+  g.appendChild(clickPad);
+
   // Use the creature's sprite from the database
   const spritePath = creature.sprite || 'assets/units/shadow-harvester.png';
 

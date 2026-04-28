@@ -449,8 +449,9 @@ function setupMapInteraction() {
     svgOverlay.addEventListener('pointerdown', (e) => {
         // Don't pan if in edit mode (editing takes priority)
         if (state.renderer && state.renderer.isEditMode) return;
-        // Don't pan if clicking on a base marker
+        // Don't pan if clicking on a base marker or creature
         if (e.target.closest('.base-marker')) return;
+        if (e.target.closest('.creature-group')) return;
 
         mapState.isPanning = true;
         mapState.panStartX = e.clientX - mapState.panX;
