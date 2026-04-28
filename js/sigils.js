@@ -152,6 +152,7 @@ export class SigilManager {
             essenceCost: dbEntry.essenceCost || summonCost,
             effect: dbEntry.effect,
             flavor: dbEntry.flavor || '',
+            sprite: dbEntry.sprite || null,
             summonStartTime: Date.now(),
             summonDuration: SUMMON_BASE_TIME_MS,
             isComplete: false,

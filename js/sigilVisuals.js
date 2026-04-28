@@ -189,6 +189,22 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
     card.setAttribute('opacity', opacity);
     g.appendChild(card);
 
+    // Creature sprite image
+    if (creature.sprite) {
+        const imgWidth = 40;
+        const imgHeight = 30;
+        const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        img.setAttribute('href', creature.sprite);
+        img.setAttribute('x', cx - imgWidth / 2);
+        img.setAttribute('y', cy - imgHeight / 2 + 2);
+        img.setAttribute('width', imgWidth);
+        img.setAttribute('height', imgHeight);
+        img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        img.setAttribute('opacity', opacity);
+        img.setAttribute('clip-path', `inset(0 round 2px)`);
+        g.appendChild(img);
+    }
+
     // Continent color accent line at top
     const accent = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     accent.setAttribute('x1', cx - cardWidth / 2 + 4);
@@ -242,7 +258,7 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
     // ATK / DEF row
     const atkText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     atkText.setAttribute('x', cx - 10);
-    atkText.setAttribute('y', cy + 6);
+    atkText.setAttribute('y', cy + cardHeight / 2 - 5);
     atkText.setAttribute('text-anchor', 'middle');
     atkText.setAttribute('fill', '#3b82f6');
     atkText.setAttribute('font-size', '8');
@@ -253,7 +269,7 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
 
     const defText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     defText.setAttribute('x', cx + 12);
-    defText.setAttribute('y', cy + 6);
+    defText.setAttribute('y', cy + cardHeight / 2 - 5);
     defText.setAttribute('text-anchor', 'middle');
     defText.setAttribute('fill', '#eab308');
     defText.setAttribute('font-size', '8');

@@ -22,6 +22,7 @@
       "def": 800,
       "movement": 2,
       "type": "Shadow Beast",
+      "sprite": "assets/units/voxya-voidmire-stalker.png",
       "effect": null,
       "flavor": "It does not chase. It simply appears where you are weakest."
     },
@@ -36,7 +37,8 @@
       "movement": 2,
       "type": "Undead Spirit",
       "effect": null,
-      "flavor": "A silent crown for a kingdom of ash."
+      "flavor": "A silent crown for a kingdom of ash.",
+      "sprite": "assets/units/voxya-throne-wraith.png"
     },
     {
       "id": "voxya-gloomforge-thrall",
@@ -49,7 +51,8 @@
       "movement": 1,
       "type": "Construct",
       "effect": null,
-      "flavor": "Forged in silence. Built to endure."
+      "flavor": "Forged in silence. Built to endure.",
+      "sprite": "assets/units/voxya-gloomforge-thrall.png"
     },
     {
       "id": "voxya-dusk-gate-lurker",
@@ -62,7 +65,8 @@
       "movement": 1,
       "type": "Shadow Beast",
       "effect": null,
-      "flavor": "It waits where the light forgets to go."
+      "flavor": "It waits where the light forgets to go.",
+      "sprite": "assets/units/voxya-dusk-gate-lurker.png"
     },
     {
       "id": "voxya-skyrift-harvester",
@@ -74,7 +78,8 @@
       "def": 1400,
       "movement": 2,
       "type": "Shadow Beast",
-      "effect": "When this destroys an enemy base or king structure, steal 4 Essence."
+      "effect": "When this destroys an enemy base or king structure, steal 4 Essence.",
+      "sprite": "assets/units/voxya-skyrift-harvester.png"
     },
     {
       "id": "voxya-weeping-stone-revenant",
@@ -86,7 +91,8 @@
       "def": 2100,
       "movement": 1,
       "type": "Undead Spirit",
-      "effect": "Once per game, when destroyed, return to your hand instead."
+      "effect": "Once per game, when destroyed, return to your hand instead.",
+      "sprite": "assets/units/voxya-weeping-stone-revenant.png"
     },
     {
       "id": "voxya-stormspire-shade",
@@ -98,7 +104,8 @@
       "def": 1000,
       "movement": 2,
       "type": "Undead Spirit",
-      "effect": "Gains +500 ATK while attacking along a purple ley-line."
+      "effect": "Gains +500 ATK while attacking along a purple ley-line.",
+      "sprite": "assets/units/voxya-stormspire-shade.png"
     },
     {
       "id": "voxya-merchants-grave-specter",
@@ -110,7 +117,8 @@
       "def": 1600,
       "movement": 1,
       "type": "Undead Spirit",
-      "effect": "On summon, discard 1 Condemned Card to draw 2 new ones."
+      "effect": "On summon, discard 1 Condemned Card to draw 2 new ones.",
+      "sprite": "assets/units/voxya-merchants-grave-specter.png"
     },
     {
       "id": "voxya-shadow-throne-tyrant",
@@ -122,7 +130,8 @@
       "def": 2500,
       "movement": 2,
       "type": "Undead / Shadow",
-      "effect": "Whenever it destroys a creature, gain 5 Essence. King's Aura: All your Level 1 creatures gain +300 ATK."
+      "effect": "Whenever it destroys a creature, gain 5 Essence. King's Aura: All your Level 1 creatures gain +300 ATK.",
+      "sprite": null
     },
     {
       "id": "voxya-archipelago-leviathan",
@@ -134,7 +143,8 @@
       "def": 3000,
       "movement": 1,
       "type": "Shadow Beast",
-      "effect": "Can move through one occupied hex. Once per game: Teleport to any hex adjacent to a friendly base."
+      "effect": "Can move through one occupied hex. Once per game: Teleport to any hex adjacent to a friendly base.",
+      "sprite": "assets/units/voxya-archipelago-leviathan.png"
     },
     {
       "id": "voxya-eternal-dusk-sovereign",
@@ -146,7 +156,8 @@
       "def": 2400,
       "movement": 2,
       "type": "Shadow / Royal",
-      "effect": "At the start of every minute, deal 800 damage to the nearest enemy King's Throne."
+      "effect": "At the start of every minute, deal 800 damage to the nearest enemy King's Throne.",
+      "sprite": "assets/units/voxya-eternal-dusk-sovereign.png"
     }
   ]
 }
