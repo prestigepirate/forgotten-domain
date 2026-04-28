@@ -561,7 +561,7 @@ function showBasePopup(base, clientX, clientY) {
     if (!sigil) {
         // No sigil yet — craft one
         const canCraft = state.mana >= SIGIL_MANA_COST && state.actions > 0;
-        const craftBtn = createPopupButton(`&#10015; Build Sigil (${SIGIL_MANA_COST} mana)`, canCraft, () => {
+        const craftBtn = createPopupButton(`&#10015; Build Sigil (${SIGIL_MANA_COST} essence)`, canCraft, () => {
             craftSigil();
             hideBasePopup();
         });
@@ -729,7 +729,7 @@ function craftSigil() {
         if (state.sigils.has(state.selectedBaseId)) {
             setStatus('This base already has a sigil');
         } else if (state.mana < SIGIL_MANA_COST) {
-            setStatus(`Need ${SIGIL_MANA_COST} mana to craft a sigil`);
+            setStatus(`Need ${SIGIL_MANA_COST} essence to craft a sigil`);
         }
         return;
     }
@@ -847,17 +847,19 @@ function renderCreatureList(continent, listContainer) {
                 <div class="creature-item-name">
                     ${entry.name}
                     <span class="creature-item-level">Lv.${entry.level}</span>
+                    <span class="creature-item-type">${entry.type || 'Shadow'}</span>
                 </div>
                 <div class="creature-item-stats">
                     <span class="stat atk">ATK ${entry.atk}</span>
                     <span class="stat def">DEF ${entry.def}</span>
-                    <span class="stat attr">${entry.attribute}</span>
+                    <span class="stat movement">⚡${entry.movement || 1}</span>
                 </div>
-                <div class="creature-item-effect">${entry.effect}</div>
+                <div class="creature-item-effect">${entry.effect || ''}</div>
+                ${entry.flavor ? `<div class="creature-item-flavor">"${entry.flavor}"</div>` : ''}
             </div>
             <div class="creature-item-cost">
                 <span class="cost-value${canAfford ? '' : ' too-expensive'}">${cost}</span>
-                <span class="cost-label">mana</span>
+                <span class="cost-label">essence</span>
             </div>
         `;
 
@@ -885,7 +887,7 @@ function confirmSummonCreature(dbEntry, summonCost) {
     }
 
     if (!state.sigilManager.canSummonCreature(state.selectedBaseId, summonCost)) {
-        setStatus(`Need ${summonCost} mana to summon ${dbEntry.name}`);
+        setStatus(`Need ${summonCost} essence to summon ${dbEntry.name}`);
         return;
     }
 
@@ -956,7 +958,7 @@ function endTurn() {
 
     updateUI();
     state.renderer.renderSigilsAndSummoned();
-    setStatus(`Turn ${state.tick} - ${state.actions} actions available, ${state.mana} mana`);
+    setStatus(`Turn ${state.tick} - ${state.actions} actions available, ${state.mana} essence`);
     log('Turn ended, tick:', state.tick);
 }
 

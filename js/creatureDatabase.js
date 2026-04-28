@@ -57,14 +57,14 @@ export function getCreatureById(index, id) {
 }
 
 /**
- * Calculate mana cost to summon a creature.
- * Base 2 mana + 1 per level.
+ * Calculate essence cost to summon a creature.
+ * Uses the creature's essenceCost field directly.
  * @param {Object} creatureEntry - Single creature from the database
  * @returns {number}
  */
 export function getSummonCost(creatureEntry) {
     if (!creatureEntry) return 0;
-    return 2 + (creatureEntry.level ?? 1);
+    return creatureEntry.essenceCost ?? (2 + (creatureEntry.level ?? 1));
 }
 
 /**

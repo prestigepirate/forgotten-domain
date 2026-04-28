@@ -170,13 +170,9 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
 
     const opacity = isComplete ? '1' : '0.55';
     const continentColors = {
-        arcanica: '#4080ff',
-        verdantia: '#40ff80',
-        emboria: '#ff4040',
-        voidia: '#800080',
-        silvaryn: '#c0c0c0'
+        voxya: '#800080'
     };
-    const continentColor = continentColors[creature.continent] || '#a78bfa';
+    const continentColor = continentColors[creature.continent] || '#800080';
 
     // Background card
     const cardWidth = 70;

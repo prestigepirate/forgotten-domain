@@ -1346,7 +1346,26 @@ body {
 
 .creature-item-stats .stat.atk { color: #3b82f6; }
 .creature-item-stats .stat.def { color: #eab308; }
-.creature-item-stats .stat.attr { color: #808090; }
+.creature-item-stats .stat.movement { color: #a78bfa; }
+
+.creature-item-type {
+    font-size: 0.6rem;
+    color: #808090;
+    background: rgba(128, 128, 144, 0.15);
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-left: auto;
+}
+
+.creature-item-flavor {
+    font-size: 0.65rem;
+    color: #606080;
+    font-style: italic;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 .creature-item-effect {
     font-size: 0.72rem;
