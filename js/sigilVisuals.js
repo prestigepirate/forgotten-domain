@@ -174,14 +174,19 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
     };
     const continentColor = continentColors[creature.continent] || '#800080';
 
+    // Size by level: higher level = bigger card
+    const level = creature.level || 1;
+    const cardW = 56 + (level - 1) * 12;   // 56 → 68 → 80
+    const cardH = 40 + (level - 1) * 8;    // 40 → 48 → 56
+    const imgW = 32 + (level - 1) * 8;     // 32 → 40 → 48
+    const imgH = 24 + (level - 1) * 6;     // 24 → 30 → 36
+
     // Background card
-    const cardWidth = 70;
-    const cardHeight = 50;
     const card = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    card.setAttribute('x', cx - cardWidth / 2);
-    card.setAttribute('y', cy - cardHeight / 2);
-    card.setAttribute('width', cardWidth);
-    card.setAttribute('height', cardHeight);
+    card.setAttribute('x', cx - cardW / 2);
+    card.setAttribute('y', cy - cardH / 2);
+    card.setAttribute('width', cardW);
+    card.setAttribute('height', cardH);
     card.setAttribute('rx', '4');
     card.setAttribute('fill', 'rgba(8, 8, 12, 0.9)');
     card.setAttribute('stroke', continentColor);
@@ -191,14 +196,12 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
 
     // Creature sprite image
     if (creature.sprite) {
-        const imgWidth = 40;
-        const imgHeight = 30;
         const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         img.setAttribute('href', creature.sprite);
-        img.setAttribute('x', cx - imgWidth / 2);
-        img.setAttribute('y', cy - imgHeight / 2 + 2);
-        img.setAttribute('width', imgWidth);
-        img.setAttribute('height', imgHeight);
+        img.setAttribute('x', cx - imgW / 2);
+        img.setAttribute('y', cy - imgH / 2 + 2);
+        img.setAttribute('width', imgW);
+        img.setAttribute('height', imgH);
         img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         img.setAttribute('opacity', opacity);
         img.setAttribute('clip-path', `inset(0 round 2px)`);
@@ -207,10 +210,10 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
 
     // Continent color accent line at top
     const accent = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    accent.setAttribute('x1', cx - cardWidth / 2 + 4);
-    accent.setAttribute('y1', cy - cardHeight / 2 + 4);
-    accent.setAttribute('x2', cx + cardWidth / 2 - 4);
-    accent.setAttribute('y2', cy - cardHeight / 2 + 4);
+    accent.setAttribute('x1', cx - cardW / 2 + 4);
+    accent.setAttribute('y1', cy - cardH / 2 + 4);
+    accent.setAttribute('x2', cx + cardW / 2 - 4);
+    accent.setAttribute('y2', cy - cardH / 2 + 4);
     accent.setAttribute('stroke', continentColor);
     accent.setAttribute('stroke-width', '2');
     accent.setAttribute('opacity', '0.8');
@@ -233,8 +236,8 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
 
     // Level badge
     const levelBadge = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    levelBadge.setAttribute('x', cx + cardWidth / 2 - 20);
-    levelBadge.setAttribute('y', cy - cardHeight / 2 + 1);
+    levelBadge.setAttribute('x', cx + cardW / 2 - 20);
+    levelBadge.setAttribute('y', cy - cardH / 2 + 1);
     levelBadge.setAttribute('width', '19');
     levelBadge.setAttribute('height', '12');
     levelBadge.setAttribute('rx', '3');
@@ -245,8 +248,8 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
     g.appendChild(levelBadge);
 
     const levelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    levelText.setAttribute('x', cx + cardWidth / 2 - 10);
-    levelText.setAttribute('y', cy - cardHeight / 2 + 10);
+    levelText.setAttribute('x', cx + cardW / 2 - 10);
+    levelText.setAttribute('y', cy - cardH / 2 + 10);
     levelText.setAttribute('text-anchor', 'middle');
     levelText.setAttribute('fill', continentColor);
     levelText.setAttribute('font-size', '7');
@@ -258,7 +261,7 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
     // ATK / DEF row
     const atkText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     atkText.setAttribute('x', cx - 10);
-    atkText.setAttribute('y', cy + cardHeight / 2 - 5);
+    atkText.setAttribute('y', cy + cardH / 2 - 5);
     atkText.setAttribute('text-anchor', 'middle');
     atkText.setAttribute('fill', '#3b82f6');
     atkText.setAttribute('font-size', '8');
@@ -269,7 +272,7 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
 
     const defText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     defText.setAttribute('x', cx + 12);
-    defText.setAttribute('y', cy + cardHeight / 2 - 5);
+    defText.setAttribute('y', cy + cardH / 2 - 5);
     defText.setAttribute('text-anchor', 'middle');
     defText.setAttribute('fill', '#eab308');
     defText.setAttribute('font-size', '8');
@@ -285,7 +288,7 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
         // Small "Summoning..." text
         const statusText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         statusText.setAttribute('x', cx);
-        statusText.setAttribute('y', cy + cardHeight / 2 - 5);
+        statusText.setAttribute('y', cy + cardH / 2 - 5);
         statusText.setAttribute('text-anchor', 'middle');
         statusText.setAttribute('fill', '#a78bfa');
         statusText.setAttribute('font-size', '6');
