@@ -437,16 +437,15 @@ export class Renderer {
                 connectionGroup.appendChild(treeGroup);
             }
 
-            // 5. Mystical purple energy veins (subtle, pulsing)
+            // 5. Mystical purple energy veins (subtle, static)
             const energyPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             energyPath.setAttribute('d', pathD);
             energyPath.setAttribute('fill', 'none');
             energyPath.style.stroke = '#7c3aed';
             energyPath.style.strokeWidth = '2';
             energyPath.style.strokeLinecap = 'round';
-            energyPath.style.opacity = '0.4';
+            energyPath.style.opacity = '0.3';
             energyPath.style.filter = 'url(#soft-glow)';
-            energyPath.style.animation = 'pulse 3s ease-in-out infinite';
             connectionGroup.appendChild(energyPath);
 
             // 6. Floating embers/particles along the path
