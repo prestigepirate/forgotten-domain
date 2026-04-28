@@ -1432,6 +1432,28 @@ body {
     overflow: hidden;
 }
 
+.creature-action-popup {
+    position: fixed;
+    z-index: 4000;
+    background: rgba(10, 10, 18, 0.96);
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    border-radius: 10px;
+    min-width: 200px;
+    max-width: 240px;
+    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.65), 0 0 16px rgba(124, 58, 237, 0.2);
+    backdrop-filter: blur(12px);
+    animation: popupAppear 0.2s ease-out;
+    overflow: hidden;
+}
+
+.popup-creature-stats {
+    padding: 6px 14px 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: monospace;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 @keyframes popupAppear {
     from { transform: translateY(6px); opacity: 0; }
     to   { transform: translateY(0);    opacity: 1; }

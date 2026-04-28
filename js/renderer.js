@@ -1448,7 +1448,6 @@ export class Renderer {
         creatureGroup.addEventListener('click', (e) => {
             e.stopPropagation();
             this.selectCreature(creature.id);
-            this.showMovementRange(creature.id);
         });
 
         // Hover handlers
@@ -1494,11 +1493,10 @@ export class Renderer {
                 creatureGroup.style.cursor = 'pointer';
                 creatureGroup.appendChild(visual);
 
-                // Click handler to select creature and show movement range
+                // Click handler to select creature
                 creatureGroup.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.selectCreature(creature.id);
-                    this.showMovementRange(creature.id);
                 });
 
                 // Hover handlers for creature card

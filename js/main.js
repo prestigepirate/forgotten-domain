@@ -219,6 +219,20 @@ function setupEventListeners() {
         state.renderer.renderCreatures();
         state.renderer.renderSelection();
     });
+
+    // Listen for creature selection → show context menu
+    svgOverlay.addEventListener('creatureSelected', (e) => {
+        const { creatureId } = e.detail;
+        const creature = state.renderer.getCreature(creatureId);
+        if (!creature || creature._isMoving) return;
+
+        // Use the SVG coordinates of the creature for positioning
+        const group = state.renderer.layers.creatures?.querySelector(`.creature-group[data-creature-id="${creatureId}"]`);
+        if (!group) return;
+
+        const rect = group.getBoundingClientRect();
+        showCreaturePopup(creature, rect.left + rect.width / 2, rect.top);
+    });
 }
 
 function handleKeyDown(e) {
@@ -532,6 +546,7 @@ function clearSelection() {
     state.renderer.clearSelection();
     state.renderer.clearMovementRange();
     hideBasePopup();
+    hideCreaturePopup();
     setStatus('Select a base to begin');
 }
 
@@ -666,6 +681,103 @@ function createPopupButton(label, enabled, onClick) {
 function hideBasePopup() {
     const existing = document.getElementById('base-action-popup');
     if (existing) existing.remove();
+}
+
+// ============================================
+// Creature Context Popup
+// ============================================
+
+let _activeCreaturePopupId = null;
+
+/**
+ * Show a context popup near a clicked creature with action options.
+ */
+function showCreaturePopup(creature, clientX, clientY) {
+    hideCreaturePopup();
+
+    const popup = document.createElement('div');
+    popup.id = 'creature-action-popup';
+    popup.className = 'creature-action-popup';
+    popup.style.display = 'block';
+    popup.style.visibility = 'visible';
+    popup.style.opacity = '1';
+
+    // Header — creature name + level + type
+    const header = document.createElement('div');
+    header.className = 'popup-header';
+    header.innerHTML = `
+        <span class="popup-base-name">${creature.name}</span>
+        <span class="popup-base-type">Lv.${creature.level || 1} ${creature.type || 'Creature'}</span>
+    `;
+    popup.appendChild(header);
+
+    // Stats line
+    const stats = document.createElement('div');
+    stats.className = 'popup-creature-stats';
+    stats.innerHTML = `
+        <span style="color:#3b82f6;">ATK ${creature.atk || '---'}</span>
+        <span style="color:#eab308;margin-left:12px;">DEF ${creature.def || '---'}</span>
+        <span style="color:#a78bfa;margin-left:12px;">MV ${creature.movement || 1}</span>
+    `;
+    popup.appendChild(stats);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'popup-actions';
+
+    // Move button
+    const moveBtn = createPopupButton('&#10132; Move', !creature._isMoving, () => {
+        hideCreaturePopup();
+        state.renderer.clearMovementRange();
+        state.renderer.showMovementRange(creature.id);
+    });
+    actions.appendChild(moveBtn);
+
+    // Attack button (future)
+    const atkBtn = createPopupButton('&#9876; Attack', false, () => {});
+    atkBtn.title = 'Coming soon';
+    actions.appendChild(atkBtn);
+
+    // Cast Effect button (future)
+    const castBtn = createPopupButton('&#9889; Cast Effect', false, () => {});
+    castBtn.title = 'Coming soon';
+    actions.appendChild(castBtn);
+
+    popup.appendChild(actions);
+
+    // Append to body and position
+    document.body.appendChild(popup);
+
+    const popupRect = popup.getBoundingClientRect();
+    let left = clientX - popupRect.width / 2;
+    let top = clientY + 20;
+
+    if (left + popupRect.width > window.innerWidth - 10) {
+        left = window.innerWidth - popupRect.width - 10;
+    }
+    if (left < 10) left = 10;
+    if (top + popupRect.height > window.innerHeight - 80) {
+        top = clientY - popupRect.height - 10;
+    }
+
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+
+    _activeCreaturePopupId = creature.id;
+
+    // Dismiss on outside click
+    function makeDismissHandler(e) {
+        if (popup.contains(e.target)) return;
+        hideCreaturePopup();
+        document.removeEventListener('pointerdown', makeDismissHandler);
+    }
+    document.addEventListener('pointerdown', makeDismissHandler);
+}
+
+function hideCreaturePopup() {
+    const existing = document.getElementById('creature-action-popup');
+    if (existing) existing.remove();
+    _activeCreaturePopupId = null;
 }
 
 // Button States
