@@ -26,10 +26,10 @@ const MIN_SUMMON_COST = 3;
 
 const state = {
     tick: 0,
-    mana: 5,
-    maxMana: 10,
-    actions: 3,
-    maxActions: 3,
+    mana: 99,
+    maxMana: 99,
+    actions: 20,
+    maxActions: 20,
     selectedBaseId: null,
     baseSystem: null,
     renderer: null,
