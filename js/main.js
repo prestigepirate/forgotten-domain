@@ -171,13 +171,29 @@ function setupEventListeners() {
         setStatus('Base layout exported to JSON');
     });
 
-    // Map background click - closes popups
+    // Capture-phase handler: catches ALL clicks on base markers,
+    // even if stopPropagation was called in the bubble phase by
+    // the base marker or panning handlers.
     svgOverlay.addEventListener('click', (e) => {
+        // Look up the DOM tree for a base marker
+        const marker = e.target.closest('.base-marker');
+        if (marker && marker.dataset && marker.dataset.base) {
+            const baseId = marker.dataset.base;
+            const base = state.baseSystem.getById(baseId);
+            if (base) {
+                e.stopPropagation();
+                state.renderer.selectedBaseId = baseId;
+                state.renderer.renderSelection();
+                onBaseSelected(baseId, e.clientX, e.clientY);
+                return;
+            }
+        }
+        // Original: background click closes popups
         if (e.target === e.currentTarget) {
             hideBasePopup();
             clearSelection();
         }
-    });
+    }, true); // <-- capture phase!
 
     // Prevent map drag when clicking on SVG in edit mode
     svgOverlay.addEventListener('mousedown', (e) => {
