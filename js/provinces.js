@@ -17,15 +17,6 @@ export const VOXYA_BASES = [
         description: "The seat of power in the Shattered Archipelago. A towering obsidian citadel."
     },
     {
-        id: "voxya-gate",
-        name: "Dusk Gate",
-        type: "base",
-        x: 39, y: 24,
-        neighbors: ["custom-waypoint-1777298541319"],
-        continent: "voxya",
-        description: "A massive stone archway where twilight never fades."
-    },
-    {
         id: "voxya-hollow",
         name: "Whisper Hollow",
         type: "base",
@@ -440,38 +431,20 @@ export const VOXYA_BASES = [
         description: "The last waypoint before the Shadow Throne, guarded by ancient wards."
     },
     {
-        id: "custom-waypoint-1777298526684",
-        name: "Scarpoint Beacon",
-        type: "waypoint",
-        x: 42, y: 21,
-        neighbors: ["custom-waypoint-1777298531484"],
-        continent: "voxya",
-        description: "A signal fire visible from Dusk Gate, warning of storms from the east."
-    },
-    {
         id: "custom-waypoint-1777298531484",
         name: "Thunderpath",
         type: "waypoint",
         x: 45, y: 25,
-        neighbors: ["custom-waypoint-1777298541319", "custom-waypoint-1777298526684"],
+        neighbors: ["custom-player-base-1777447489090"],
         continent: "voxya",
         description: "The ground here is split by a deep ravine that hums before each storm."
-    },
-    {
-        id: "custom-waypoint-1777298541319",
-        name: "Merchant's Grave",
-        type: "waypoint",
-        x: 42, y: 30,
-        neighbors: ["custom-waypoint-1777298547394", "custom-waypoint-1777298531484", "custom-waypoint-1777298632735", "voxya-gate", "custom-waypoint-1777299786146"],
-        continent: "voxya",
-        description: "The bones of a trade caravan lie scattered here, still clutching their wares."
     },
     {
         id: "custom-waypoint-1777298547394",
         name: "Dreadmarch",
         type: "waypoint",
         x: 47, y: 38,
-        neighbors: ["custom-waypoint-1777297760347", "custom-waypoint-1777298541319"],
+        neighbors: ["custom-waypoint-1777297760347"],
         continent: "voxya",
         description: "The road darkens under dead pines; even beasts avoid this stretch."
     },
@@ -480,7 +453,7 @@ export const VOXYA_BASES = [
         name: "Stormbreak",
         type: "waypoint",
         x: 48, y: 33,
-        neighbors: ["custom-waypoint-1777298638653", "custom-waypoint-1777298541319"],
+        neighbors: ["custom-waypoint-1777298638653"],
         continent: "voxya",
         description: "A wind-lashed ridge where lightning rods hum with captured energy."
     },
@@ -632,8 +605,8 @@ export const VOXYA_BASES = [
         id: "custom-waypoint-1777299487926",
         name: "Skyrift Shrine",
         type: "waypoint",
-        x: 37, y: 31,
-        neighbors: ["custom-waypoint-1777299476810", "custom-waypoint-1777299698095", "custom-waypoint-1777299786146"],
+        x: 39, y: 23,
+        neighbors: ["custom-waypoint-1777299476810", "custom-waypoint-1777299698095"],
         continent: "voxya",
         description: "A temple roofless under the stars, where three paths converge."
     },
@@ -647,15 +620,6 @@ export const VOXYA_BASES = [
         description: "A narrow bridge of stone spanning a bottomless chasm."
     },
     {
-        id: "custom-waypoint-1777299786146",
-        name: "Starfall Shelf",
-        type: "waypoint",
-        x: 40, y: 30,
-        neighbors: ["custom-waypoint-1777299487926", "custom-waypoint-1777298541319"],
-        continent: "voxya",
-        description: "A broad plateau where fallen stars are said to have scorched the earth."
-    },
-    {
         id: "custom-waypoint-1777299869063",
         name: "Wormwood Crossing",
         type: "waypoint",
@@ -663,7 +627,26 @@ export const VOXYA_BASES = [
         neighbors: ["custom-waypoint-1777297764511", "custom-waypoint-1777296201393"],
         continent: "voxya",
         description: "Bitter herbs grow here in abundance, used in funerary rites across the isles."
+    },
+    {
+        id: "custom-player-base-1777447489090",
+        name: "Player Base 1",
+        type: "player-base",
+        x: 39, y: 23,
+        neighbors: ["custom-waypoint-1777298531484", "custom-waypoint-1777447515723"],
+        continent: "voxya",
+        description: "Custom player-base created in editor mode"
+    },
+    {
+        id: "custom-waypoint-1777447515723",
+        name: "New Waypoint 2",
+        type: "waypoint",
+        x: 42, y: 30,
+        neighbors: ["custom-player-base-1777447489090"],
+        continent: "voxya",
+        description: "Custom waypoint created in editor mode"
     }
+];
 ];
 
 // ============================================
