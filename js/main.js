@@ -40,7 +40,9 @@ const state = {
     summonedCreatures: [],               // Array<SummonedCreature>
     creatureDatabase: null,              // Full loaded database
     creatureDBIndex: null,               // Map<id, creatureEntry>
-    sigilManager: null                   // SigilManager instance
+    sigilManager: null,                  // SigilManager instance
+    // Move mode state
+    moveMode: null                       // { creatureId } or null
 };
 
 // ============================================
@@ -182,6 +184,11 @@ function setupEventListeners() {
             const base = state.baseSystem.getById(baseId);
             if (base) {
                 e.stopPropagation();
+                // If in move mode, handle movement instead of base popup
+                if (state.moveMode) {
+                    handleMoveModeClick(baseId, base);
+                    return;
+                }
                 state.renderer.clearMovementRange();
                 state.renderer.selectedBaseId = baseId;
                 state.renderer.renderSelection();
@@ -189,8 +196,12 @@ function setupEventListeners() {
                 return;
             }
         }
-        // Original: background click closes popups
+        // Background click: cancel move mode or close popups
         if (e.target === e.currentTarget) {
+            if (state.moveMode) {
+                cancelMoveMode();
+                return;
+            }
             hideBasePopup();
             clearSelection();
         }
@@ -241,8 +252,12 @@ function handleKeyDown(e) {
         e.preventDefault();
         toggleEditMode();
     }
-    // Escape: Cancel carrying, close popup, or clear selection
+    // Escape: Cancel move mode, carrying, close popup, or clear selection
     if (e.key === 'Escape') {
+        if (state.moveMode) {
+            cancelMoveMode();
+            return;
+        }
         hideBasePopup();
         if (state.renderer && state.renderer.carryingBaseId) {
             state.renderer._dropBase();
@@ -730,7 +745,15 @@ function showCreaturePopup(creature, clientX, clientY) {
     const moveBtn = createPopupButton('&#10132; Move', !creature._isMoving, () => {
         hideCreaturePopup();
         state.renderer.clearMovementRange();
-        state.renderer.showMovementRange(creature.id);
+        // Don't show range — just enter move mode
+        // The showMovementRange dispatch will be handled by the creatureMoveMode listener
+        if (!creature._isMoving) {
+            // Set up move mode immediately, then dispatch the event
+            state.moveMode = { creatureId: creature.id };
+            setStatus('Select destination for ' + creature.name);
+            // Tell the renderer we entered move mode (clears selection layer)
+            state.renderer.clearMovementRange();
+        }
     });
     actions.appendChild(moveBtn);
 
@@ -779,6 +802,51 @@ function hideCreaturePopup() {
     const existing = document.getElementById('creature-action-popup');
     if (existing) existing.remove();
     _activeCreaturePopupId = null;
+}
+
+// ============================================
+// Move Mode
+// ============================================
+
+/**
+ * Handle clicking a base/waypoint while in move mode.
+ * Finds a path from the creature to the target and starts movement.
+ */
+function handleMoveModeClick(targetBaseId, targetBase) {
+    if (!state.moveMode) return;
+
+    const creatureId = state.moveMode.creatureId;
+    const creature = state.renderer.getCreature(creatureId);
+    if (!creature) {
+        cancelMoveMode();
+        return;
+    }
+
+    // Don't move to the creature's current base
+    if (creature.baseId === targetBaseId) {
+        setStatus('Creature is already at ' + targetBase.name);
+        return;
+    }
+
+    // Find path and start movement
+    const path = state.baseSystem.findPath(creature.baseId, targetBaseId);
+    if (!path || path.length < 2) {
+        setStatus('No path to ' + targetBase.name);
+        return;
+    }
+
+    state.renderer._initiateCreatureMove(creatureId, targetBaseId);
+    setStatus(`${creature.name} moving to ${targetBase.name}...`);
+    cancelMoveMode();
+}
+
+/**
+ * Cancel move mode — clears state and resets status.
+ */
+function cancelMoveMode() {
+    state.moveMode = null;
+    state.renderer.clearMovementRange();
+    setStatus('Movement cancelled');
 }
 
 // Button States

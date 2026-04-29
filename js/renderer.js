@@ -1690,129 +1690,23 @@ export class Renderer {
     };
 
     /**
-     * Show movement range for a creature.
-     * BFS from creature's base, up to `movement` hops.
-     * Draws dashed lines to reachable nodes + clickable highlights.
+     * Enter move mode for a creature.
+     * Clears any visual highlights — the actual destination selection
+     * is handled by main.js intercepting base clicks.
      */
     showMovementRange(creatureId) {
         const creature = this.creatures.get(creatureId);
         if (!creature || creature._isMoving) return;
 
-        const movement = creature.movement || 1;
-        const startBase = this.baseSystem.getById(creature.baseId);
-        if (!startBase) return;
-
-        // Clear previous range
+        // Clear selection layer completely — no pulsing rings or dashed lines
         this.clearMovementRange();
 
-        // BFS to find all reachable nodes within movement range
-        const reachable = [];
-        const visited = new Set([creature.baseId]);
-        const queue = [{ id: creature.baseId, path: [creature.baseId], hops: 0 }];
-
-        while (queue.length > 0) {
-            const current = queue.shift();
-            if (current.hops > 0 && current.hops <= movement) {
-                reachable.push(current);
-            }
-            if (current.hops >= movement) continue;
-            const base = this.baseSystem.getById(current.id);
-            if (!base) continue;
-            for (const nid of base.neighbors) {
-                if (!visited.has(nid)) {
-                    visited.add(nid);
-                    queue.push({ id: nid, path: [...current.path, nid], hops: current.hops + 1 });
-                }
-            }
-        }
-
-        const sel = this.layers.selection;
-        sel.innerHTML = '';
-
-        const config = Renderer.MOVEMENT_CONFIG;
-
-        // Draw dashed paths from start to each reachable node
-        for (const node of reachable) {
-            // Draw full path as connected segments
-            for (let i = 0; i < node.path.length - 1; i++) {
-                const fromBase = this.baseSystem.getById(node.path[i]);
-                const toBase = this.baseSystem.getById(node.path[i + 1]);
-                if (!fromBase || !toBase) continue;
-
-                const fromPx = this.percentToPixels(fromBase.x, fromBase.y);
-                const toPx = this.percentToPixels(toBase.x, toBase.y);
-
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', fromPx.x);
-                line.setAttribute('y1', fromPx.y);
-                line.setAttribute('x2', toPx.x);
-                line.setAttribute('y2', toPx.y);
-                line.setAttribute('stroke', config.rangeLineColor);
-                line.setAttribute('stroke-width', '2.5');
-                line.setAttribute('stroke-dasharray', '6,4');
-                line.setAttribute('stroke-opacity', String(config.rangeLineOpacity));
-                line.setAttribute('class', 'movement-range-line');
-                sel.appendChild(line);
-            }
-
-            // Highlight circle on destination node
-            const destBase = this.baseSystem.getById(node.id);
-            if (!destBase) continue;
-            const destPx = this.percentToPixels(destBase.x, destBase.y);
-
-            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            group.style.cursor = 'pointer';
-            group.style.pointerEvents = 'all';
-            group.dataset.targetBaseId = node.id;
-            group.dataset.creatureId = creatureId;
-            group.classList.add('move-destination');
-
-            // Outer pulsing ring
-            const pulseRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            pulseRing.setAttribute('cx', destPx.x);
-            pulseRing.setAttribute('cy', destPx.y);
-            pulseRing.setAttribute('r', '16');
-            pulseRing.setAttribute('fill', 'none');
-            pulseRing.setAttribute('stroke', config.destinationColor);
-            pulseRing.setAttribute('stroke-width', '2');
-            pulseRing.style.animation = 'movePulse 1.5s ease-in-out infinite';
-            group.appendChild(pulseRing);
-
-            // Inner highlight
-            const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            inner.setAttribute('cx', destPx.x);
-            inner.setAttribute('cy', destPx.y);
-            inner.setAttribute('r', '8');
-            inner.setAttribute('fill', config.highlightColor);
-            inner.style.animation = 'movePulse 1.5s ease-in-out infinite';
-            group.appendChild(inner);
-
-            // "Move" label
-            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            label.setAttribute('x', destPx.x);
-            label.setAttribute('y', destPx.y + 30);
-            label.setAttribute('text-anchor', 'middle');
-            label.setAttribute('fill', config.destinationColor);
-            label.setAttribute('font-size', '10');
-            label.setAttribute('font-weight', 'bold');
-            label.textContent = `Move (${node.hops} hop${node.hops > 1 ? 's' : ''})`;
-            label.style.filter = 'url(#label-shadow)';
-            group.appendChild(label);
-
-            // Click handler to start movement
-            group.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.clearMovementRange();
-                this._initiateCreatureMove(creatureId, node.id);
-            });
-
-            sel.appendChild(group);
-        }
-
-        // Also highlight the creature itself
-        this._highlightSelectedCreature(creatureId);
-
-        this.movementRange = { creatureId, reachable };
+        // Dispatch event so main.js can set move mode state
+        const event = new CustomEvent('creatureMoveMode', {
+            detail: { creatureId },
+            bubbles: true
+        });
+        this.svg.dispatchEvent(event);
     }
 
     /**
@@ -1820,7 +1714,6 @@ export class Renderer {
      */
     clearMovementRange() {
         if (this.movementRange) {
-            // Remove highlights from creature
             const prevId = this.movementRange.creatureId;
             const prevGroup = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${prevId}"]`);
             if (prevGroup) {
