@@ -647,7 +647,6 @@ export const VOXYA_BASES = [
         description: "Custom waypoint created in editor mode"
     }
 ];
-];
 
 // ============================================
 // BaseSystem Class
