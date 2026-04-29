@@ -836,6 +836,14 @@ export function getBaseStyle(type) {
             border: '#059669'
         };
     }
+    if (type === 'enemy-base' || type === 'Enemy Base') {
+        return {
+            radius: 12,
+            color: '#ef4444',
+            glow: 'rgba(239, 68, 68, 0.8)',
+            border: '#dc2626'
+        };
+    }
     // Default: Base
     return {
         radius: 11,
