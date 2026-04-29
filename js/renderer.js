@@ -1051,6 +1051,7 @@ export class Renderer {
         let name;
         if (type === 'king-base') name = `New King Base ${this.newBaseCounter}`;
         else if (type === 'waypoint') name = `New Waypoint ${this.newBaseCounter}`;
+        else if (type === 'player-base') name = `Player Base ${this.newBaseCounter}`;
         else name = `New Base ${this.newBaseCounter}`;
 
         const newBase = {

@@ -337,6 +337,7 @@ function createEditorPalette() {
             <button class="editor-palette-btn" data-action="add-base">&#9670; +Base</button>
             <button class="editor-palette-btn" data-action="add-waypoint">&#9678; +Waypoint</button>
             <button class="editor-palette-btn" data-action="add-king">&#9813; +King</button>
+            <button class="editor-palette-btn" data-action="add-player">&#9878; +Player Base</button>
             <button class="editor-palette-btn editor-palette-danger" data-action="remove">&#10007; Remove</button>
             <button class="editor-palette-btn" data-action="export">&#128229; Export</button>
             <button class="editor-palette-btn editor-palette-exit" data-action="exit">&#10005; Exit</button>
@@ -385,6 +386,11 @@ function createEditorPalette() {
                 btn.classList.add('active');
                 state.renderer.setAddBaseType('king-base');
                 setStatus('Add King Base: Click anywhere on the map');
+                break;
+            case 'add-player':
+                btn.classList.add('active');
+                state.renderer.setAddBaseType('player-base');
+                setStatus('Add Player Base: Click anywhere on the map');
                 break;
             case 'remove':
                 btn.classList.add('active');

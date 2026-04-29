@@ -845,6 +845,14 @@ export function getBaseStyle(type) {
             border: '#7c3aed'
         };
     }
+    if (type === 'player-base' || type === 'Player Base') {
+        return {
+            radius: 12,
+            color: '#10b981',
+            glow: 'rgba(16, 185, 129, 0.8)',
+            border: '#059669'
+        };
+    }
     // Default: Base
     return {
         radius: 11,
