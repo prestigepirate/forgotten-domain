@@ -748,11 +748,6 @@ body {
 }
 
 /* Creature breathing animation - subtle scale pulse on PNG only (doesn't affect positioning) */
-@keyframes creatureBreathe {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.01); }
-}
-
 /* Creature movement mode - valid target base highlight (static, no animation) */
 .valid-move-target .base-border,
 .valid-move-target circle {
@@ -1400,17 +1395,6 @@ body {
 /* ============================================
    SIGIL & SUMMON ANIMATIONS
    ============================================ */
-
-@keyframes sigilBuildPulse {
-    0%, 100% { opacity: 0.5; }
-    50%      { opacity: 1; }
-}
-
-.sigil-rune {
-}
-
-.summoned-creature {
-}
 
 /* ============================================
    BASE ACTION POPUP

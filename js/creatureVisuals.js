@@ -43,7 +43,6 @@ export function createCreatureElement(creature) {
   image.setAttribute('y', String(s.yOff));
   image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   image.style.transformOrigin = 'center';
-  image.style.animation = 'creatureBreathe 3s ease-in-out infinite';
   image.style.pointerEvents = 'none';
 
   // Voxya faction purple glow (stronger for higher levels)

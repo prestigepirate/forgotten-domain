@@ -139,7 +139,6 @@ export function createProgressRing(cx, cy, radius, fraction, color = '#a78bfa') 
     arc.setAttribute('stroke-dashoffset', dashOffset);
     arc.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
     arc.style.filter = 'url(#soft-glow)';
-    arc.style.transition = 'stroke-dashoffset 0.3s ease';
     g.appendChild(arc);
 
     return g;
