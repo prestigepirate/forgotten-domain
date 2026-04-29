@@ -1782,8 +1782,8 @@ export class Renderer {
         // Update the creature group appearance to show moving state
         const group = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${creatureId}"]`);
         if (group) {
-            group.style.opacity = '0.7';
-            group.style.filter = '';
+            group.style.opacity = '1';
+            group.style.filter = 'drop-shadow(0 0 14px #a78bfa) drop-shadow(0 0 28px #7c3aed)';
             // Add a moving label
             const existingLabel = group.querySelector('.movement-label');
             if (!existingLabel) {
@@ -1938,7 +1938,7 @@ export class Renderer {
         group.dataset.creatureId = creatureId;
 
         const overallProgress = (moveState.completedHops + moveState.hopProgress) / moveState.totalHops;
-        const radius = 28;
+        const radius = 20;
         const circumference = 2 * Math.PI * radius;
 
         // Background circle
@@ -1947,8 +1947,8 @@ export class Renderer {
         bg.setAttribute('cy', String(y));
         bg.setAttribute('r', String(radius));
         bg.setAttribute('fill', 'none');
-        bg.setAttribute('stroke', 'rgba(255,255,255,0.1)');
-        bg.setAttribute('stroke-width', '3');
+        bg.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+        bg.setAttribute('stroke-width', '2');
         group.appendChild(bg);
 
         // Progress arc
@@ -1958,7 +1958,7 @@ export class Renderer {
         arc.setAttribute('r', String(radius));
         arc.setAttribute('fill', 'none');
         arc.setAttribute('stroke', '#a78bfa');
-        arc.setAttribute('stroke-width', '3');
+        arc.setAttribute('stroke-width', '2');
         arc.setAttribute('stroke-linecap', 'round');
         arc.setAttribute('stroke-dasharray', `${circumference}`);
         arc.setAttribute('stroke-dashoffset', String(circumference * (1 - overallProgress)));
