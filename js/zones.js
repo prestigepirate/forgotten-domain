@@ -28,10 +28,10 @@ const DEFAULT_RADII = {
 
 // ── Zone state colors ──
 const COLORS = {
-    owned:    { fill: 'rgba(124, 58, 237, 0.08)',  stroke: 'rgba(124, 58, 237, 0.35)',  pulse: '#7c3aed' },
-    enemy:    { fill: 'rgba(239, 68, 68, 0.08)',   stroke: 'rgba(239, 68, 68, 0.35)',    pulse: '#ef4444' },
-    neutral:  { fill: 'rgba(100, 100, 120, 0.04)',  stroke: 'rgba(100, 100, 120, 0.18)',  pulse: null },
-    hovered:  { fill: 'rgba(255, 255, 255, 0.06)',  stroke: 'rgba(255, 255, 255, 0.4)',   pulse: null }
+    owned:    { fill: 'rgba(124, 58, 237, 0.14)',  stroke: 'rgba(124, 58, 237, 0.55)',  pulse: '#7c3aed' },
+    enemy:    { fill: 'rgba(239, 68, 68, 0.12)',   stroke: 'rgba(239, 68, 68, 0.50)',    pulse: '#ef4444' },
+    neutral:  { fill: 'rgba(100, 100, 120, 0.06)',  stroke: 'rgba(100, 100, 120, 0.25)',  pulse: null },
+    hovered:  { fill: 'rgba(255, 255, 255, 0.10)',  stroke: 'rgba(255, 255, 255, 0.60)',  pulse: null }
 };
 
 export class ZoneOfControl {

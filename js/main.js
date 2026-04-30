@@ -190,13 +190,15 @@ async function init() {
     state.renderer = new Renderer(svgOverlay, { theme: planet });
     state.renderer.init(state.baseSystem);
 
-    // Initialize fog of war
-    const fog = new FogOfWar(svgOverlay, state.renderer.svgWidth, state.renderer.svgHeight, {
-        creatureVision: 60,
-        baseVision: 100
-    });
-    fog.init();
-    state.fog = fog;
+    // Initialize fog of war — DISABLED (too dark, covers zones)
+    // Re-enable when fog opacity is tuned
+    // const fog = new FogOfWar(svgOverlay, state.renderer.svgWidth, state.renderer.svgHeight, {
+    //     creatureVision: 60,
+    //     baseVision: 100
+    // });
+    // fog.init();
+    // state.fog = fog;
+    state.fog = null;
 
     // Initialize zones of control
     const trapMap = new Map(); // populated when condemned spells are wired in
@@ -2097,10 +2099,10 @@ function sigilRenderLoop(timestamp) {
         runPeriodicEffects();
         state.lastPeriodicEffects = now;
     }
-    // Fog of war update
-    if (state.fog) {
-        updateFog();
-    }
+    // Fog of war update — DISABLED
+    // if (state.fog) {
+    //     updateFog();
+    // }
     // Zone of control update
     if (state.zones && state.baseSystem) {
         state.zones.reposition();
