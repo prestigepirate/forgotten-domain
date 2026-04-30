@@ -200,7 +200,6 @@ export function createSummonedCreatureSVG(creature, cx, cy, isComplete) {
         img.setAttribute('height', imgH);
         img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         img.setAttribute('opacity', opacity);
-        img.setAttribute('clip-path', `inset(0 round 2px)`);
         g.appendChild(img);
     }
 

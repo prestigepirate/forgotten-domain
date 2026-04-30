@@ -12,7 +12,7 @@ import { SigilManager, SIGIL_MANA_COST, formatTimeRemaining } from './sigils.js'
 import { loadCreatureDatabase, buildCreatureIndex, getCreaturesByContinent, getSummonCost } from './creatureDatabase.js';
 import { createToastContainer, showToast } from './toasts.js';
 import { EnemyAI } from './enemyAI.js';
-import { executeEffects, getEffectiveStats } from './effects.js';
+import { executeEffects, getEffectiveStats, parseEffects } from './effects.js';
 import { DecorationManager, ASSET_DEFINITIONS } from './decorations.js';
 
 // ============================================
@@ -331,7 +331,10 @@ function setupEventListeners() {
             }
         }
         // Background click: cancel move mode or close popups
-        if (e.target === e.currentTarget) {
+        // Use composedPath to check if click landed on an interactive element
+        const clickedElement = e.target;
+        const isInteractive = clickedElement.closest('circle, rect, image, text, .base-pulse, .creature-card, .sigil-group');
+        if (!isInteractive) {
             if (state.moveMode) {
                 cancelMoveMode();
                 return;
@@ -1376,9 +1379,17 @@ function _resolveSiegeDamage(baseId, base, playerUnits, enemyUnits) {
 
     if (isEnemyKing && playerUnits.length > 0) {
         // Player creatures attacking enemy king base
+        // Check for doubleATKvsThrone auras from allies at this base
+        const allCreatures = state.renderer ? Array.from(state.renderer.creatures.values()) : [];
+        const hasThroneAura = allCreatures.some(c => {
+            const effects = parseEffects(c);
+            return effects.some(e => e.type === 'aura' && e.action === 'doubleATKvsThrone');
+        });
+
         let totalDmg = 0;
         for (const unit of playerUnits) {
-            totalDmg += unit.atk;
+            const dmg = hasThroneAura ? unit.atk * 2 : unit.atk;
+            totalDmg += dmg;
         }
         hpData.current = Math.max(0, hpData.current - totalDmg);
         showToast(`Your army deals ${totalDmg} damage to ${base.name}!`, 'success', 4000);
@@ -1880,9 +1891,10 @@ function sigilRenderLoop(timestamp) {
         state.enemyAI.update(timestamp);
     }
     // Periodic creature effects (every 60s)
-    if (timestamp - state.lastPeriodicEffects > 60000) {
+    const now = Date.now();
+    if (now - state.lastPeriodicEffects > 60000) {
         runPeriodicEffects();
-        state.lastPeriodicEffects = timestamp;
+        state.lastPeriodicEffects = now;
     }
     updateUI();
     requestAnimationFrame(sigilRenderLoop);

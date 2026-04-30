@@ -272,7 +272,12 @@ export class SigilManager {
         const creatures = this.summoned.filter(sc => sc.baseId === baseId);
 
         this.sigils.delete(baseId);
-        this.summoned = this.summoned.filter(sc => sc.baseId !== baseId);
+        // Mutate in-place to preserve shared array reference with main.js
+        for (let i = this.summoned.length - 1; i >= 0; i--) {
+            if (this.summoned[i].baseId === baseId) {
+                this.summoned.splice(i, 1);
+            }
+        }
 
         if (sigil && this.onStateChanged) {
             this.onStateChanged(sigil, 'sigil-destroyed');

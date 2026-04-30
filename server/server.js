@@ -18,12 +18,18 @@ const projectRoot = join(__dirname, '..');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set.');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Serve static files from project root (game.html, js/, css/, assets/, creatures-database.json)
 app.use(express.static(projectRoot));
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080', 'http://127.0.0.1:3000']
+}));
 app.use(express.json());
 
 // Middleware to verify JWT token

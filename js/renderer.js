@@ -525,10 +525,22 @@ export class Renderer {
         // Convert start point to pixels
         const from = this.percentToPixels(fromPercent.x, fromPercent.y);
 
-        // Mouse pos is already in percentage, convert to pixels
-        const rect = this.svg.getBoundingClientRect();
-        const toX = this.mousePos.x * rect.width / 100;
-        const toY = this.mousePos.y * rect.height / 100;
+        // Mouse pos is percentage, convert to pixels accounting for pan/zoom
+        const ctm = this.transformGroup?.getScreenCTM();
+        let toX, toY;
+        if (ctm) {
+            const svgPoint = this.svg.createSVGPoint();
+            svgPoint.x = this.mousePos.x;
+            svgPoint.y = this.mousePos.y;
+            const transformed = svgPoint.matrixTransform(ctm.inverse());
+            const rect = this.svg.getBoundingClientRect();
+            toX = transformed.x * rect.width / this.svg.viewBox.baseVal.width;
+            toY = transformed.y * rect.height / this.svg.viewBox.baseVal.height;
+        } else {
+            const rect = this.svg.getBoundingClientRect();
+            toX = this.mousePos.x * rect.width / 100;
+            toY = this.mousePos.y * rect.height / 100;
+        }
 
         const preview = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         preview.setAttribute('class', 'connection-path-preview');

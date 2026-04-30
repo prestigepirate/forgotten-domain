@@ -1389,16 +1389,16 @@ export function createPlanetSystem(planet) {
             closestBaseId = base.id;
         }
     }
-    // Add bridge as neighbor to the closest base
+    // Add bridge as neighbor to the closest base (clone to avoid mutating shared data)
     if (closestBaseId) {
         const closestBase = bases.find(b => b.id === closestBaseId);
         if (closestBase && !closestBase.neighbors.includes(bridgeId)) {
-            closestBase.neighbors.push(bridgeId);
+            closestBase.neighbors = [...closestBase.neighbors, bridgeId];
         }
         // Also add the closest base as neighbor to the bridge
         const bridge = enemyBases.find(b => b.id === bridgeId);
         if (bridge && !bridge.neighbors.includes(closestBaseId)) {
-            bridge.neighbors.push(closestBaseId);
+            bridge.neighbors = [...bridge.neighbors, closestBaseId];
         }
     }
 

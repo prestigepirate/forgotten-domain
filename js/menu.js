@@ -82,13 +82,15 @@ function drawPlanetConnections() {
     }
 
     const userRect = userDisplay.getBoundingClientRect();
-    const userX = userRect.left + userRect.width / 2;
-    const userY = userRect.top + userRect.height / 2;
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+    const userX = userRect.left + userRect.width / 2 + scrollX;
+    const userY = userRect.top + userRect.height / 2 + scrollY;
 
     planetLinks.forEach((link, index) => {
         const linkRect = link.getBoundingClientRect();
-        const x1 = linkRect.left + linkRect.width / 2;
-        const y1 = linkRect.bottom + 5;
+        const x1 = linkRect.left + linkRect.width / 2 + scrollX;
+        const y1 = linkRect.bottom + 5 + scrollY;
 
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));

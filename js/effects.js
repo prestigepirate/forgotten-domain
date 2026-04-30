@@ -247,7 +247,7 @@ export function getEffectiveStats(creature, allCreatures, gameState) {
     let def = creature.def || 0;
     let pierce = 0;
 
-    // Check auras from all creatures at the same base
+    // Check auras from all creatures at the same base (local scopes)
     const sameBase = allCreatures.filter(c =>
         c.baseId === creature.baseId && c.id !== creature.id
     );
@@ -257,25 +257,46 @@ export function getEffectiveStats(creature, allCreatures, gameState) {
         for (const eff of effects) {
             if (eff.type !== 'aura') continue;
 
-            if (eff.action === 'doubleATKvsThrone') {
-                // Check if target is king base — handled in combat
-                atk = atk * 2;
-            }
-
             if (eff.scope === 'baseAllies' && eff.stat === 'def') {
                 def += eff.amount;
-            }
-            if (eff.scope === 'level1Allies' && eff.stat === 'atk' && creature.level === 1) {
-                atk += eff.amount;
-            }
-            if (eff.scope === 'allEnemies' && eff.stat === 'atk' && eff.amount < 0) {
-                atk += eff.amount;
             }
             if (eff.scope === 'self' && eff.stat === 'atk') {
                 atk += eff.amount;
             }
             if (eff.scope === 'self' && eff.stat === 'pierce') {
                 pierce += eff.amount;
+            }
+        }
+    }
+
+    // Check global auras from ALL creatures (allEnemies, level1Allies)
+    for (const other of allCreatures) {
+        if (other.id === creature.id) continue;
+        const effects = parseEffects(other);
+        for (const eff of effects) {
+            if (eff.type !== 'aura') continue;
+
+            if (eff.action === 'doubleATKvsThrone') {
+                // Applied during siege resolution, not here
+                continue;
+            }
+
+            // Global: affects all enemies everywhere
+            if (eff.scope === 'allEnemies' && eff.stat === 'atk' && eff.amount < 0) {
+                // Check if this creature is an enemy of the aura holder
+                const isEnemy = (creature.owner === 'enemy' || creature._isEnemy) !==
+                                (other.owner === 'enemy' || other._isEnemy);
+                if (isEnemy) {
+                    atk += eff.amount;
+                }
+            }
+            // Global: affects all level 1 allies everywhere
+            if (eff.scope === 'level1Allies' && eff.stat === 'atk' && creature.level === 1) {
+                const isAlly = (creature.owner === 'enemy' || creature._isEnemy) ===
+                               (other.owner === 'enemy' || other._isEnemy);
+                if (isAlly) {
+                    atk += eff.amount;
+                }
             }
         }
     }
