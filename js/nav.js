@@ -369,6 +369,12 @@
                     <div class="mb-tt-section-label">Tips</div>
                     ${tips.map(t => '<div class="mb-tt-tip">' + esc(t) + '</div>').join('')}`;
 
+                // Align with the MagickBook panel
+                const panelRect = panel.getBoundingClientRect();
+                tooltipEl.style.top = panelRect.top + 'px';
+                tooltipEl.style.bottom = 'auto';
+                tooltipEl.style.transform = 'none';
+                tooltipEl.style.maxHeight = panelRect.height + 'px';
                 tooltipEl.classList.add('visible');
             });
 
