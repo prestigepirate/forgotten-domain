@@ -77,6 +77,14 @@
     box-shadow: 0 0 12px rgba(124, 180, 255, 0.8);
 }
 
+/* Pin a nav item to the far right (e.g. Leaderboard) */
+.nav-item.nav-right {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+}
+
 /* ============================================
    NAV PANEL — hover-triggered above bottom nav
    ============================================ */
