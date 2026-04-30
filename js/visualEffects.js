@@ -67,7 +67,7 @@ function createTrailEffect(group) {
 /**
  * Remove trail effect from unit
  */
-function removeTrailEffect(group) {
+export function removeTrailEffect(group) {
     const trail = group.querySelector('.movement-trail');
     if (trail) trail.remove();
     delete group.dataset.hasTrail;
