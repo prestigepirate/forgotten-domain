@@ -582,7 +582,7 @@ function createEditorPalette() {
         }
     });
 
-    // Eye toggle: hide/show button labels
+    // Eye toggle: hide/show button labels AND map labels
     let editorLabelsHidden = false;
     document.getElementById('editor-eye-btn')?.addEventListener('click', () => {
         editorLabelsHidden = !editorLabelsHidden;
@@ -591,6 +591,11 @@ function createEditorPalette() {
         if (eyeBtn) {
             eyeBtn.textContent = editorLabelsHidden ? '👁‍🗨' : '👁';
             eyeBtn.title = editorLabelsHidden ? 'Show labels' : 'Hide labels';
+        }
+        // Also toggle map labels (base names, coordinates, "Click to move")
+        if (state.renderer) {
+            state.renderer.mapLabelsVisible = !editorLabelsHidden;
+            state.renderer.renderBaseMarkers();
         }
     });
 }

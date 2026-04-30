@@ -59,6 +59,7 @@ export class Renderer {
         // Custom base names toggle
         this.showCustomBaseNames = true;
         this.showWaypointNames = true;
+        this.mapLabelsVisible = true;
 
         // Selection/trails toggle - paths ON by default
         this.showSelectionEffects = true;
@@ -738,7 +739,7 @@ export class Renderer {
         nameLabel.style.fontWeight = '700';
         nameLabel.style.textShadow = '0 2px 6px rgba(0,0,0,0.95)';
         nameLabel.style.pointerEvents = 'none';
-        nameLabel.style.display = showName ? 'block' : 'none';
+        nameLabel.style.display = showName && this.mapLabelsVisible ? 'block' : 'none';
 
         // Coordinates label (real-time position)
         const coordsLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -751,6 +752,7 @@ export class Renderer {
         coordsLabel.style.fontFamily = 'monospace';
         coordsLabel.style.fontWeight = '600';
         coordsLabel.style.pointerEvents = 'none';
+        coordsLabel.style.display = this.mapLabelsVisible ? 'block' : 'none';
 
         // Drag handle indicator
         const handleLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -762,6 +764,7 @@ export class Renderer {
         handleLabel.style.fontSize = '9px';
         handleLabel.style.fontWeight = '500';
         handleLabel.style.pointerEvents = 'none';
+        handleLabel.style.display = this.mapLabelsVisible ? 'block' : 'none';
 
         group.appendChild(icon);
         group.appendChild(nameLabel);
