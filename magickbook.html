@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagickBook — Forgotten Domain</title>
+    <link rel="stylesheet" href="css/nav.css">
+    <style>
+        :root {
+            --void: #03050a;
+            --deep-space: #0a0e1a;
+            --star-white: #e8ecf1;
+            --nebula-purple: #7c3aed;
+            --nebula-blue: #3b82f6;
+            --panel-bg: rgba(10, 14, 26, 0.85);
+            --border-subtle: rgba(124, 58, 237, 0.2);
+            --text-dim: #8b93a8;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --accent-cyan: #06b6d4;
+            --accent-pink: #ec4899;
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow-x: hidden;
+            background: var(--void);
+            font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+            color: var(--star-white);
+        }
+
+        .cosmic-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .stars { position: absolute; inset: 0; }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--dur) ease-in-out infinite;
+            animation-delay: var(--delay);
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .nebula {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.06;
+            pointer-events: none;
+        }
+
+        .nebula-1 {
+            top: -15%; left: -10%;
+            width: 70%; height: 70%;
+            background: radial-gradient(circle, #4c1d95, transparent 70%);
+        }
+        .nebula-2 {
+            bottom: -10%; right: -5%;
+            width: 50%; height: 50%;
+            background: radial-gradient(circle, #2e1065, transparent 70%);
+        }
+        .nebula-3 {
+            top: 40%; left: 30%;
+            width: 40%; height: 40%;
+            background: radial-gradient(circle, #581c87, transparent 60%);
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px 100px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: #c4b5fd; }
+
+        .mb-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .mb-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border: 2px solid rgba(124, 58, 237, 0.4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 14, 26, 0.7);
+            box-shadow: 0 0 40px rgba(124, 58, 237, 0.15);
+            position: relative;
+        }
+
+        .mb-icon::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .mb-icon svg { width: 40px; height: 40px; }
+
+        .mb-title {
+            font-family: 'Times New Roman', serif;
+            font-size: 2rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #c4b5fd;
+            text-shadow: 0 0 30px rgba(124, 58, 237, 0.4);
+            margin-bottom: 4px;
+        }
+
+        .mb-subtitle {
+            font-size: 0.65rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+
+        /* Continent tabs */
+        .mb-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .mb-tab {
+            padding: 8px 18px;
+            background: rgba(124, 58, 237, 0.08);
+            border: 1px solid rgba(124, 58, 237, 0.15);
+            border-radius: 8px;
+            color: var(--text-dim);
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .mb-tab:hover {
+            background: rgba(124, 58, 237, 0.15);
+            color: #c4b5fd;
+        }
+
+        .mb-tab.active {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: rgba(124, 58, 237, 0.4);
+            color: #c4b5fd;
+            text-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+        }
+
+        .mb-tab:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .mb-tab:disabled:hover {
+            background: rgba(124, 58, 237, 0.08);
+            color: var(--text-dim);
+        }
+
+        .mb-tab-dot {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .mb-tab-dot.voxya { background: #800080; }
+        .mb-tab-dot.orilyth { background: #3b82f6; }
+        .mb-tab-dot.korvess { background: #10b981; }
+        .mb-tab-dot.sanguis { background: #ef4444; }
+        .mb-tab-dot.silith9 { background: #c0c0c0; }
+
+        /* Spell count */
+        .mb-meta {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 0.6rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+        .mb-meta strong {
+            color: #c4b5fd;
+            font-size: 0.75rem;
+        }
+
+        /* Spell grid */
+        .spell-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .spell-card {
+            background: rgba(10, 14, 26, 0.8);
+            border: 1px solid rgba(124, 58, 237, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            transition: all 0.25s;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .spell-card:hover {
+            border-color: rgba(124, 58, 237, 0.35);
+            box-shadow: 0 4px 24px rgba(124, 58, 237, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .spell-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .spell-name {
+            font-family: 'Times New Roman', serif;
+            font-size: 1.05rem;
+            letter-spacing: 0.04em;
+            color: #e2d5ff;
+            line-height: 1.2;
+        }
+
+        .spell-cost {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(124, 58, 237, 0.2);
+            border: 1.5px solid rgba(124, 58, 237, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #c4b5fd;
+            text-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
+            box-shadow: 0 0 16px rgba(124, 58, 237, 0.15);
+        }
+
+        .spell-badges {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .badge {
+            font-size: 0.55rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .badge-type { background: rgba(6, 182, 212, 0.15); color: #22d3ee; }
+        .badge-type.ongoing { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .badge-type.global { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-category { background: rgba(128, 0, 128, 0.15); color: #c084fc; }
+
+        .spell-effect {
+            font-size: 0.72rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .spell-flavor {
+            font-size: 0.62rem;
+            font-style: italic;
+            color: rgba(139, 147, 168, 0.6);
+            border-top: 1px solid rgba(124, 58, 237, 0.08);
+            padding-top: 8px;
+            margin-top: 2px;
+        }
+
+        /* Empty state */
+        .mb-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+        }
+        .mb-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+        .mb-empty-text {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* Loading */
+        .mb-loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+        }
+        .mb-loading-spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 16px;
+            border: 2px solid rgba(124, 58, 237, 0.2);
+            border-top-color: #7c3aed;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .mb-footer {
+            text-align: center;
+            margin-top: 32px;
+            font-size: 0.6rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(139, 147, 168, 0.3);
+        }
+
+        @media (max-width: 640px) {
+            .spell-grid {
+                grid-template-columns: 1fr;
+            }
+            .mb-title {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cosmic-bg">
+        <div class="stars" id="stars"></div>
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="nebula nebula-3"></div>
+    </div>
+
+    <div class="main-container">
+        <a href="menu.html" class="back-link">← Back to Menu</a>
+
+        <div class="mb-header">
+            <div class="mb-icon">
+                <svg viewBox="0 0 48 48" fill="none">
+                    <rect x="10" y="6" width="28" height="36" rx="3" stroke="#7c3aed" stroke-width="1.2" opacity="0.7"/>
+                    <rect x="13" y="3" width="22" height="4" rx="1" fill="#7c3aed" opacity="0.3"/>
+                    <line x1="24" y1="6" x2="24" y2="44" stroke="#7c3aed" stroke-width="0.5" opacity="0.3"/>
+                    <circle cx="24" cy="20" r="4" stroke="#c4b5fd" stroke-width="1" opacity="0.8"/>
+                    <path d="M24 16 L24 12" stroke="#c4b5fd" stroke-width="0.5" opacity="0.5"/>
+                    <path d="M20 20 L15 18" stroke="#c4b5fd" stroke-width="0.5" opacity="0.5"/>
+                    <path d="M28 20 L33 18" stroke="#c4b5fd" stroke-width="0.5" opacity="0.5"/>
+                    <circle cx="20" cy="32" r="2" stroke="#a78bfa" stroke-width="0.8" opacity="0.5"/>
+                    <circle cx="28" cy="32" r="2" stroke="#a78bfa" stroke-width="0.8" opacity="0.5"/>
+                    <circle cx="24" cy="38" r="1.5" stroke="#a78bfa" stroke-width="0.8" opacity="0.4"/>
+                </svg>
+            </div>
+            <h1 class="mb-title">MagickBook</h1>
+            <p class="mb-subtitle">Grimoire of the Fractured Worlds</p>
+        </div>
+
+        <div class="mb-tabs" id="mb-tabs"></div>
+
+        <div class="mb-meta" id="mb-meta"></div>
+
+        <div class="spell-grid" id="spell-grid">
+            <div class="mb-loading">
+                <div class="mb-loading-spinner"></div>
+                <div>Opening the grimoire...</div>
+            </div>
+        </div>
+
+        <div class="mb-footer">Forgotten Domain · Arcane Archives</div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="menu.html" class="nav-item">HOME</a>
+        <a href="#" class="nav-item" data-panel="player">PLAYER</a>
+        <a href="leaderboard.html" class="nav-item">LEADERBOARD</a>
+        <a href="magickbook.html" class="nav-item active">MAGICKBOOK</a>
+        <a href="#" class="nav-item" data-panel="academicks">ACADEMICKS</a>
+    </nav>
+
+    <script src="js/nav.js"></script>
+    <script>
+        (function() {
+            const container = document.getElementById('stars');
+            const frag = document.createDocumentFragment();
+            for (let i = 0; i < 160; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                const size = Math.random() * 2 + 0.5;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.setProperty('--dur', (Math.random() * 3 + 2) + 's');
+                star.style.setProperty('--delay', (Math.random() * 5) + 's');
+                star.style.opacity = Math.random() * 0.5 + 0.15;
+                frag.appendChild(star);
+            }
+            container.appendChild(frag);
+        })();
+
+        const CONTINENTS = {
+            voxya:  { name: 'Voxya',       color: '#800080', desc: 'The Shattered Archipelago — Black Magick' },
+            orilyth: { name: 'Orilyth',     color: '#3b82f6', desc: 'The Veil of Whispers' },
+            korvess: { name: 'Korvess',     color: '#10b981', desc: 'The Verdant Abyss' },
+            sanguis: { name: 'Sanguis',     color: '#ef4444', desc: 'The Crimson Veil' },
+            silith9: { name: 'Silith-9',    color: '#c0c0c0', desc: 'The False Moon' },
+        };
+
+        let allSpells = [];
+        let activeContinent = 'all';
+
+        async function init() {
+            try {
+                const res = await fetch('creatures-database.json');
+                if (!res.ok) throw new Error('Database not found');
+                const db = await res.json();
+                allSpells = db.spells || [];
+            } catch (e) {
+                allSpells = [];
+            }
+            buildTabs();
+            render();
+        }
+
+        function buildTabs() {
+            const tabsEl = document.getElementById('mb-tabs');
+            const continentCounts = {};
+            for (const s of allSpells) {
+                continentCounts[s.continent] = (continentCounts[s.continent] || 0) + 1;
+            }
+
+            const allCount = allSpells.length;
+            const allBtn = document.createElement('button');
+            allBtn.className = 'mb-tab' + (activeContinent === 'all' ? ' active' : '');
+            allBtn.textContent = 'All (' + allCount + ')';
+            allBtn.addEventListener('click', () => { activeContinent = 'all'; render(); });
+            tabsEl.appendChild(allBtn);
+
+            for (const [key, info] of Object.entries(CONTINENTS)) {
+                const count = continentCounts[key] || 0;
+                const btn = document.createElement('button');
+                btn.className = 'mb-tab' + (activeContinent === key ? ' active' : '');
+                if (count === 0) btn.disabled = true;
+                btn.innerHTML = '<span class="mb-tab-dot ' + key + '"></span>' + info.name + ' (' + count + ')';
+                btn.addEventListener('click', () => { activeContinent = key; render(); });
+                tabsEl.appendChild(btn);
+            }
+        }
+
+        function render() {
+            // Update tab active states
+            const tabs = document.querySelectorAll('.mb-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            const activeIdx = activeContinent === 'all' ? 0 :
+                Object.keys(CONTINENTS).indexOf(activeContinent) + 1;
+            if (tabs[activeIdx]) tabs[activeIdx].classList.add('active');
+
+            const filtered = activeContinent === 'all'
+                ? allSpells
+                : allSpells.filter(s => s.continent === activeContinent);
+
+            const metaEl = document.getElementById('mb-meta');
+            if (filtered.length > 0) {
+                const continentName = activeContinent === 'all'
+                    ? 'All Worlds'
+                    : CONTINENTS[activeContinent].name;
+                metaEl.innerHTML = '<span>' + continentName + ' — <strong>' + filtered.length + '</strong> spell' + (filtered.length !== 1 ? 's' : '') + ' inscribed</span>';
+            } else {
+                metaEl.innerHTML = '';
+            }
+
+            const grid = document.getElementById('spell-grid');
+
+            if (allSpells.length === 0) {
+                grid.innerHTML = '<div class="mb-empty"><div class="mb-empty-icon">📜</div><div class="mb-empty-text">The grimoire is empty</div></div>';
+                return;
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="mb-empty"><div class="mb-empty-icon">🔮</div><div class="mb-empty-text">No spells discovered in this world yet</div></div>';
+                return;
+            }
+
+            // Sort by cost ascending
+            const sorted = [...filtered].sort((a, b) => a.cost - b.cost);
+
+            grid.innerHTML = sorted.map(s => {
+                const typeClass = s.type.toLowerCase();
+                return `
+                <div class="spell-card">
+                    <div class="spell-card-top">
+                        <div class="spell-name">${esc(s.name)}</div>
+                        <div class="spell-cost">${s.cost}</div>
+                    </div>
+                    <div class="spell-badges">
+                        <span class="badge badge-type ${typeClass}">${s.type}</span>
+                        <span class="badge badge-category">${esc(s.category || '')}</span>
+                    </div>
+                    <div class="spell-effect">${esc(s.effect)}</div>
+                    ${s.flavor ? '<div class="spell-flavor">' + esc(s.flavor) + '</div>' : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function esc(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        init();
+    </script>
+</body>
+</html>
