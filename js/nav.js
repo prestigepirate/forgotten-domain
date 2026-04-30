@@ -157,7 +157,7 @@
                         ${CONTINENT_NAMES[cont]} <span class="mb-cret-count">(${list.length})</span>
                     </div>`;
                 for (const s of list) {
-                    html += `<div class="mb-spell-row">
+                    html += `<div class="mb-spell-row" data-spell-id="${escAttr(s.id)}">
                         <span class="mb-spell-cost">${s.cost}</span>
                         <span class="mb-spell-name">${esc(s.name)}</span>
                         <span class="mb-spell-type ${s.type.toLowerCase()}">${s.type}</span>
@@ -259,7 +259,7 @@
                         ${CONTINENT_NAMES[cont]} <span class="mb-cret-count">(${list.length})</span>
                     </div>`;
                 for (const c of list) {
-                    html += `<div class="mb-spell-row">
+                    html += `<div class="mb-spell-row" data-spell-id="${escAttr(c.id)}">
                         <span class="mb-spell-cost">${c.cost}</span>
                         <span class="mb-spell-name">${esc(c.name)}</span>
                         <span class="mb-spell-type condemned">${c.type}</span>
@@ -275,6 +275,123 @@
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
+        }
+
+        function escAttr(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ============================================
+        // Spell tooltip system
+        // ============================================
+        let spellLookup = new Map();
+        let tooltipEl = null;
+
+        function ensureTooltip() {
+            if (tooltipEl) return;
+            tooltipEl = document.createElement('div');
+            tooltipEl.className = 'mb-spell-tooltip';
+            panelContent.appendChild(tooltipEl);
+        }
+
+        function generateTips(spell) {
+            const tips = [];
+            const e = (spell.effect || '').toLowerCase();
+            const t = spell.type || '';
+
+            if (t === 'Condemned') {
+                tips.push('Set this on waypoints/bases enemies are likely to pass through.');
+                if (e.includes('damage')) tips.push('Pair with slowing effects to keep enemies in the trap zone.');
+                if (e.includes('teleport')) tips.push('Use near your King base to bounce invaders away.');
+            }
+            if (e.includes('ley-line')) {
+                tips.push('Position creatures on ley-lines before casting for maximum impact.');
+            }
+            if (e.includes('sacrifice') || e.includes('destroy')) {
+                tips.push('Sacrifice low-health or low-cost creatures for the best trade.');
+            }
+            if (e.includes('radius') || e.includes('tile')) {
+                tips.push('Aim for clusters of enemies to maximize value.');
+            }
+            if (e.includes('root') || e.includes('slow')) {
+                tips.push('Follow up with high-damage spells while the enemy is immobilized.');
+            }
+            if (e.includes('heal') || e.includes('regenerate')) {
+                tips.push('Cast on creatures holding a defensive line for sustained value.');
+            }
+            if (e.includes('swap')) {
+                tips.push('Use to reposition low-mobility creatures or pull a key unit out of danger.');
+            }
+            if (e.includes('control') || e.includes('disabled')) {
+                tips.push('Turn the strongest enemy creature against its own allies.');
+            }
+            if (e.includes('reveal')) {
+                tips.push('Cast before committing to an attack to avoid ambushes.');
+            }
+            if (spell.cost >= 8) {
+                tips.push('High-cost ultimate — save mana and time it for a decisive push.');
+            }
+            if (tips.length === 0) {
+                tips.push('Experiment with timing and positioning to find the best use case.');
+            }
+            return tips.slice(0, 2);
+        }
+
+        function wireSpellTooltips(spells) {
+            // Build lookup
+            spellLookup.clear();
+            for (const s of spells) spellLookup.set(s.id, s);
+            ensureTooltip();
+
+            panelContent.addEventListener('mouseover', (e) => {
+                const row = e.target.closest('.mb-spell-row');
+                if (!row) {
+                    tooltipEl.classList.remove('visible');
+                    return;
+                }
+                const id = row.dataset.spellId;
+                const spell = spellLookup.get(id);
+                if (!spell) return;
+
+                const tips = generateTips(spell);
+                tooltipEl.innerHTML = `
+                    <div class="mb-tt-name">${esc(spell.name)}</div>
+                    <div class="mb-tt-meta">
+                        <span class="mb-tt-cost">Cost ${spell.cost}</span>
+                        <span class="mb-tt-type ${spell.type.toLowerCase()}">${spell.type}</span>
+                    </div>
+                    <div class="mb-tt-effect">${esc(spell.effect)}</div>
+                    ${spell.flavor ? '<div class="mb-tt-flavor">' + esc(spell.flavor) + '</div>' : ''}
+                    <div class="mb-tt-tips">
+                        <div class="mb-tt-tip-label">Tips</div>
+                        ${tips.map(t => '<div class="mb-tt-tip">' + esc(t) + '</div>').join('')}
+                    </div>`;
+
+                const rowRect = row.getBoundingClientRect();
+                const panelRect = panelContent.getBoundingClientRect();
+                const panelScreenRight = panelRect.right;
+                const tooltipWidth = 260;
+                const gap = 12;
+
+                // Flip to left side if tooltip would overflow past panel right edge
+                if (panelScreenRight + tooltipWidth + gap > window.innerWidth) {
+                    tooltipEl.style.left = 'auto';
+                    tooltipEl.style.right = 'calc(100% + ' + gap + 'px)';
+                } else {
+                    tooltipEl.style.left = 'calc(100% + ' + gap + 'px)';
+                    tooltipEl.style.right = 'auto';
+                }
+                tooltipEl.style.top = (rowRect.top - panelRect.top) + 'px';
+                tooltipEl.classList.add('visible');
+            });
+
+            panelContent.addEventListener('mouseout', (e) => {
+                const row = e.target.closest('.mb-spell-row');
+                if (!row || !e.relatedTarget || !e.relatedTarget.closest('.mb-spell-row')) {
+                    tooltipEl.classList.remove('visible');
+                }
+            });
         }
 
         // ============================================
@@ -345,6 +462,7 @@
                     const db = await loadDatabase();
                     panelContent.innerHTML = buildMagickbookPanel(db.spells, db.creatures);
                     wireMiniTabs();
+                    wireSpellTooltips(db.spells);
                     panel.style.left = '50%';
                     panel.style.right = 'auto';
                     panel.style.transform = 'translateX(-50%) translateY(0)';
