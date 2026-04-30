@@ -204,7 +204,7 @@
                         ${CONTINENT_NAMES[cont]} <span class="mb-cret-count">(${list.length})</span>
                     </div>`;
                 for (const c of list) {
-                    html += `<div class="mb-cret-row">
+                    html += `<div class="mb-cret-row" data-creature-id="${escAttr(c.id)}">
                         <span class="mb-cret-lv">Lv${c.level}</span>
                         <span class="mb-cret-name">${esc(c.name)}</span>
                         <span class="mb-cret-type">${esc(c.type || '')}</span>
@@ -338,52 +338,116 @@
             return tips.slice(0, 2);
         }
 
-        function wireSpellTooltips(spells) {
-            // Build lookup
+        function generateCreatureTips(creature) {
+            const tips = [];
+            const e = (creature.effect || '').toLowerCase();
+            const atk = creature.atk || 0;
+            const def = creature.def || 0;
+            const cost = creature.essenceCost || 0;
+
+            if (atk > def + 500) tips.push('Glass cannon — protect with defensive spells or high-DEF allies.');
+            else if (def > atk + 500) tips.push('Tank — place on the front line to absorb enemy attacks.');
+            else tips.push('Balanced stats — versatile for both offense and defense.');
+
+            if (cost <= 3) tips.push('Low cost — summon early to establish board presence.');
+            if (cost >= 10) tips.push('Expensive — save essence and deploy when you can protect it.');
+            if (e.includes('damage') || e.includes('destroy')) tips.push('Its ability deals damage — prioritize high-value targets.');
+            if (e.includes('heal') || e.includes('regenerate')) tips.push('Keep near damaged allies to maximize healing value.');
+            if (e.includes('buff') || e.includes('gain')) tips.push('Pair with link or synergy spells to amplify its buff effect.');
+            if (e.includes('debuff') || e.includes('lose') || e.includes('reduce')) tips.push('Deploy near enemy clusters to spread the debuff.');
+            if (tips.length === 1) tips.push('Experiment with positioning to maximize its impact.');
+            return tips.slice(0, 2);
+        }
+
+        function wireSpellTooltips(spells, creatures) {
+            // Build lookups
             spellLookup.clear();
             for (const s of spells) spellLookup.set(s.id, s);
+            const creatureLookup = new Map();
+            for (const c of creatures) creatureLookup.set(c.id, c);
             ensureTooltip();
 
             panelContent.addEventListener('mouseover', (e) => {
-                const row = e.target.closest('.mb-spell-row');
-                if (!row) {
+                const spellRow = e.target.closest('.mb-spell-row');
+                const cretRow = e.target.closest('.mb-cret-row');
+                
+                // Hide if not over any row
+                if (!spellRow && !cretRow) {
                     tooltipEl.classList.remove('visible');
                     return;
                 }
-                const id = row.dataset.spellId;
-                const spell = spellLookup.get(id);
-                if (!spell) return;
 
-                const tips = generateTips(spell);
-                tooltipEl.innerHTML = `
-                    <div class="mb-tt-name">${esc(spell.name)}</div>
-                    <div class="mb-tt-meta">
-                        <span class="mb-tt-cost">Cost ${spell.cost}</span>
-                        <span class="mb-tt-type ${spell.type.toLowerCase()}">${spell.type}</span>
-                    </div>
-                    <div class="mb-tt-divider"></div>
-                    <div class="mb-tt-section-label">Effect</div>
-                    <div class="mb-tt-effect">${esc(spell.effect)}</div>
-                    ${spell.flavor ? '<div class="mb-tt-section-label">Flavor</div><div class="mb-tt-flavor">' + esc(spell.flavor) + '</div>' : ''}
-                    <div class="mb-tt-divider"></div>
-                    <div class="mb-tt-section-label">Tips</div>
-                    ${tips.map(t => '<div class="mb-tt-tip">' + esc(t) + '</div>').join('')}`;
+                // Spell row
+                if (spellRow) {
+                    const id = spellRow.dataset.spellId;
+                    const spell = spellLookup.get(id);
+                    if (!spell) return;
+                    buildSpellTooltip(spell);
+                }
 
-                // Align with the MagickBook panel
-                const panelRect = panel.getBoundingClientRect();
-                tooltipEl.style.top = panelRect.top + 'px';
-                tooltipEl.style.bottom = 'auto';
-                tooltipEl.style.transform = 'none';
-                tooltipEl.style.maxHeight = panelRect.height + 'px';
-                tooltipEl.classList.add('visible');
+                // Creature row
+                if (cretRow) {
+                    const id = cretRow.dataset.creatureId;
+                    const creature = creatureLookup.get(id);
+                    if (!creature) return;
+                    buildCreatureTooltip(creature);
+                }
             });
 
             panelContent.addEventListener('mouseout', (e) => {
-                const row = e.target.closest('.mb-spell-row');
-                if (!row || !e.relatedTarget || !e.relatedTarget.closest('.mb-spell-row')) {
+                const row = e.target.closest('.mb-spell-row, .mb-cret-row');
+                if (!row || !e.relatedTarget || !e.relatedTarget.closest('.mb-spell-row, .mb-cret-row')) {
                     tooltipEl.classList.remove('visible');
                 }
             });
+        }
+
+        function buildSpellTooltip(spell) {
+            const tips = generateTips(spell);
+            tooltipEl.innerHTML = `
+                <div class="mb-tt-name">${esc(spell.name)}</div>
+                <div class="mb-tt-meta">
+                    <span class="mb-tt-cost">Cost ${spell.cost}</span>
+                    <span class="mb-tt-type ${spell.type.toLowerCase()}">${spell.type}</span>
+                </div>
+                <div class="mb-tt-divider"></div>
+                <div class="mb-tt-section-label">Effect</div>
+                <div class="mb-tt-effect">${esc(spell.effect)}</div>
+                ${spell.flavor ? '<div class="mb-tt-section-label">Flavor</div><div class="mb-tt-flavor">' + esc(spell.flavor) + '</div>' : ''}
+                <div class="mb-tt-divider"></div>
+                <div class="mb-tt-section-label">Tips</div>
+                ${tips.map(t => '<div class="mb-tt-tip">' + esc(t) + '</div>').join('')}`;
+            positionTooltip();
+        }
+
+        function buildCreatureTooltip(creature) {
+            const tips = generateCreatureTips(creature);
+            const effect = creature.effect || '';
+            tooltipEl.innerHTML = `
+                <div class="mb-tt-name">${esc(creature.name)}</div>
+                <div class="mb-tt-meta">
+                    <span class="mb-tt-cost">Lv${creature.level}</span>
+                    <span class="mb-cret-stats" style="color:#cbd5e1;font-size:0.62rem">ATK ${creature.atk} / DEF ${creature.def}</span>
+                </div>
+                <div class="mb-tt-meta" style="margin-top:-4px">
+                    <span class="mb-cret-lv" style="color:rgba(160,180,200,0.5);font-size:0.55rem">${esc(creature.type || 'Unknown')}</span>
+                    <span class="mb-cret-cost" style="font-size:0.58rem">⊕${creature.essenceCost}</span>
+                    <span class="mb-cret-lv" style="color:rgba(160,180,200,0.5);font-size:0.55rem">Mov ${creature.movement || 1}</span>
+                </div>
+                <div class="mb-tt-divider"></div>
+                ${effect ? '<div class="mb-tt-section-label">Ability</div><div class="mb-tt-effect">' + esc(effect) + '</div>' : ''}
+                ${creature.flavor ? '<div class="mb-tt-section-label">Flavor</div><div class="mb-tt-flavor">' + esc(creature.flavor) + '</div>' : ''}
+                ${tips.length ? '<div class="mb-tt-divider"></div><div class="mb-tt-section-label">Tips</div>' + tips.map(t => '<div class="mb-tt-tip">' + esc(t) + '</div>').join('') : ''}`;
+            positionTooltip();
+        }
+
+        function positionTooltip() {
+            const panelRect = panel.getBoundingClientRect();
+            tooltipEl.style.top = panelRect.top + 'px';
+            tooltipEl.style.bottom = 'auto';
+            tooltipEl.style.transform = 'none';
+            tooltipEl.style.maxHeight = panelRect.height + 'px';
+            tooltipEl.classList.add('visible');
         }
 
         // ============================================
@@ -454,7 +518,7 @@
                     const db = await loadDatabase();
                     panelContent.innerHTML = buildMagickbookPanel(db.spells, db.creatures);
                     wireMiniTabs();
-                    wireSpellTooltips(db.spells);
+                    wireSpellTooltips(db.spells, db.creatures);
                     panel.style.left = '50%';
                     panel.style.right = 'auto';
                     panel.style.transform = 'translateX(-50%) translateY(0)';
