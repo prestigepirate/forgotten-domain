@@ -72,6 +72,7 @@ export class Renderer {
         this.layers = {
             borders: document.getElementById('base-borders'),
             paths: document.getElementById('connection-paths'),
+            zones: document.getElementById('zones-layer'),
             markers: document.getElementById('base-markers'),
             decorations: document.getElementById('decorations-layer'),
             creatures: document.getElementById('units-layer'),

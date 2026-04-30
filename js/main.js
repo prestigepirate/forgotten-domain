@@ -16,6 +16,7 @@ import { EnemyAI } from './enemyAI.js';
 import { executeEffects, getEffectiveStats, parseEffects } from './effects.js';
 import { DecorationManager, ASSET_DEFINITIONS } from './decorations.js';
 import { FogOfWar } from './fogOfWar.js';
+import { ZoneOfControl } from './zones.js';
 
 // ============================================
 // Game Constants
@@ -79,6 +80,7 @@ const state = {
     creatureDBIndex: null,               // Map<id, creatureEntry>
     sigilManager: null,                  // SigilManager instance
     enemyAI: null,                       // EnemyAI instance
+    zones: null,                         // ZoneOfControl instance
     lastPeriodicEffects: Date.now(),     // Last time periodic effects were checked
     // Decoration system
     decorationManager: null,             // DecorationManager instance
@@ -195,6 +197,21 @@ async function init() {
     });
     fog.init();
     state.fog = fog;
+
+    // Initialize zones of control
+    const trapMap = new Map(); // populated when condemned spells are wired in
+    state.zones = new ZoneOfControl(svgOverlay, 'zones-layer', state.baseSystem, {
+        onZoneClick: (baseId) => {
+            state.renderer.selectBase(baseId);
+        },
+        onZoneHover: (baseId, e) => {
+            showZoneTooltip(baseId, e);
+        },
+        onZoneLeave: () => {
+            hideZoneTooltip();
+        }
+    });
+    state.zones.render();
 
     // Setup event listeners BEFORE any async work — so base clicks
     // are handled even while the creature database is loading
@@ -1644,6 +1661,97 @@ function handleSigilEvent(entity, eventType) {
     updateUI();
 }
 
+// ============================================
+// Zone Tooltip
+// ============================================
+
+/**
+ * Show enhanced zone tooltip with strategic info.
+ * Reuses the existing #base-tooltip element from game.html.
+ */
+function showZoneTooltip(baseId, event) {
+    const base = state.baseSystem.getById(baseId);
+    if (!base) return;
+
+    const tooltip = document.getElementById('base-tooltip');
+    const nameEl = document.getElementById('tooltip-name');
+    const typeEl = document.getElementById('tooltip-type');
+    const descEl = document.getElementById('tooltip-desc');
+    if (!tooltip) return;
+
+    // Determine zone state
+    const isOwned = state.ownedBaseIds.has(baseId);
+    const isEnemy = base.type === 'enemy-base' || base.type === 'enemy-king-base';
+    const isKing = base.type === 'king-base' || base.type === 'enemy-king-base';
+
+    // Creature counts
+    const friendlyCreatures = state.summonedCreatures
+        ? state.summonedCreatures.filter(sc => sc.baseId === baseId && sc.isComplete).length
+        : 0;
+    const enemyCreatures = state.enemyAI
+        ? state.enemyAI.getCreatures().filter(c => c.baseId === baseId).length
+        : 0;
+
+    // Sigil status
+    const sigil = state.sigils ? state.sigils.get(baseId) : null;
+    const hasSigil = sigil && !sigil.isComplete;
+    const enemySigil = state.enemyAI ? state.enemyAI.sigils.get(baseId) : null;
+    const hasEnemySigil = enemySigil && !enemySigil.isComplete;
+
+    // Fog status
+    let fogStatus = 'Visible';
+    if (state.fog) {
+        const pos = state.renderer.percentToPixels(base.x, base.y);
+        if (!state.fog.isExplored(pos.x, pos.y)) {
+            fogStatus = 'Unexplored';
+        } else if (!state.fog.isVisible(pos.x, pos.y)) {
+            fogStatus = 'Dimmed';
+        }
+    }
+
+    // Ownership badge
+    let ownerBadge = '<span style="color:#888">Neutral</span>';
+    if (isOwned) ownerBadge = '<span style="color:#a78bfa">✦ Yours</span>';
+    if (isEnemy) ownerBadge = '<span style="color:#f87171">⚔ Enemy</span>';
+
+    // Build rich tooltip content
+    nameEl.innerHTML = base.name;
+    typeEl.innerHTML = `${base.type || 'Base'} · ${ownerBadge}`;
+
+    let desc = '';
+    if (base.description) desc += base.description + '<br><br>';
+    desc += `<b>Creatures:</b> ${friendlyCreatures} friendly`;
+    if (enemyCreatures > 0) desc += `, ${enemyCreatures} enemy`;
+    if (friendlyCreatures === 0 && enemyCreatures === 0) desc += ' · empty';
+    desc += '<br>';
+    if (isKing) desc += '<b>King Base</b> · high value target<br>';
+    if (hasSigil) desc += '<span style="color:#22c55e">⏳ Sigil charging</span><br>';
+    if (hasEnemySigil) desc += '<span style="color:#f87171">⏳ Enemy sigil active</span><br>';
+    desc += `<span style="color:#888;font-size:0.7rem">Fog: ${fogStatus}</span>`;
+
+    descEl.innerHTML = desc;
+
+    // Position
+    let x = event.clientX + 16;
+    let y = event.clientY + 16;
+    const rect = tooltip.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth - 10) x = event.clientX - rect.width - 16;
+    if (y + rect.height > window.innerHeight - 10) y = event.clientY - rect.height - 16;
+    if (x < 10) x = 10;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+    tooltip.style.opacity = '1';
+    tooltip.style.transform = 'translateY(0)';
+}
+
+function hideZoneTooltip() {
+    const tooltip = document.getElementById('base-tooltip');
+    if (tooltip) {
+        tooltip.style.opacity = '0';
+        tooltip.style.transform = 'translateY(8px)';
+    }
+}
+
 /**
  * Handle enemy AI events — show toasts for enemy activity.
  */
@@ -1992,6 +2100,18 @@ function sigilRenderLoop(timestamp) {
     // Fog of war update
     if (state.fog) {
         updateFog();
+    }
+    // Zone of control update
+    if (state.zones && state.baseSystem) {
+        state.zones.reposition();
+        const enemyIds = new Set();
+        for (const base of state.baseSystem.getAll()) {
+            if (base.type === 'enemy-base' || base.type === 'enemy-king-base') {
+                enemyIds.add(base.id);
+            }
+        }
+        const trapMap = new Map(); // populated when condemned spells wired in
+        state.zones.update(state.ownedBaseIds, enemyIds, trapMap, state.fog);
     }
     updateUI();
     requestAnimationFrame(sigilRenderLoop);
