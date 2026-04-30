@@ -477,3 +477,87 @@
     color: rgba(160, 180, 200, 0.25);
     margin-top: 4px;
 }
+
+/* ============================================
+   LEADERBOARD PANEL — compact score rows
+   ============================================ */
+
+.lb-mini-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124, 180, 255, 0.2) transparent;
+}
+
+.lb-mini-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.lb-mini-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.lb-mini-list::-webkit-scrollbar-thumb {
+    background: rgba(124, 180, 255, 0.2);
+    border-radius: 2px;
+}
+
+.lb-mini-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.015);
+    font-size: 0.58rem;
+    transition: background 0.15s;
+}
+
+.lb-mini-row:hover {
+    background: rgba(124, 180, 255, 0.03);
+}
+
+.lb-mini-rank {
+    flex-shrink: 0;
+    width: 22px;
+    text-align: center;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: rgba(160, 180, 200, 0.5);
+}
+
+.lb-mini-rank.lb-rank-1 {
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    font-size: 0.65rem;
+}
+
+.lb-mini-rank.lb-rank-2 {
+    color: #cbd5e1;
+    text-shadow: 0 0 6px rgba(148, 163, 184, 0.4);
+}
+
+.lb-mini-rank.lb-rank-3 {
+    color: #d97706;
+    text-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
+}
+
+.lb-mini-name {
+    flex: 1;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 0.58rem;
+    color: rgba(210, 220, 240, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lb-mini-score {
+    flex-shrink: 0;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: #a78bfa;
+    text-align: right;
+}

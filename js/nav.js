@@ -32,6 +32,63 @@
         }
 
         // ============================================
+        // Leaderboard cache
+        // ============================================
+        let cachedLeaderboard = null;
+        let lbCacheTime = 0;
+        const LB_CACHE_MS = 30000; // 30-second cache
+
+        async function loadLeaderboard() {
+            const now = Date.now();
+            if (cachedLeaderboard && (now - lbCacheTime) < LB_CACHE_MS) return cachedLeaderboard;
+            try {
+                const res = await fetch('/api/leaderboard?limit=8');
+                if (!res.ok) throw new Error('Uplink failed');
+                const data = await res.json();
+                cachedLeaderboard = data.leaderboard || [];
+                lbCacheTime = now;
+            } catch (e) {
+                if (!cachedLeaderboard) cachedLeaderboard = [];
+            }
+            return cachedLeaderboard;
+        }
+
+        function buildLeaderboardPanel(board) {
+            const header = `
+                <div class="nav-panel-header">
+                    <div class="nav-panel-header-dot"></div>
+                    <span class="nav-panel-header-title">Dominion Leaderboard</span>
+                    <span class="nav-panel-header-id">FD-CMD</span>
+                </div>`;
+
+            if (board.length === 0) {
+                return header + `
+                    <div class="mb-empty-state">
+                        <div>No commanders on the board yet</div>
+                    </div>`;
+            }
+
+            const rows = board.map((entry, i) => {
+                const rank = i + 1;
+                const rankClass = rank === 1 ? 'lb-rank-1' : rank === 2 ? 'lb-rank-2' : rank === 3 ? 'lb-rank-3' : '';
+                const medal = rank === 1 ? '●' : rank === 2 ? '●' : rank === 3 ? '●' : rank;
+                return `
+                <div class="lb-mini-row">
+                    <span class="lb-mini-rank ${rankClass}">${medal}</span>
+                    <span class="lb-mini-name">${esc(entry.display_name || entry.username || 'Unknown')}</span>
+                    <span class="lb-mini-score">${Number(entry.score || 0).toLocaleString()}</span>
+                </div>`;
+            }).join('');
+
+            return header + `
+                <div class="nav-panel-row">
+                    <span class="nav-panel-label">Commanders</span>
+                    <span class="nav-panel-value highlight">${board.length}</span>
+                </div>
+                <div class="lb-mini-list">${rows}</div>`;
+        }
+
+        // ============================================
         // MagickBook panel builder
         // ============================================
 
@@ -211,6 +268,9 @@
                     const db = await loadDatabase();
                     panelContent.innerHTML = buildMagickbookPanel(db.spells, db.creatures);
                     wireMiniTabs();
+                } else if (panelKey === 'leaderboard') {
+                    const board = await loadLeaderboard();
+                    panelContent.innerHTML = buildLeaderboardPanel(board);
                 } else {
                     panelContent.innerHTML = panelContentMap[panelKey] || '';
                 }
