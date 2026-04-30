@@ -15,6 +15,7 @@ import { createToastContainer, showToast } from './toasts.js';
 import { EnemyAI } from './enemyAI.js';
 import { executeEffects, getEffectiveStats, parseEffects } from './effects.js';
 import { DecorationManager, ASSET_DEFINITIONS } from './decorations.js';
+import { FogOfWar } from './fogOfWar.js';
 
 // ============================================
 // Game Constants
@@ -186,6 +187,14 @@ async function init() {
     svgOverlay = getElement('map-overlay');
     state.renderer = new Renderer(svgOverlay, { theme: planet });
     state.renderer.init(state.baseSystem);
+
+    // Initialize fog of war
+    const fog = new FogOfWar(svgOverlay, state.renderer.svgWidth, state.renderer.svgHeight, {
+        creatureVision: 60,
+        baseVision: 100
+    });
+    fog.init();
+    state.fog = fog;
 
     // Setup event listeners BEFORE any async work — so base clicks
     // are handled even while the creature database is loading
@@ -1931,6 +1940,38 @@ function updateRegen() {
     }
 }
 
+/**
+ * Collect vision sources (friendly bases + creatures) and update fog of war.
+ */
+function updateFog() {
+    const sources = [];
+    const r = state.renderer;
+    if (!r) return;
+
+    // Friendly bases: king base + player bases
+    const allBases = state.baseSystem.getAll();
+    for (const base of allBases) {
+        if (base.type === 'king-base' || base.type === 'player-base') {
+            const pos = r.percentToPixels(base.x, base.y);
+            sources.push({ x: pos.x, y: pos.y, radius: state.fog.baseVision });
+        }
+    }
+
+    // Friendly creatures (completed summons)
+    if (state.sigilManager) {
+        const summoned = state.sigilManager.summoned || [];
+        for (const sc of summoned) {
+            if (!sc.isComplete) continue;
+            const base = state.baseSystem.getById(sc.baseId);
+            if (!base) continue;
+            const pos = r.percentToPixels(base.x, base.y);
+            sources.push({ x: pos.x, y: pos.y, radius: state.fog.creatureVision });
+        }
+    }
+
+    state.fog.update(sources);
+}
+
 // Main game loop — processes real-time systems every animation frame
 function sigilRenderLoop(timestamp) {
     if (state.renderer && state.sigilManager) {
@@ -1947,6 +1988,10 @@ function sigilRenderLoop(timestamp) {
     if (now - state.lastPeriodicEffects > 60000) {
         runPeriodicEffects();
         state.lastPeriodicEffects = now;
+    }
+    // Fog of war update
+    if (state.fog) {
+        updateFog();
     }
     updateUI();
     requestAnimationFrame(sigilRenderLoop);
