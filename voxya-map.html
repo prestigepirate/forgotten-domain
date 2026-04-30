@@ -492,6 +492,35 @@
             box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
         }
 
+        .hide-labels-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            color: #fbbf24;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            margin-right: 6px;
+        }
+
+        .hide-labels-btn:hover {
+            background: rgba(245, 158, 11, 0.3);
+            border-color: #fbbf24;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+        }
+
+        .hide-labels-btn.active {
+            background: rgba(245, 158, 11, 0.4);
+            border-color: #f59e0b;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
+        }
+
         .edit-tools {
             display: flex;
             flex-direction: column;
@@ -905,6 +934,7 @@
         <div class="edit-panel" id="edit-panel">
             <div class="edit-panel-header">
                 <h3 class="edit-panel-title">Prestige Map Editor</h3>
+                <button class="hide-labels-btn" id="toggle-labels-btn" title="Hide text labels">👁</button>
                 <button class="minimize-btn" id="minimize-panel-btn" title="Minimize Panel">−</button>
             </div>
             <div class="edit-panel-inner">
@@ -976,7 +1006,6 @@
                 <button class="edit-action-btn danger" id="clear-assets-btn">Clear All Assets</button>
             </div>
             <button class="close-edit-btn" id="close-edit-btn">Done</button>
-            <button class="edit-action-btn" id="toggle-labels-btn" style="margin-top:8px">👁 Hide Labels</button>
             </div><!-- end edit-panel-inner -->
         </div>
         <input type="file" id="import-file" accept=".json" style="display:none">
@@ -1729,7 +1758,8 @@
                 labelsHidden = !labelsHidden;
                 if (viewer) viewer.classList.toggle('hide-labels', labelsHidden);
                 if (btn) {
-                    btn.textContent = labelsHidden ? '👁 Show Labels' : '👁 Hide Labels';
+                    btn.textContent = labelsHidden ? '👁‍🗨' : '👁';
+                    btn.title = labelsHidden ? 'Show Labels' : 'Hide Labels';
                     btn.classList.toggle('active', labelsHidden);
                 }
             });
