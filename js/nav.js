@@ -2,7 +2,7 @@
  * Shared bottom nav panel — hover-triggered NASA-style panels
  */
 (function () {
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         const panel = document.getElementById('nav-panel');
         const panelContent = document.getElementById('nav-panel-content');
         const navItems = document.querySelectorAll('.nav-item[data-panel]');
@@ -10,6 +10,66 @@
 
         let hideTimeout;
 
+        // ============================================
+        // Spell cache for MagickBook panel
+        // ============================================
+        let cachedSpells = null;
+
+        async function loadSpells() {
+            if (cachedSpells) return cachedSpells;
+            try {
+                const res = await fetch('creatures-database.json');
+                if (!res.ok) throw new Error('Not found');
+                const db = await res.json();
+                cachedSpells = (db.spells || []).sort((a, b) => a.cost - b.cost);
+            } catch (e) {
+                cachedSpells = [];
+            }
+            return cachedSpells;
+        }
+
+        function buildMagickbookPanel(spells) {
+            const header = `
+                <div class="nav-panel-header">
+                    <div class="nav-panel-header-dot"></div>
+                    <span class="nav-panel-header-title">MagickBook</span>
+                    <span class="nav-panel-header-id">GRIM-0451</span>
+                </div>`;
+
+            if (spells.length === 0) {
+                return header + `
+                    <div class="nav-panel-row">
+                        <span class="nav-panel-label">Grimoire State</span>
+                        <span class="nav-panel-status">Sealed</span>
+                    </div>`;
+            }
+
+            const rows = spells.map(s => `
+                <div class="mb-spell-row">
+                    <span class="mb-spell-cost">${s.cost}</span>
+                    <span class="mb-spell-name">${esc(s.name)}</span>
+                    <span class="mb-spell-type ${s.type.toLowerCase()}">${s.type}</span>
+                </div>
+            `).join('');
+
+            return header + `
+                <div class="nav-panel-row">
+                    <span class="nav-panel-label">Inscribed Spells</span>
+                    <span class="nav-panel-value highlight">${spells.length}</span>
+                </div>
+                <div class="mb-spell-list">${rows}</div>`;
+        }
+
+        function esc(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // Panel content map
+        // ============================================
         const panelContentMap = {
             player: `
                 <div class="nav-panel-header">
@@ -32,29 +92,6 @@
                 <div class="nav-panel-row">
                     <span class="nav-panel-label">Status</span>
                     <span class="nav-panel-status">Active</span>
-                </div>
-            `,
-            magickbook: `
-                <div class="nav-panel-header">
-                    <div class="nav-panel-header-dot"></div>
-                    <span class="nav-panel-header-title">MagickBook</span>
-                    <span class="nav-panel-header-id">GRIM-0451</span>
-                </div>
-                <div class="nav-panel-row">
-                    <span class="nav-panel-label">Active Sigils</span>
-                    <span class="nav-panel-value highlight">3</span>
-                </div>
-                <div class="nav-panel-row">
-                    <span class="nav-panel-label">Resonance</span>
-                    <span class="nav-panel-value">Warp / Veil / Pyre</span>
-                </div>
-                <div class="nav-panel-row">
-                    <span class="nav-panel-label">Last Invocation</span>
-                    <span class="nav-panel-value">Echo Severance — Voxya</span>
-                </div>
-                <div class="nav-panel-row">
-                    <span class="nav-panel-label">Grimoire State</span>
-                    <span class="nav-panel-status">Bound</span>
                 </div>
             `,
             academicks: `
@@ -82,13 +119,24 @@
             `,
         };
 
+        // Preload spells for MagickBook panel
+        loadSpells();
+
+        // ============================================
+        // Event listeners
+        // ============================================
         navItems.forEach(item => {
             const panelKey = item.dataset.panel;
             if (panelKey === 'home') return;
 
-            item.addEventListener('mouseenter', () => {
+            item.addEventListener('mouseenter', async () => {
                 clearTimeout(hideTimeout);
-                panelContent.innerHTML = panelContentMap[panelKey] || '';
+                if (panelKey === 'magickbook') {
+                    const spells = await loadSpells();
+                    panelContent.innerHTML = buildMagickbookPanel(spells);
+                } else {
+                    panelContent.innerHTML = panelContentMap[panelKey] || '';
+                }
                 panel.classList.add('visible');
                 panel.classList.remove('hidden');
             });
