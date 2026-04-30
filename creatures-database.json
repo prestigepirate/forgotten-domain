@@ -804,6 +804,486 @@
       "type": "Global",
       "effect": "For the next 2 minutes: All enemy creatures lose -400 ATK, your creatures gain +200 ATK.",
       "flavor": "The sun does not set here. It flees."
+    },
+    {
+      "id": "orilyth-chains-of-truth",
+      "continent": "orilyth",
+      "name": "Chains of Truth",
+      "category": "Crystalline Magick",
+      "cost": 6,
+      "type": "Instant",
+      "effect": "Target enemy creature cannot move, attack, or be targeted by its own allies' spells for 20 seconds.",
+      "flavor": "You are seen. You are known. You are held."
+    },
+    {
+      "id": "orilyth-pulse-scan",
+      "continent": "orilyth",
+      "name": "Pulse Scan",
+      "category": "Crystalline Magick",
+      "cost": 2,
+      "type": "Instant",
+      "effect": "Reveal all hidden/invisible enemy creatures within a 2-tile radius of target friendly creature for 30 seconds.",
+      "flavor": "The crystals remember everything. They simply need to be asked."
+    },
+    {
+      "id": "orilyth-crystal-lattice",
+      "continent": "orilyth",
+      "name": "Crystal Lattice",
+      "category": "Crystalline Magick",
+      "cost": 3,
+      "type": "Instant",
+      "effect": "Target friendly creature gains +600 DEF and reflects 100 damage back to attackers for 45 seconds.",
+      "flavor": "Strike the lattice and the lattice strikes back."
+    },
+    {
+      "id": "orilyth-data-stream",
+      "continent": "orilyth",
+      "name": "Data Stream",
+      "category": "Crystalline Magick",
+      "cost": 3,
+      "type": "Instant",
+      "effect": "Link two friendly creatures. When one gains ATK or DEF, the other gains half that amount for 30 seconds.",
+      "flavor": "Two minds, one truth. Information shared is power doubled."
+    },
+    {
+      "id": "orilyth-overcharge",
+      "continent": "orilyth",
+      "name": "Overcharge",
+      "category": "Crystalline Magick",
+      "cost": 4,
+      "type": "Instant",
+      "effect": "Target friendly creature gains +900 ATK for 30 seconds, then loses -300 ATK for the next 30 seconds.",
+      "flavor": "Every surge has its cost. The lattice does not forget the debt."
+    },
+    {
+      "id": "orilyth-echo-chamber",
+      "continent": "orilyth",
+      "name": "Echo Chamber",
+      "category": "Crystalline Magick",
+      "cost": 4,
+      "type": "Ongoing",
+      "effect": "All your creatures within 3 tiles of an Orilyth ley-line gain +200 ATK and +200 DEF. Lasts 60 seconds.",
+      "flavor": "The whispers of Orilyth amplify into a roar."
+    },
+    {
+      "id": "orilyth-prism-guard",
+      "continent": "orilyth",
+      "name": "Prism Guard",
+      "category": "Crystalline Magick",
+      "cost": 5,
+      "type": "Instant",
+      "effect": "All friendly creatures in a 2-tile radius gain a shield absorbing 500 damage. Lasts 45 seconds.",
+      "flavor": "A thousand facets. A single unbroken light."
+    },
+    {
+      "id": "orilyth-foresight",
+      "continent": "orilyth",
+      "name": "Foresight",
+      "category": "Crystalline Magick",
+      "cost": 5,
+      "type": "Instant",
+      "effect": "The next enemy spell cast within 60 seconds is negated and its cost is refunded to you as +2 mana.",
+      "flavor": "They foresaw Earth's doom. Your spell is no surprise."
+    },
+    {
+      "id": "orilyth-chain-lightning",
+      "continent": "orilyth",
+      "name": "Chain Lightning",
+      "category": "Crystalline Magick",
+      "cost": 6,
+      "type": "Instant",
+      "effect": "Deal 800 damage to target enemy creature, then bounce to the nearest enemy within 2 tiles for 400 damage. Chains up to 3 times.",
+      "flavor": "The storm only needs one point of contact."
+    },
+    {
+      "id": "orilyth-resonance-cascade",
+      "continent": "orilyth",
+      "name": "Resonance Cascade",
+      "category": "Crystalline Magick",
+      "cost": 7,
+      "type": "Instant",
+      "effect": "All creatures on the field take 300 damage. Orilyth creatures take half damage.",
+      "flavor": "When the crystals sing in unison, the world trembles."
+    },
+    {
+      "id": "orilyth-temporal-shift",
+      "continent": "orilyth",
+      "name": "Temporal Shift",
+      "category": "Crystalline Magick",
+      "cost": 8,
+      "type": "Global",
+      "effect": "For 45 seconds: all your Orilyth creatures gain double movement and halved summon times.",
+      "flavor": "Time is data. And data can be rewritten."
+    },
+    {
+      "id": "orilyth-great-forecast",
+      "continent": "orilyth",
+      "name": "The Great Forecast",
+      "category": "Crystalline Magick",
+      "cost": 10,
+      "type": "Global",
+      "effect": "For 90 seconds: reveal the entire map, all your creatures gain +300 ATK and +1 Movement, and enemy stealth is disabled.",
+      "flavor": "The Veil lifts. Every secret, every shadow — seen."
+    },
+    {
+      "id": "korvess-sprout",
+      "continent": "korvess",
+      "name": "Sprout",
+      "category": "Verdant Magick",
+      "cost": 2,
+      "type": "Instant",
+      "effect": "Target friendly creature gains +100 ATK and +100 DEF. If on a Korvess ley-line, gains an additional +200 ATK/DEF.",
+      "flavor": "Even the smallest seed cracks stone."
+    },
+    {
+      "id": "korvess-vine-snare",
+      "continent": "korvess",
+      "name": "Vine Snare",
+      "category": "Verdant Magick",
+      "cost": 3,
+      "type": "Instant",
+      "effect": "Target enemy creature is rooted (Movement = 0) for 30 seconds. Deals 100 damage every 10 seconds while rooted.",
+      "flavor": "The forest does not chase. It simply waits for you to stop moving."
+    },
+    {
+      "id": "korvess-photosynthesis",
+      "continent": "korvess",
+      "name": "Photosynthesis",
+      "category": "Verdant Magick",
+      "cost": 3,
+      "type": "Ongoing",
+      "effect": "All friendly creatures on Korvess ley-lines regenerate 200 DEF every 15 seconds. Lasts 60 seconds.",
+      "flavor": "Light is life. The Abyss provides plenty."
+    },
+    {
+      "id": "korvess-spore-cloud",
+      "continent": "korvess",
+      "name": "Spore Cloud",
+      "category": "Verdant Magick",
+      "cost": 4,
+      "type": "Instant",
+      "effect": "All enemy creatures within 2 tiles of target point lose -300 ATK and -200 DEF for 45 seconds.",
+      "flavor": "Breathe deep. The Abyss is already inside you."
+    },
+    {
+      "id": "korvess-mutation-surge",
+      "continent": "korvess",
+      "name": "Mutation Surge",
+      "category": "Verdant Magick",
+      "cost": 4,
+      "type": "Instant",
+      "effect": "Transform target friendly creature: swap its ATK and DEF, then give +400 to its new DEF for 60 seconds. Also grants a random mutation (regen 100/s or reflect 50 dmg).",
+      "flavor": "What you were is irrelevant. Only what you become matters."
+    },
+    {
+      "id": "korvess-thorn-barricade",
+      "continent": "korvess",
+      "name": "Thorn Barricade",
+      "category": "Verdant Magick",
+      "cost": 5,
+      "type": "Instant",
+      "effect": "All friendly creatures within 2 tiles of target base gain +700 DEF and thorns (deal 150 damage to attackers) for 45 seconds.",
+      "flavor": "Every wall in Korvess has teeth."
+    },
+    {
+      "id": "korvess-rapid-evolution",
+      "continent": "korvess",
+      "name": "Rapid Evolution",
+      "category": "Verdant Magick",
+      "cost": 5,
+      "type": "Ongoing",
+      "effect": "Target friendly creature gains +200 ATK and +200 DEF every 20 seconds (stacks up to 3 times). If it dies, refund 4 mana.",
+      "flavor": "Adapt or die. Preferably both, in that order."
+    },
+    {
+      "id": "korvess-carnivorous-bloom",
+      "continent": "korvess",
+      "name": "Carnivorous Bloom",
+      "category": "Verdant Magick",
+      "cost": 6,
+      "type": "Instant",
+      "effect": "Deal 1000 damage to target enemy creature. If this kills it, summon a Lv.1 Korvess creature at its position for free.",
+      "flavor": "Death feeds the garden."
+    },
+    {
+      "id": "korvess-overgrowth",
+      "continent": "korvess",
+      "name": "Overgrowth",
+      "category": "Verdant Magick",
+      "cost": 6,
+      "type": "Global",
+      "effect": "For 60 seconds: all ley-lines count as Korvess ley-lines for your creatures, and enemy movement costs +1 on all terrain.",
+      "flavor": "The Abyss does not ask permission to spread."
+    },
+    {
+      "id": "korvess-regrowth",
+      "continent": "korvess",
+      "name": "Regrowth",
+      "category": "Verdant Magick",
+      "cost": 7,
+      "type": "Instant",
+      "effect": "Revive the most recently destroyed friendly creature at half stats (permanent). Costs +2 extra mana for each time used per match.",
+      "flavor": "Nothing truly dies in the Abyss. It only changes form."
+    },
+    {
+      "id": "korvess-swarm-spores",
+      "continent": "korvess",
+      "name": "Swarm Spores",
+      "category": "Verdant Magick",
+      "cost": 8,
+      "type": "Instant",
+      "effect": "Deal 500 damage to all enemy creatures and heal all friendly creatures for 300. Bonus +200 damage/heal per Korvess creature you control.",
+      "flavor": "One spore is an annoyance. A million is an ecosystem."
+    },
+    {
+      "id": "korvess-genesis",
+      "continent": "korvess",
+      "name": "Genesis",
+      "category": "Verdant Magick",
+      "cost": 10,
+      "type": "Global",
+      "effect": "For 90 seconds: all your creatures gain +400 ATK/DEF, regenerate 150/s, and when any friendly creature dies, a Lv.1 Korvess creature spawns at your nearest base.",
+      "flavor": "Life does not begin. It simply continues."
+    },
+    {
+      "id": "sanguis-ember",
+      "continent": "sanguis",
+      "name": "Ember",
+      "category": "Infernal Magick",
+      "cost": 2,
+      "type": "Instant",
+      "effect": "Deal 300 damage to target enemy creature. If it dies, the nearest friendly creature gains +200 ATK for 30 seconds.",
+      "flavor": "A spark is all the Veil needs."
+    },
+    {
+      "id": "sanguis-ancestors-shield",
+      "continent": "sanguis",
+      "name": "Ancestor's Shield",
+      "category": "Infernal Magick",
+      "cost": 3,
+      "type": "Instant",
+      "effect": "Target friendly creature gains +500 DEF and is immune to damage for the next 10 seconds.",
+      "flavor": "The dead do not forget their blood."
+    },
+    {
+      "id": "sanguis-rage",
+      "continent": "sanguis",
+      "name": "Rage",
+      "category": "Infernal Magick",
+      "cost": 3,
+      "type": "Instant",
+      "effect": "Target friendly creature gains +600 ATK but loses -300 DEF for 45 seconds.",
+      "flavor": "Pain is fuel. The Veil burns brightest in fury."
+    },
+    {
+      "id": "sanguis-magma-vein",
+      "continent": "sanguis",
+      "name": "Magma Vein",
+      "category": "Infernal Magick",
+      "cost": 4,
+      "type": "Ongoing",
+      "effect": "Create a 2-tile radius zone at target location. Enemy creatures inside take 150 damage per 10 seconds. Lasts 60 seconds.",
+      "flavor": "The ground remembers every slight."
+    },
+    {
+      "id": "sanguis-spirit-walk",
+      "continent": "sanguis",
+      "name": "Spirit Walk",
+      "category": "Infernal Magick",
+      "cost": 4,
+      "type": "Instant",
+      "effect": "Target friendly creature becomes untargetable and can move through enemy creatures for 20 seconds. Gains +2 Movement.",
+      "flavor": "The Veil parts for those who carry the flame."
+    },
+    {
+      "id": "sanguis-inferno",
+      "continent": "sanguis",
+      "name": "Inferno",
+      "category": "Infernal Magick",
+      "cost": 5,
+      "type": "Instant",
+      "effect": "Deal 800 damage to all creatures within a 2-tile radius. Sanguis creatures take half damage.",
+      "flavor": "Fire does not discriminate. The Veil teaches you to endure it."
+    },
+    {
+      "id": "sanguis-berserkers-call",
+      "continent": "sanguis",
+      "name": "Berserker's Call",
+      "category": "Infernal Magick",
+      "cost": 5,
+      "type": "Ongoing",
+      "effect": "Target friendly creature gains +1000 ATK and attacks the nearest enemy every 15 seconds automatically. Lasts 45 seconds or until death.",
+      "flavor": "The ancestors demand a tribute of blood."
+    },
+    {
+      "id": "sanguis-honorable-sacrifice",
+      "continent": "sanguis",
+      "name": "Honorable Sacrifice",
+      "category": "Infernal Magick",
+      "cost": 6,
+      "type": "Instant",
+      "effect": "Destroy target friendly creature to deal damage equal to its ATK to all enemy creatures within 3 tiles.",
+      "flavor": "A warrior's death is not an ending. It is a weapon."
+    },
+    {
+      "id": "sanguis-volcanic-eruption",
+      "continent": "sanguis",
+      "name": "Volcanic Eruption",
+      "category": "Infernal Magick",
+      "cost": 6,
+      "type": "Instant",
+      "effect": "Deal 1200 damage to target enemy base or King structure. If it destroys the target, all your creatures gain +400 ATK for 30 seconds.",
+      "flavor": "The Veil does not break. It erupts."
+    },
+    {
+      "id": "sanguis-pyre-renewal",
+      "continent": "sanguis",
+      "name": "Pyre Renewal",
+      "category": "Infernal Magick",
+      "cost": 7,
+      "type": "Instant",
+      "effect": "Destroy target friendly creature. After 20 seconds, it returns with +50% ATK and full DEF. Usable once per creature per match.",
+      "flavor": "Through ash, the phoenix remembers its name."
+    },
+    {
+      "id": "sanguis-lava-armor",
+      "continent": "sanguis",
+      "name": "Lava Armor",
+      "category": "Infernal Magick",
+      "cost": 7,
+      "type": "Ongoing",
+      "effect": "All friendly Sanguis creatures gain +600 DEF and deal 200 fire damage to any enemy that attacks them. Lasts 60 seconds.",
+      "flavor": "Touch the Veil and the Veil touches back."
+    },
+    {
+      "id": "sanguis-the-great-forge",
+      "continent": "sanguis",
+      "name": "The Great Forge",
+      "category": "Infernal Magick",
+      "cost": 10,
+      "type": "Global",
+      "effect": "For 2 minutes: all creature summon costs are halved, summon times are halved, and newly summoned creatures gain +500 ATK/DEF for their first 60 seconds.",
+      "flavor": "The forges of Sanguis never cool. Every weapon is still being made."
+    },
+    {
+      "id": "silith9-precision-strike",
+      "continent": "silith9",
+      "name": "Precision Strike",
+      "category": "Technomagick",
+      "cost": 2,
+      "type": "Instant",
+      "effect": "Deal 400 damage to target enemy creature. Cannot be deflected, reduced, or blocked.",
+      "flavor": "One shot. One outcome. The math is absolute."
+    },
+    {
+      "id": "silith9-firewall",
+      "continent": "silith9",
+      "name": "Firewall",
+      "category": "Technomagick",
+      "cost": 3,
+      "type": "Instant",
+      "effect": "Target friendly creature gains +400 DEF and spell immunity for 20 seconds.",
+      "flavor": "Unauthorized access is not a crime here. It is a miscalculation."
+    },
+    {
+      "id": "silith9-overclock",
+      "continent": "silith9",
+      "name": "Overclock",
+      "category": "Technomagick",
+      "cost": 3,
+      "type": "Instant",
+      "effect": "Target friendly creature gains +500 ATK and +1 Movement for 30 seconds. Afterward, it is disabled (cannot act) for 10 seconds.",
+      "flavor": "Performance above spec. Stability below tolerance."
+    },
+    {
+      "id": "silith9-hack",
+      "continent": "silith9",
+      "name": "Hack",
+      "category": "Technomagick",
+      "cost": 4,
+      "type": "Instant",
+      "effect": "Take control of target enemy creature for 15 seconds. It can attack and move. Cannot target King structures or bases.",
+      "flavor": "Every system has a backdoor. The Nine wrote most of them."
+    },
+    {
+      "id": "silith9-deploy-turret",
+      "continent": "silith9",
+      "name": "Deploy Turret",
+      "category": "Technomagick",
+      "cost": 4,
+      "type": "Ongoing",
+      "effect": "Place a turret (ATK 600, DEF 400) at target location for 60 seconds. Attacks the nearest enemy every 10 seconds. Max 2 turrets active.",
+      "flavor": "Area denial is the purest form of negotiation."
+    },
+    {
+      "id": "silith9-emp-pulse",
+      "continent": "silith9",
+      "name": "EMP Pulse",
+      "category": "Technomagick",
+      "cost": 5,
+      "type": "Instant",
+      "effect": "All enemy creatures within 2 tiles of target point are disabled (cannot act, move, or cast) for 15 seconds. Mechanical/synthetic creatures are disabled for 30 seconds.",
+      "flavor": "Silence. The loudest statement the Nine ever make."
+    },
+    {
+      "id": "silith9-orbital-strike",
+      "continent": "silith9",
+      "name": "Orbital Strike",
+      "category": "Technomagick",
+      "cost": 5,
+      "type": "Instant",
+      "effect": "Deal 1000 damage to target location. All creatures within 1 tile take the damage. 20-second delay with visible warning marker.",
+      "flavor": "The False Moon sees you. Calibration in progress."
+    },
+    {
+      "id": "silith9-efficiency-protocol",
+      "continent": "silith9",
+      "name": "Efficiency Protocol",
+      "category": "Technomagick",
+      "cost": 5,
+      "type": "Ongoing",
+      "effect": "For 60 seconds: all Silith-9 creatures' essence costs are reduced by 2 (minimum 1).",
+      "flavor": "Waste is the enemy. Optimization is worship."
+    },
+    {
+      "id": "silith9-reverse-engineer",
+      "continent": "silith9",
+      "name": "Reverse Engineer",
+      "category": "Technomagick",
+      "cost": 6,
+      "type": "Instant",
+      "effect": "Target enemy creature loses all active buffs. You gain +2 mana and a random friendly Silith-9 creature gains +300 ATK/DEF.",
+      "flavor": "Your magic is just undocumented technology."
+    },
+    {
+      "id": "silith9-nano-swarm",
+      "continent": "silith9",
+      "name": "Nano-Swarm",
+      "category": "Technomagick",
+      "cost": 6,
+      "type": "Ongoing",
+      "effect": "Release a swarm dealing 200 damage per 10 seconds to the nearest enemy creature. Follows your highest-ATK creature. Lasts 60 seconds.",
+      "flavor": "A billion tiny reminders that you are not in control."
+    },
+    {
+      "id": "silith9-orbital-relay",
+      "continent": "silith9",
+      "name": "Orbital Relay",
+      "category": "Technomagick",
+      "cost": 7,
+      "type": "Global",
+      "effect": "For 60 seconds: all your creatures gain +300 ATK, all enemy creatures lose -200 DEF, and Silith-9 creatures gain +1 Movement.",
+      "flavor": "The satellites align. The math is final."
+    },
+    {
+      "id": "silith9-singularity",
+      "continent": "silith9",
+      "name": "The Singularity",
+      "category": "Technomagick",
+      "cost": 10,
+      "type": "Global",
+      "effect": "For 90 seconds: all your creatures gain +500 ATK/DEF, your mana regeneration doubles, and enemy spells cost +2 extra mana to cast.",
+      "flavor": "The Nine have been planning this since before your sun was born."
     }
   ]
 }
