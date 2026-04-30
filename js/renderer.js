@@ -829,6 +829,7 @@ export class Renderer {
      * Render gameplay mode marker (static)
      */
     _renderGameplayMarker(group, base, center, style, isCapital) {
+        const isCustomBase = base.id.startsWith('custom-province-');
         const isEnemyKing = base.type === 'enemy-king-base';
         const showHP = isCapital || isEnemyKing;
 
