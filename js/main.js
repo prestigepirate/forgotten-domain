@@ -481,6 +481,7 @@ function createEditorPalette() {
 
     palette.innerHTML = `
         <div class="editor-palette-title">Map Editor</div>
+        <button class="editor-palette-eye" id="editor-eye-btn" title="Hide labels">👁</button>
         <div class="editor-palette-actions">
             <button class="editor-palette-btn" data-action="move">&#9872; Move</button>
             <button class="editor-palette-btn" data-action="connect">&#9727; Connect</button>
@@ -578,6 +579,18 @@ function createEditorPalette() {
             case 'exit':
                 toggleEditMode();
                 break;
+        }
+    });
+
+    // Eye toggle: hide/show button labels
+    let editorLabelsHidden = false;
+    document.getElementById('editor-eye-btn')?.addEventListener('click', () => {
+        editorLabelsHidden = !editorLabelsHidden;
+        palette.classList.toggle('hide-labels', editorLabelsHidden);
+        const eyeBtn = document.getElementById('editor-eye-btn');
+        if (eyeBtn) {
+            eyeBtn.textContent = editorLabelsHidden ? '👁‍🗨' : '👁';
+            eyeBtn.title = editorLabelsHidden ? 'Show labels' : 'Hide labels';
         }
     });
 }

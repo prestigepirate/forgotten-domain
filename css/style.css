@@ -1633,6 +1633,54 @@ body {
     box-shadow: 0 0 14px rgba(16, 185, 129, 0.3) !important;
 }
 
+/* Eye toggle button in editor header */
+.editor-palette-eye {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    width: 26px;
+    height: 26px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 6px;
+    color: #fbbf24;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    z-index: 2;
+}
+
+.editor-palette-eye:hover {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: #fbbf24;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+/* Hide-labels mode: compact icon-only buttons */
+.editor-palette.hide-labels .editor-palette-title {
+    display: none;
+}
+
+.editor-palette.hide-labels .editor-palette-btn {
+    max-width: 34px;
+    overflow: hidden;
+    text-overflow: clip;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+}
+
+.editor-palette.hide-labels .editor-palette-actions {
+    gap: 3px;
+}
+
+.editor-palette.hide-labels {
+    padding: 6px 10px;
+    gap: 4px;
+}
+
 /* ============================================
    Decoration Asset Panel
    ============================================ */
