@@ -484,52 +484,53 @@ body {
     background: radial-gradient(ellipse at 30% 30%, var(--voxya-glow) 0%, transparent 70%);
 }
 .planet-voxya { color: var(--voxya-glow); }
-.planet-voxya .planet-name,
-.planet-voxya .planet-tagline {
+/* --- Voxya – The Shattered Archipelago --- */
+.planet-link[data-continent="voxya"] .planet-name,
+.planet-link[data-continent="voxya"] .planet-tagline {
     color: var(--voxya-glow);
     text-shadow: 0 0 10px var(--voxya-glow);
 }
 
 /* --- Orilyth – The Veil of Whispers --- */
-.planet-orilyth .planet-glow {
+.planet-link[data-continent="orilyth"] .planet-glow {
     background: radial-gradient(ellipse at 30% 30%, var(--orilyth-glow) 0%, transparent 70%);
 }
 .planet-orilyth { color: var(--orilyth-glow); }
-.planet-orilyth .planet-name,
-.planet-orilyth .planet-tagline {
+.planet-link[data-continent="orilyth"] .planet-name,
+.planet-link[data-continent="orilyth"] .planet-tagline {
     color: var(--orilyth-glow);
     text-shadow: 0 0 10px var(--orilyth-glow);
 }
 
 /* --- Korvess – The Verdant Abyss --- */
-.planet-korvess .planet-glow {
+.planet-link[data-continent="korvess"] .planet-glow {
     background: radial-gradient(ellipse at 30% 30%, var(--korvess-glow) 0%, transparent 70%);
 }
 .planet-korvess { color: var(--korvess-glow); }
-.planet-korvess .planet-name,
-.planet-korvess .planet-tagline {
+.planet-link[data-continent="korvess"] .planet-name,
+.planet-link[data-continent="korvess"] .planet-tagline {
     color: var(--korvess-glow);
     text-shadow: 0 0 10px var(--korvess-glow);
 }
 
 /* --- Sanguis – The Crimson Veil --- */
-.planet-sanguis .planet-glow {
+.planet-link[data-continent="sanguis"] .planet-glow {
     background: radial-gradient(ellipse at 30% 30%, var(--sanguis-glow) 0%, transparent 70%);
 }
 .planet-sanguis { color: var(--sanguis-glow); }
-.planet-sanguis .planet-name,
-.planet-sanguis .planet-tagline {
+.planet-link[data-continent="sanguis"] .planet-name,
+.planet-link[data-continent="sanguis"] .planet-tagline {
     color: var(--sanguis-glow);
     text-shadow: 0 0 10px var(--sanguis-glow);
 }
 
 /* --- Silith-9 – The False Moon --- */
-.planet-silith9 .planet-glow {
+.planet-link[data-continent="silith-9"] .planet-glow {
     background: radial-gradient(ellipse at 30% 30%, var(--silith9-glow) 0%, transparent 70%);
 }
 .planet-silith9 { color: var(--silith9-glow); }
-.planet-silith9 .planet-name,
-.planet-silith9 .planet-tagline {
+.planet-link[data-continent="silith-9"] .planet-name,
+.planet-link[data-continent="silith-9"] .planet-tagline {
     color: var(--silith9-glow);
     text-shadow: 0 0 10px var(--silith9-glow);
 }

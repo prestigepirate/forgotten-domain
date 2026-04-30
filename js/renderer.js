@@ -7,6 +7,7 @@
 import { getBaseStyle } from './provinces.js';
 import { createCreatureElement, showCreatureHoverCard, hideCreatureHoverCard } from './creatureVisuals.js';
 import { createSigilRuneSVG, createProgressRing, createSummonedCreatureSVG, createSigilLabel } from './sigilVisuals.js';
+import { applyMovementVisuals, removeTrailEffect } from './visualEffects.js';
 
 // ============================================
 // Configuration
@@ -2019,6 +2020,9 @@ export class Renderer {
             group.style.display = 'block';
             group.style.pointerEvents = 'all';
 
+            // Apply movement glow and trail effects
+            applyMovementVisuals(group, true);
+
             // Log diagnostic info
             console.log('[Move] Creature group found, transform:', group.getAttribute('transform'),
                 'img:', !!group.querySelector('image'));
@@ -2139,6 +2143,9 @@ export class Renderer {
                     // Update creature visual state
                     if (group) {
                         group.style.opacity = '1';
+                        // Remove movement visual effects
+                        applyMovementVisuals(group, false);
+                        removeTrailEffect(group);
                         const label = group.querySelector('.movement-label');
                         if (label) label.remove();
                         // Restore the .creature glow filter if it was removed during movement

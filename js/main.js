@@ -1425,6 +1425,16 @@ function _destroyCreature(victim, killer) {
     // Run onDeath effect for victim
     executeEffects('onDeath', victim, { gameState: state, killer });
 
+    // Apply pending onDeath damage to killer
+    if (killer && killer._effectDamage && killer._effectDamage > killer.def) {
+        const dmg = killer._effectDamage;
+        delete killer._effectDamage;
+        showToast(`${victim.name}'s death throes deal ${dmg} damage to ${killer.name}!`, 'warning', 3000);
+        _destroyCreatureDirect(killer);
+        // Still proceed with victim destruction below
+    }
+    if (killer) delete killer._effectDamage;
+
     // Check if saved from death (return to hand, revive, etc.)
     if (victim._savedFromDeath) {
         delete victim._savedFromDeath;

@@ -203,9 +203,9 @@ app.post('/api/game/save', authenticateToken, (req, res) => {
     const existingSave = queries.getGameSave(req.user.userId, saveName || 'autosave');
 
     if (existingSave) {
-      queries.updateGameSave(JSON.stringify(saveData), req.user.userId, saveName || 'autosave');
+      queries.updateGameSave(typeof saveData === 'string' ? saveData : JSON.stringify(saveData), req.user.userId, saveName || 'autosave');
     } else {
-      queries.createGameSave(req.user.userId, saveName || 'autosave', JSON.stringify(saveData));
+      queries.createGameSave(req.user.userId, saveName || 'autosave', typeof saveData === 'string' ? saveData : JSON.stringify(saveData));
     }
 
     res.json({ message: 'Game saved successfully' });

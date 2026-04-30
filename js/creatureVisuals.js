@@ -54,6 +54,39 @@ export function createCreatureElement(creature) {
   // === Creature sprite — centered directly above the dot ===
   // Bottom edge of sprite touches the dot at y=0
   const spritePath = creature.sprite || 'assets/units/shadow-harvester.png';
+  // Detect wrong-continent sprites (non-voxya creatures pointing to voxya images)
+  const isWrongContinent = creature.continent && creature.continent !== 'voxya' && spritePath.includes('voxya-');
+  const usePlaceholder = !creature.sprite || isWrongContinent;
+
+  if (usePlaceholder) {
+    // Colored placeholder circle with creature initial
+    const continentColors = { voxya: '#7c3aed', orilyth: '#06b6d4', korvess: '#22c55e', sanguis: '#ef4444', silith9: '#a78bfa' };
+    const cColor = continentColors[creature.continent] || '#7c3aed';
+    const placeholder = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    placeholder.style.pointerEvents = 'none';
+    placeholder.setAttribute('transform', `translate(${-s.w / 2}, ${-s.h / 2})`);
+
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute('cx', String(s.w / 2));
+    circle.setAttribute('cy', String(s.w / 2));
+    circle.setAttribute('r', String(s.w / 2 - 2));
+    circle.setAttribute('fill', cColor);
+    circle.setAttribute('opacity', '0.6');
+    placeholder.appendChild(circle);
+
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute('x', String(s.w / 2));
+    text.setAttribute('y', String(s.w / 2 + 1));
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'central');
+    text.style.fill = '#fff';
+    text.style.fontSize = `${s.w * 0.4}px`;
+    text.style.fontWeight = 'bold';
+    text.textContent = (creature.name || '?')[0];
+    placeholder.appendChild(text);
+
+    g.appendChild(placeholder);
+  } else {
 
   const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
   image.setAttribute('href', spritePath);
@@ -68,7 +101,7 @@ export function createCreatureElement(creature) {
   image.removeAttribute('transform');
   image.setAttribute('transform', `translate(${-s.w / 2}, 0)`);
   g.appendChild(image);
-
+  }
   // === ATK / DEF BADGE ABOVE SPRITE ===
   const gap = 4;  // px gap between elements
   // statsGroup transform positions the badge rect so its bottom is `gap`px above sprite top (-s.h)
