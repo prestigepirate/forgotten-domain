@@ -1284,6 +1284,256 @@
       "type": "Global",
       "effect": "For 90 seconds: all your creatures gain +500 ATK/DEF, your mana regeneration doubles, and enemy spells cost +2 extra mana to cast.",
       "flavor": "The Nine have been planning this since before your sun was born."
+    },
+    {
+      "id": "voxya-void-rift",
+      "continent": "voxya",
+      "name": "Void Rift",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Deal 700 damage and teleport the creature back to its nearest base.",
+      "flavor": "Step into the void and the void decides where you land."
+    },
+    {
+      "id": "voxya-soul-cage",
+      "continent": "voxya",
+      "name": "Soul Cage",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Creature is trapped (cannot move or act) for 30 seconds. Loses 200 ATK/DEF every 10 seconds while trapped.",
+      "flavor": "Not a prison of bars. A prison of self."
+    },
+    {
+      "id": "voxya-essence-siphon-trap",
+      "continent": "voxya",
+      "name": "Essence Siphon",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Creature loses 400 ATK permanently. You gain 4 mana.",
+      "flavor": "What was theirs is now yours. The void keeps careful books."
+    },
+    {
+      "id": "voxya-shadow-mire",
+      "continent": "voxya",
+      "name": "Shadow Mire",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Movement reduced to 1. Takes 100 damage per tile it moves for 45 seconds.",
+      "flavor": "Every step costs. The abyss charges interest."
+    },
+    {
+      "id": "voxya-death-rattle",
+      "continent": "voxya",
+      "name": "Death Rattle",
+      "category": "Condemned Magick",
+      "cost": 6,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Deal 600 damage. If this kills the creature, all enemy creatures within 3 tiles lose -300 ATK for 30 seconds.",
+      "flavor": "One scream. A thousand echoes. Silence."
+    },
+    {
+      "id": "orilyth-prism-snare",
+      "continent": "orilyth",
+      "name": "Prism Snare",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Creature is revealed for 60 seconds and stunned for 10 seconds. All your creatures gain +200 ATK against it.",
+      "flavor": "Caught in the light. Every facet a witness."
+    },
+    {
+      "id": "orilyth-feedback-loop",
+      "continent": "orilyth",
+      "name": "Feedback Loop",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Deal damage equal to 50% of the creature's ATK to itself and all adjacent enemies.",
+      "flavor": "Your own strength, redirected. The lattice does not create — it reflects."
+    },
+    {
+      "id": "orilyth-data-mine",
+      "continent": "orilyth",
+      "name": "Data Mine",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Reveal all enemy creatures of the same type on the map for 45 seconds. Gain +2 mana.",
+      "flavor": "One intrusion is all the network needs."
+    },
+    {
+      "id": "orilyth-static-field",
+      "continent": "orilyth",
+      "name": "Static Field",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: All enemy creatures within 2 tiles take 400 damage and are slowed (Movement -1) for 20 seconds.",
+      "flavor": "The air remembers the trespass."
+    },
+    {
+      "id": "orilyth-temporal-snare",
+      "continent": "orilyth",
+      "name": "Temporal Snare",
+      "category": "Condemned Magick",
+      "cost": 6,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Creature is frozen (invulnerable but cannot act) for 25 seconds. When it unfreezes, it takes 600 damage.",
+      "flavor": "A moment stretched into an eternity. And then — the snap."
+    },
+    {
+      "id": "korvess-carnivorous-pit",
+      "continent": "korvess",
+      "name": "Carnivorous Pit",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Deal 800 damage and root (Movement = 0) for 25 seconds.",
+      "flavor": "The ground opens. The Abyss is always hungry."
+    },
+    {
+      "id": "korvess-spore-bloom",
+      "continent": "korvess",
+      "name": "Spore Bloom",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: All enemy creatures within 2 tiles are poisoned (-200 ATK/DEF, 100 damage per 10 seconds) for 45 seconds.",
+      "flavor": "Breathe. The spores were waiting for you."
+    },
+    {
+      "id": "korvess-entangling-roots",
+      "continent": "korvess",
+      "name": "Entangling Roots",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Root enemy for 20 seconds. Summon a Lv.1 Korvess creature at the nearest friendly base.",
+      "flavor": "The Abyss takes one prisoner. The garden gains one soldier."
+    },
+    {
+      "id": "korvess-toxic-bloom",
+      "continent": "korvess",
+      "name": "Toxic Bloom",
+      "category": "Condemned Magick",
+      "cost": 6,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Deal 500 damage. If this kills, all enemies within 2 tiles are poisoned for 30 seconds.",
+      "flavor": "Death is just the first spore."
+    },
+    {
+      "id": "korvess-overgrowth-trap",
+      "continent": "korvess",
+      "name": "Overgrowth Trap",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Waypoint becomes overgrown. Enemies cannot use it for 60 seconds and take 150 damage if they end turn on it.",
+      "flavor": "The path closes behind you. The Abyss reclaims what was borrowed."
+    },
+    {
+      "id": "sanguis-magma-trap",
+      "continent": "sanguis",
+      "name": "Magma Trap",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Deal 900 fire damage. The area burns for 30 seconds (50 damage per 10 seconds to enemies who remain).",
+      "flavor": "The Veil runs just beneath the surface. Step wrong and it finds you."
+    },
+    {
+      "id": "sanguis-spirit-ward",
+      "continent": "sanguis",
+      "name": "Spirit Ward",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Enemy takes 400 damage. The nearest friendly creature gains +300 ATK/DEF for 30 seconds.",
+      "flavor": "The ancestors guard this ground. Your trespass feeds their children."
+    },
+    {
+      "id": "sanguis-volcanic-mine",
+      "continent": "sanguis",
+      "name": "Volcanic Mine",
+      "category": "Condemned Magick",
+      "cost": 6,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: After a 10-second warning, deal 1200 damage to all creatures within 3 tiles.",
+      "flavor": "A rumble. A glow. And then — the Veil speaks."
+    },
+    {
+      "id": "sanguis-rage-trap",
+      "continent": "sanguis",
+      "name": "Rage Trap",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Enemy gains +600 ATK but must attack the nearest creature (ally or enemy) immediately. Loses -400 DEF for 30 seconds.",
+      "flavor": "Fury is not a weapon. It is a leash."
+    },
+    {
+      "id": "sanguis-pyre-mark",
+      "continent": "sanguis",
+      "name": "Pyre Mark",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Creature is marked for 45 seconds. If it dies while marked, all your creatures gain +400 ATK for 30 seconds.",
+      "flavor": "The flame remembers its target. Even ash has a name."
+    },
+    {
+      "id": "silith9-proximity-mine",
+      "continent": "silith9",
+      "name": "Proximity Mine",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Deal 700 damage. Cannot be detected before triggering.",
+      "flavor": "The Nine do not leave doors unlocked. They leave calibrated responses."
+    },
+    {
+      "id": "silith9-system-override",
+      "continent": "silith9",
+      "name": "System Override",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Creature disabled for 15 seconds, then you take control of it for 10 seconds.",
+      "flavor": "Your hardware. Our firmware. Do the math."
+    },
+    {
+      "id": "silith9-orbital-marker",
+      "continent": "silith9",
+      "name": "Orbital Marker",
+      "category": "Condemned Magick",
+      "cost": 5,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Creature is marked. Next turn, an orbital strike deals 1000 damage to its current location.",
+      "flavor": "The False Moon is patient. It is also always watching."
+    },
+    {
+      "id": "silith9-data-corruption",
+      "continent": "silith9",
+      "name": "Data Corruption",
+      "category": "Condemned Magick",
+      "cost": 4,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: Creature's ATK and DEF are randomly swapped or halved for 30 seconds. Cannot receive buffs.",
+      "flavor": "Garbage in. Chaos out."
+    },
+    {
+      "id": "silith9-kill-switch",
+      "continent": "silith9",
+      "name": "Kill Switch",
+      "category": "Condemned Magick",
+      "cost": 6,
+      "type": "Condemned",
+      "effect": "Trigger: enemy lands on this waypoint/base. Effect: If the creature has been on the field 60+ seconds, destroy it instantly. Otherwise, deal 500 damage.",
+      "flavor": "Every system has an expiration. The Nine simply move the date."
     }
   ]
 }

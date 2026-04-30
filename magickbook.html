@@ -323,6 +323,7 @@
         .badge-type { background: rgba(6, 182, 212, 0.15); color: #22d3ee; }
         .badge-type.ongoing { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
         .badge-type.global { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-type.condemned { background: rgba(139, 92, 246, 0.2); color: #c084fc; }
         .badge-category { background: rgba(128, 0, 128, 0.15); color: #c084fc; }
 
         .spell-effect {
@@ -515,24 +516,41 @@
                 btn.addEventListener('click', () => { activeContinent = key; render(); });
                 tabsEl.appendChild(btn);
             }
+
+            const condemnedCount = allSpells.filter(s => s.type === 'Condemned').length;
+            const condemnedBtn = document.createElement('button');
+            condemnedBtn.className = 'mb-tab' + (activeContinent === 'condemned' ? ' active' : '');
+            if (condemnedCount === 0) condemnedBtn.disabled = true;
+            condemnedBtn.innerHTML = '⛓ Condemned (' + condemnedCount + ')';
+            condemnedBtn.addEventListener('click', () => { activeContinent = 'condemned'; render(); });
+            tabsEl.appendChild(condemnedBtn);
         }
 
         function render() {
             // Update tab active states
             const tabs = document.querySelectorAll('.mb-tab');
             tabs.forEach(t => t.classList.remove('active'));
-            const activeIdx = activeContinent === 'all' ? 0 :
-                Object.keys(CONTINENTS).indexOf(activeContinent) + 1;
+            let activeIdx;
+            if (activeContinent === 'all') activeIdx = 0;
+            else if (activeContinent === 'condemned') activeIdx = 6;
+            else activeIdx = Object.keys(CONTINENTS).indexOf(activeContinent) + 1;
             if (tabs[activeIdx]) tabs[activeIdx].classList.add('active');
 
-            const filtered = activeContinent === 'all'
-                ? allSpells
-                : allSpells.filter(s => s.continent === activeContinent);
+            let filtered;
+            if (activeContinent === 'condemned') {
+                filtered = allSpells.filter(s => s.type === 'Condemned');
+            } else if (activeContinent === 'all') {
+                filtered = allSpells;
+            } else {
+                filtered = allSpells.filter(s => s.continent === activeContinent);
+            }
 
             const metaEl = document.getElementById('mb-meta');
             if (filtered.length > 0) {
                 const continentName = activeContinent === 'all'
                     ? 'All Worlds'
+                    : activeContinent === 'condemned'
+                    ? 'Condemned Magicks'
                     : CONTINENTS[activeContinent].name;
                 metaEl.innerHTML = '<span>' + continentName + ' — <strong>' + filtered.length + '</strong> spell' + (filtered.length !== 1 ? 's' : '') + ' inscribed</span>';
             } else {
@@ -554,8 +572,8 @@
             // Sort by cost ascending
             const sorted = [...filtered].sort((a, b) => a.cost - b.cost);
 
-            // Group by continent when showing "All"
-            if (activeContinent === 'all') {
+            // Group by continent when showing "All" or "Condemned"
+            if (activeContinent === 'all' || activeContinent === 'condemned') {
                 const CONT_ORDER = ['voxya', 'orilyth', 'korvess', 'sanguis', 'silith9'];
                 const groups = {};
                 for (const s of sorted) {

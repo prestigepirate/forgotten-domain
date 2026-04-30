@@ -93,6 +93,9 @@
         // ============================================
 
         function buildMagickbookPanel(spells, creatures) {
+            const condemnedList = spells.filter(s => s.type === 'Condemned');
+            const regularSpells = spells.filter(s => s.type !== 'Condemned');
+
             const header = `
                 <div class="nav-panel-header">
                     <div class="nav-panel-header-dot"></div>
@@ -102,14 +105,14 @@
 
             const tabs = `
                 <div class="mb-minitabs">
-                    <button class="mb-minitab active" data-mb-tab="spells">Spells (${spells.length})</button>
+                    <button class="mb-minitab active" data-mb-tab="spells">Spells (${regularSpells.length})</button>
                     <button class="mb-minitab" data-mb-tab="creatures">Creatures (${creatures.length})</button>
-                    <button class="mb-minitab" data-mb-tab="condemned">Condemned</button>
+                    <button class="mb-minitab" data-mb-tab="condemned">Condemned (${condemnedList.length})</button>
                 </div>`;
 
-            const spellsPane = buildSpellsPane(spells);
+            const spellsPane = buildSpellsPane(regularSpells);
             const creaturesPane = buildCreaturesPane(creatures);
-            const condemnedPane = buildCondemnedPane();
+            const condemnedPane = buildCondemnedPane(condemnedList);
 
             return header + tabs + `
                 <div class="mb-panes">
@@ -214,8 +217,9 @@
             return `<div class="mb-spell-list">${html}</div>`;
         }
 
-        function buildCondemnedPane() {
-            return `
+        function buildCondemnedPane(condemned) {
+            if (condemned.length === 0) {
+                return `
                 <div class="mb-spell-list">
                     <div class="mb-empty-state">
                         <div class="mb-empty-icon">⛓</div>
@@ -223,6 +227,47 @@
                         <div class="mb-empty-sub">None yet discovered</div>
                     </div>
                 </div>`;
+            }
+
+            const CONTINENT_ORDER = ['voxya', 'orilyth', 'korvess', 'sanguis', 'silith9'];
+            const CONTINENT_NAMES = {
+                voxya: 'Voxya', orilyth: 'Orilyth', korvess: 'Korvess',
+                sanguis: 'Sanguis', silith9: 'Silith-9'
+            };
+            const CONTINENT_COLORS = {
+                voxya: '#800080', orilyth: '#3b82f6', korvess: '#10b981',
+                sanguis: '#ef4444', silith9: '#c0c0c0'
+            };
+
+            const groups = {};
+            for (const c of condemned) {
+                const key = c.continent || 'voxya';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(c);
+            }
+            for (const key of Object.keys(groups)) {
+                groups[key].sort((a, b) => a.cost - b.cost);
+            }
+
+            let html = '';
+            for (const cont of CONTINENT_ORDER) {
+                const list = groups[cont];
+                if (!list || list.length === 0) continue;
+                html += `<div class="mb-cret-section">
+                    <div class="mb-cret-continent">
+                        <span class="mb-cret-dot" style="background:${CONTINENT_COLORS[cont]}"></span>
+                        ${CONTINENT_NAMES[cont]} <span class="mb-cret-count">(${list.length})</span>
+                    </div>`;
+                for (const c of list) {
+                    html += `<div class="mb-spell-row">
+                        <span class="mb-spell-cost">${c.cost}</span>
+                        <span class="mb-spell-name">${esc(c.name)}</span>
+                        <span class="mb-spell-type condemned">${c.type}</span>
+                    </div>`;
+                }
+                html += '</div>';
+            }
+            return `<div class="mb-spell-list">${html}</div>`;
         }
 
         function esc(str) {
