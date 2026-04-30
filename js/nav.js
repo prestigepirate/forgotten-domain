@@ -292,7 +292,7 @@
             if (tooltipEl) return;
             tooltipEl = document.createElement('div');
             tooltipEl.className = 'mb-spell-tooltip';
-            panelContent.appendChild(tooltipEl);
+            document.body.appendChild(tooltipEl);
         }
 
         function generateTips(spell) {
@@ -361,19 +361,14 @@
                         <span class="mb-tt-cost">Cost ${spell.cost}</span>
                         <span class="mb-tt-type ${spell.type.toLowerCase()}">${spell.type}</span>
                     </div>
+                    <div class="mb-tt-divider"></div>
+                    <div class="mb-tt-section-label">Effect</div>
                     <div class="mb-tt-effect">${esc(spell.effect)}</div>
-                    ${spell.flavor ? '<div class="mb-tt-flavor">' + esc(spell.flavor) + '</div>' : ''}
-                    <div class="mb-tt-tips">
-                        <div class="mb-tt-tip-label">Tips</div>
-                        ${tips.map(t => '<div class="mb-tt-tip">' + esc(t) + '</div>').join('')}
-                    </div>`;
+                    ${spell.flavor ? '<div class="mb-tt-section-label">Flavor</div><div class="mb-tt-flavor">' + esc(spell.flavor) + '</div>' : ''}
+                    <div class="mb-tt-divider"></div>
+                    <div class="mb-tt-section-label">Tips</div>
+                    ${tips.map(t => '<div class="mb-tt-tip">' + esc(t) + '</div>').join('')}`;
 
-                const rowRect = row.getBoundingClientRect();
-                const panelRect = panelContent.getBoundingClientRect();
-                // Always show tooltip to the left of the panel
-                tooltipEl.style.left = 'auto';
-                tooltipEl.style.right = 'calc(100% + 12px)';
-                tooltipEl.style.top = (rowRect.top - panelRect.top) + 'px';
                 tooltipEl.classList.add('visible');
             });
 
