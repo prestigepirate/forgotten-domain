@@ -683,5 +683,127 @@
       "effect": "All enemy creatures lose 200 ATK while this is on the field.",
       "flavor": "The Nine speak as one. Their voice ends worlds."
     }
+  ],
+  "spells": [
+    {
+      "id": "voxya-void-pulse",
+      "continent": "voxya",
+      "name": "Void Pulse",
+      "category": "Black Magick",
+      "cost": 2,
+      "type": "Instant",
+      "effect": "Target creature gains +400 ATK until end of the minute.",
+      "flavor": "A whisper from the void. A moment of terrible clarity."
+    },
+    {
+      "id": "voxya-shadow-veil",
+      "continent": "voxya",
+      "name": "Shadow Veil",
+      "category": "Black Magick",
+      "cost": 3,
+      "type": "Instant",
+      "effect": "Target friendly creature gains +800 DEF and cannot be targeted by enemy spells for 30 seconds.",
+      "flavor": "The shadows do not hide you. They become you."
+    },
+    {
+      "id": "voxya-essence-drain",
+      "continent": "voxya",
+      "name": "Essence Drain",
+      "category": "Black Magick",
+      "cost": 4,
+      "type": "Instant",
+      "effect": "Deal 600 damage to target enemy creature and gain 3 Essence.",
+      "flavor": "What they lose, you consume. Such is the pact."
+    },
+    {
+      "id": "voxya-ley-line-surge",
+      "continent": "voxya",
+      "name": "Ley-Line Surge",
+      "category": "Black Magick",
+      "cost": 4,
+      "type": "Instant",
+      "effect": "All your creatures on purple ley-lines gain +500 ATK and +1 Movement for 45 seconds.",
+      "flavor": "The old lines remember. They hunger for direction."
+    },
+    {
+      "id": "voxya-dusk-binding",
+      "continent": "voxya",
+      "name": "Dusk Binding",
+      "category": "Black Magick",
+      "cost": 5,
+      "type": "Instant",
+      "effect": "Slow target enemy creature (Movement -1) for 60 seconds.",
+      "flavor": "The weight of the abyss, pressed into a single step."
+    },
+    {
+      "id": "voxya-eclipse-bolt",
+      "continent": "voxya",
+      "name": "Eclipse Bolt",
+      "category": "Black Magick",
+      "cost": 5,
+      "type": "Instant",
+      "effect": "Deal 1200 damage to target creature. If it's on a ley-line, deal +800 extra.",
+      "flavor": "When the void aligns, even gods become targets."
+    },
+    {
+      "id": "voxya-whispering-decay",
+      "continent": "voxya",
+      "name": "Whispering Decay",
+      "category": "Black Magick",
+      "cost": 4,
+      "type": "Ongoing",
+      "effect": "Target enemy creature loses -300 ATK/DEF every 30 seconds (stacks up to 3 times).",
+      "flavor": "Not a scream. Not a curse. Just a suggestion that grows teeth."
+    },
+    {
+      "id": "voxya-shadow-swap",
+      "continent": "voxya",
+      "name": "Shadow Swap",
+      "category": "Black Magick",
+      "cost": 6,
+      "type": "Instant",
+      "effect": "Swap positions of any two of your creatures on the map.",
+      "flavor": "One step into darkness. One step out somewhere else."
+    },
+    {
+      "id": "voxya-thrones-hunger",
+      "continent": "voxya",
+      "name": "Throne's Hunger",
+      "category": "Black Magick",
+      "cost": 6,
+      "type": "Instant",
+      "effect": "Sacrifice one of your creatures to deal 1500 damage to an enemy base or King structure.",
+      "flavor": "A seat built on bones. It is never full."
+    },
+    {
+      "id": "voxya-revenants-call",
+      "continent": "voxya",
+      "name": "Revenant's Call",
+      "category": "Black Magick",
+      "cost": 7,
+      "type": "Instant",
+      "effect": "Return one destroyed Undead Spirit from your graveyard to the field (half stats for 45 seconds).",
+      "flavor": "The dead owe you no loyalty. Only debt."
+    },
+    {
+      "id": "voxya-void-sacrifice",
+      "continent": "voxya",
+      "name": "Void Sacrifice",
+      "category": "Black Magick",
+      "cost": 8,
+      "type": "Instant",
+      "effect": "Destroy one of your creatures to give all friendly Shadow creatures +600 ATK for 60 seconds.",
+      "flavor": "One life for many. The void is a fair accountant."
+    },
+    {
+      "id": "voxya-eternal-nightfall",
+      "continent": "voxya",
+      "name": "Eternal Nightfall",
+      "category": "Black Magick",
+      "cost": 10,
+      "type": "Global",
+      "effect": "For the next 2 minutes: All enemy creatures lose -400 ATK, your creatures gain +200 ATK.",
+      "flavor": "The sun does not set here. It flees."
+    }
   ]
 }
