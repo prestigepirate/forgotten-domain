@@ -248,6 +248,31 @@
             transform: translateY(-2px);
         }
 
+        .spell-continent-header {
+            grid-column: 1 / -1;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(180, 195, 215, 0.5);
+            padding: 24px 0 8px;
+            margin-top: 8px;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spell-continent-header:first-child {
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        .spell-continent-count {
+            color: rgba(180, 195, 215, 0.3);
+            font-size: 0.6rem;
+        }
+
         .spell-card-top {
             display: flex;
             justify-content: space-between;
@@ -529,22 +554,62 @@
             // Sort by cost ascending
             const sorted = [...filtered].sort((a, b) => a.cost - b.cost);
 
-            grid.innerHTML = sorted.map(s => {
-                const typeClass = s.type.toLowerCase();
-                return `
-                <div class="spell-card">
-                    <div class="spell-card-top">
-                        <div class="spell-name">${esc(s.name)}</div>
-                        <div class="spell-cost">${s.cost}</div>
-                    </div>
-                    <div class="spell-badges">
-                        <span class="badge badge-type ${typeClass}">${s.type}</span>
-                        <span class="badge badge-category">${esc(s.category || '')}</span>
-                    </div>
-                    <div class="spell-effect">${esc(s.effect)}</div>
-                    ${s.flavor ? '<div class="spell-flavor">' + esc(s.flavor) + '</div>' : ''}
-                </div>`;
-            }).join('');
+            // Group by continent when showing "All"
+            if (activeContinent === 'all') {
+                const CONT_ORDER = ['voxya', 'orilyth', 'korvess', 'sanguis', 'silith9'];
+                const groups = {};
+                for (const s of sorted) {
+                    const k = s.continent || 'voxya';
+                    if (!groups[k]) groups[k] = [];
+                    groups[k].push(s);
+                }
+                let html = '';
+                for (const cont of CONT_ORDER) {
+                    const list = groups[cont];
+                    if (!list || list.length === 0) continue;
+                    const info = CONTINENTS[cont];
+                    html += `<div class="spell-continent-header">
+                        <span class="mb-tab-dot ${cont}"></span>
+                        ${info.name} <span class="spell-continent-count">(${list.length})</span>
+                    </div>`;
+                    html += '<div class="spell-grid" style="grid-column:1/-1">';
+                    html += list.map(s => {
+                        const typeClass = s.type.toLowerCase();
+                        return `
+                        <div class="spell-card">
+                            <div class="spell-card-top">
+                                <div class="spell-name">${esc(s.name)}</div>
+                                <div class="spell-cost">${s.cost}</div>
+                            </div>
+                            <div class="spell-badges">
+                                <span class="badge badge-type ${typeClass}">${s.type}</span>
+                                <span class="badge badge-category">${esc(s.category || '')}</span>
+                            </div>
+                            <div class="spell-effect">${esc(s.effect)}</div>
+                            ${s.flavor ? '<div class="spell-flavor">' + esc(s.flavor) + '</div>' : ''}
+                        </div>`;
+                    }).join('');
+                    html += '</div>';
+                }
+                grid.innerHTML = html;
+            } else {
+                grid.innerHTML = sorted.map(s => {
+                    const typeClass = s.type.toLowerCase();
+                    return `
+                    <div class="spell-card">
+                        <div class="spell-card-top">
+                            <div class="spell-name">${esc(s.name)}</div>
+                            <div class="spell-cost">${s.cost}</div>
+                        </div>
+                        <div class="spell-badges">
+                            <span class="badge badge-type ${typeClass}">${s.type}</span>
+                            <span class="badge badge-category">${esc(s.category || '')}</span>
+                        </div>
+                        <div class="spell-effect">${esc(s.effect)}</div>
+                        ${s.flavor ? '<div class="spell-flavor">' + esc(s.flavor) + '</div>' : ''}
+                    </div>`;
+                }).join('');
+            }
         }
 
         function esc(str) {

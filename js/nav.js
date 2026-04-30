@@ -123,14 +123,46 @@
             if (spells.length === 0) {
                 return '<div class="mb-empty-state">No spells inscribed</div>';
             }
-            const rows = spells.map(s => `
-                <div class="mb-spell-row">
-                    <span class="mb-spell-cost">${s.cost}</span>
-                    <span class="mb-spell-name">${esc(s.name)}</span>
-                    <span class="mb-spell-type ${s.type.toLowerCase()}">${s.type}</span>
-                </div>
-            `).join('');
-            return `<div class="mb-spell-list">${rows}</div>`;
+
+            const CONTINENT_ORDER = ['voxya', 'orilyth', 'korvess', 'sanguis', 'silith9'];
+            const CONTINENT_NAMES = {
+                voxya: 'Voxya', orilyth: 'Orilyth', korvess: 'Korvess',
+                sanguis: 'Sanguis', silith9: 'Silith-9'
+            };
+            const CONTINENT_COLORS = {
+                voxya: '#800080', orilyth: '#3b82f6', korvess: '#10b981',
+                sanguis: '#ef4444', silith9: '#c0c0c0'
+            };
+
+            const groups = {};
+            for (const s of spells) {
+                const key = s.continent || 'voxya';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(s);
+            }
+            for (const key of Object.keys(groups)) {
+                groups[key].sort((a, b) => a.cost - b.cost);
+            }
+
+            let html = '';
+            for (const cont of CONTINENT_ORDER) {
+                const list = groups[cont];
+                if (!list || list.length === 0) continue;
+                html += `<div class="mb-cret-section">
+                    <div class="mb-cret-continent">
+                        <span class="mb-cret-dot" style="background:${CONTINENT_COLORS[cont]}"></span>
+                        ${CONTINENT_NAMES[cont]} <span class="mb-cret-count">(${list.length})</span>
+                    </div>`;
+                for (const s of list) {
+                    html += `<div class="mb-spell-row">
+                        <span class="mb-spell-cost">${s.cost}</span>
+                        <span class="mb-spell-name">${esc(s.name)}</span>
+                        <span class="mb-spell-type ${s.type.toLowerCase()}">${s.type}</span>
+                    </div>`;
+                }
+                html += '</div>';
+            }
+            return `<div class="mb-spell-list">${html}</div>`;
         }
 
         function buildCreaturesPane(creatures) {
