@@ -40,6 +40,16 @@ const PLANET_DISPLAY = {
     silith9: { title: 'SILITH-9', subtitle: 'The False Moon' }
 };
 
+// Custom polygon regions per planet — populated from editor exports
+// Format: [{id, name, vertices: [[x%, y%], ...]}]
+const PLANET_REGIONS = {
+    voxya: [],
+    orilyth: [],
+    korvess: [],
+    sanguis: [],
+    silith9: []
+};
+
 // ============================================
 // Game State
 // ============================================
@@ -214,6 +224,9 @@ async function init() {
         }
     });
     state.zones.render();
+
+    // Load custom polygon regions (populated from editor exports)
+    state.zones.loadRegions(PLANET_REGIONS[planet] || []);
 
     // Setup event listeners BEFORE any async work — so base clicks
     // are handled even while the creature database is loading
@@ -1671,9 +1684,33 @@ function handleSigilEvent(entity, eventType) {
  * Show enhanced zone tooltip with strategic info.
  * Reuses the existing #base-tooltip element from game.html.
  */
-function showZoneTooltip(baseId, event) {
-    const base = state.baseSystem.getById(baseId);
-    if (!base) return;
+function showZoneTooltip(zoneId, event) {
+    // Try base first, then region
+    let base = state.baseSystem.getById(zoneId);
+    let region = null;
+
+    if (!base) {
+        // Check if it's a region ID
+        const regions = state.zones ? state.zones._regions : [];
+        region = regions.find(r => r.id === zoneId);
+        // Find closest base to the region for game info
+        if (region && region.vertices && region.vertices.length > 0) {
+            // Use region centroid to find nearby base
+            let cx = 0, cy = 0;
+            region.vertices.forEach(v => { cx += v[0]; cy += v[1]; });
+            cx /= region.vertices.length;
+            cy /= region.vertices.length;
+            const allBases = state.baseSystem.getAll();
+            let closest = null, closestDist = Infinity;
+            for (const b of allBases) {
+                const d = Math.sqrt((b.x - cx) ** 2 + (b.y - cy) ** 2);
+                if (d < closestDist) { closestDist = d; closest = b; }
+            }
+            base = closest;
+        }
+    }
+
+    if (!base && !region) return;
 
     const tooltip = document.getElementById('base-tooltip');
     const nameEl = document.getElementById('tooltip-name');
@@ -1681,34 +1718,32 @@ function showZoneTooltip(baseId, event) {
     const descEl = document.getElementById('tooltip-desc');
     if (!tooltip) return;
 
-    // Determine zone state
-    const isOwned = state.ownedBaseIds.has(baseId);
-    const isEnemy = base.type === 'enemy-base' || base.type === 'enemy-king-base';
-    const isKing = base.type === 'king-base' || base.type === 'enemy-king-base';
+    // Determine zone state from the region or base
+    const actualBase = base;
+    const isOwned = actualBase ? state.ownedBaseIds.has(actualBase.id) : false;
+    const isEnemy = actualBase ? (actualBase.type === 'enemy-base' || actualBase.type === 'enemy-king-base') : false;
+    const isKing = actualBase ? (actualBase.type === 'king-base' || actualBase.type === 'enemy-king-base') : false;
 
     // Creature counts
-    const friendlyCreatures = state.summonedCreatures
-        ? state.summonedCreatures.filter(sc => sc.baseId === baseId && sc.isComplete).length
+    const friendlyCreatures = actualBase && state.summonedCreatures
+        ? state.summonedCreatures.filter(sc => sc.baseId === actualBase.id && sc.isComplete).length
         : 0;
-    const enemyCreatures = state.enemyAI
-        ? state.enemyAI.getCreatures().filter(c => c.baseId === baseId).length
+    const enemyCreatures = actualBase && state.enemyAI
+        ? state.enemyAI.getCreatures().filter(c => c.baseId === actualBase.id).length
         : 0;
 
     // Sigil status
-    const sigil = state.sigils ? state.sigils.get(baseId) : null;
+    const sigil = actualBase && state.sigils ? state.sigils.get(actualBase.id) : null;
     const hasSigil = sigil && !sigil.isComplete;
-    const enemySigil = state.enemyAI ? state.enemyAI.sigils.get(baseId) : null;
+    const enemySigil = actualBase && state.enemyAI ? state.enemyAI.sigils.get(actualBase.id) : null;
     const hasEnemySigil = enemySigil && !enemySigil.isComplete;
 
     // Fog status
     let fogStatus = 'Visible';
-    if (state.fog) {
-        const pos = state.renderer.percentToPixels(base.x, base.y);
-        if (!state.fog.isExplored(pos.x, pos.y)) {
-            fogStatus = 'Unexplored';
-        } else if (!state.fog.isVisible(pos.x, pos.y)) {
-            fogStatus = 'Dimmed';
-        }
+    if (state.fog && actualBase) {
+        const pos = state.renderer.percentToPixels(actualBase.x, actualBase.y);
+        if (!state.fog.isExplored(pos.x, pos.y)) fogStatus = 'Unexplored';
+        else if (!state.fog.isVisible(pos.x, pos.y)) fogStatus = 'Dimmed';
     }
 
     // Ownership badge
@@ -1716,12 +1751,15 @@ function showZoneTooltip(baseId, event) {
     if (isOwned) ownerBadge = '<span style="color:#a78bfa">✦ Yours</span>';
     if (isEnemy) ownerBadge = '<span style="color:#f87171">⚔ Enemy</span>';
 
-    // Build rich tooltip content
-    nameEl.innerHTML = base.name;
-    typeEl.innerHTML = `${base.type || 'Base'} · ${ownerBadge}`;
+    // Build tooltip content
+    nameEl.innerHTML = region ? region.name : (actualBase ? actualBase.name : zoneId);
+    typeEl.innerHTML = `${region ? 'Region' : (actualBase ? actualBase.type : 'Zone')} · ${ownerBadge}`;
 
     let desc = '';
-    if (base.description) desc += base.description + '<br><br>';
+    if (region) {
+        desc += `Custom territory region<br>`;
+    }
+    if (actualBase && actualBase.description) desc += actualBase.description + '<br><br>';
     desc += `<b>Creatures:</b> ${friendlyCreatures} friendly`;
     if (enemyCreatures > 0) desc += `, ${enemyCreatures} enemy`;
     if (friendlyCreatures === 0 && enemyCreatures === 0) desc += ' · empty';

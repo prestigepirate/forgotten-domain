@@ -975,6 +975,10 @@
                     <span>&#128465;</span>
                     <span class="tool-label">Remove Asset</span>
                 </button>
+                <button class="edit-tool" data-tool="draw-region" title="Draw Region (click vertices, double-click to close)">
+                    <span>&#11044;</span>
+                    <span class="tool-label">Draw Region</span>
+                </button>
             </div>
 
             <!-- Asset Library -->
@@ -1200,6 +1204,7 @@
         function init() {
             initStarfield();
             renderMap();
+            renderRegions();
             setupMapInteraction();
             setupControls();
         }
@@ -1831,6 +1836,15 @@
         let isDraggingAsset = false;
         let dragOffset = { x: 0, y: 0 };
 
+        // Region drawing state
+        let REGIONS = [];                 // [{id, name, vertices: [[x%,y%],...]}]
+        let polygonTool = {
+            active: false,               // currently drawing?
+            vertices: [],                // [[x%, y%], ...] — percentage coords
+            previewVertices: [],         // includes live mouse position
+            name: ''                     // set after closing
+        };
+
         function toggleEditMode() {
             editMode = !editMode;
             console.log('toggleEditMode called, editMode is now:', editMode);
@@ -1888,6 +1902,8 @@
                     mapCursor = selectedAsset ? 'crosshair' : 'not-allowed';
                 } else if (currentTool === 'remove-asset') {
                     mapCursor = 'not-allowed';
+                } else if (currentTool === 'draw-region') {
+                    mapCursor = 'crosshair';
                 }
 
                 svg.style.cursor = mapCursor;
@@ -1905,6 +1921,10 @@
                     if (carryingWaypoint) _dropCarriedWaypoint();
                     trailStartWaypoint = null;
                     selectedAssetInstance = null;
+                    if (polygonTool.active) {
+                        cancelRegion();
+                        renderRegions();
+                    }
                 });
             });
 
@@ -1975,6 +1995,15 @@
                     return;
                 }
                 handleEditClick(e);
+            });
+
+            // Double-click to close region polygon
+            svg.addEventListener('dblclick', (e) => {
+                if (!editMode || currentTool !== 'draw-region' || !polygonTool.active) return;
+                if (polygonTool.vertices.length >= 3) {
+                    e.stopPropagation();
+                    finishRegion();
+                }
             });
 
             // Waypoint picking and asset dragging - only intercept when clicking on markers/assets
@@ -2048,6 +2077,16 @@
                     renderPlacedAssets();
                     return;
                 }
+
+                // Region drawing preview — update live preview line to mouse
+                if (editMode && currentTool === 'draw-region' && polygonTool.active && polygonTool.vertices.length >= 1) {
+                    const svgPt = screenToSVG(e.clientX, e.clientY);
+                    const { w: svgW, h: svgH } = getSVGDimensions();
+                    const px = Math.round((svgPt.x / svgW) * 100);
+                    const py = Math.round((svgPt.y / svgH) * 100);
+                    polygonTool.previewVertices = [px, py];
+                    renderRegions(); // cheap redraw of preview layer only
+                }
             });
 
             document.addEventListener('mouseup', () => {
@@ -2057,7 +2096,7 @@
                 isDraggingAsset = false;
             });
 
-            // Escape key cancels carrying / trail creation
+            // Escape key cancels carrying / trail creation / region drawing
             document.addEventListener('keydown', (e) => {
                 if (!editMode) return;
                 if (e.key === 'Escape') {
@@ -2071,6 +2110,11 @@
                         });
                         trailStartWaypoint = null;
                         renderMap();
+                    }
+                    if (polygonTool.active) {
+                        cancelRegion();
+                        renderRegions();
+                        return;
                     }
                 }
             });
@@ -2166,6 +2210,31 @@
                 placeAsset(svgPt.x, svgPt.y);
             } else if (currentTool === 'place-asset' && !selectedAsset) {
                 console.log('Place asset tool selected but no asset chosen from library');
+            }
+
+            // Draw Region tool — click to add vertex, close near first vertex
+            if (currentTool === 'draw-region') {
+                e.stopPropagation();
+                const svgPt = screenToSVG(e.clientX, e.clientY);
+                const { w: svgW, h: svgH } = getSVGDimensions();
+                const px = Math.round((svgPt.x / svgW) * 100);
+                const py = Math.round((svgPt.y / svgH) * 100);
+
+                // Check if clicking near first vertex to close (needs 3+ vertices)
+                if (polygonTool.vertices.length >= 3) {
+                    const first = polygonTool.vertices[0];
+                    const dist = Math.sqrt((px - first[0]) ** 2 + (py - first[1]) ** 2);
+                    if (dist < 4) {
+                        // Close polygon
+                        finishRegion();
+                        return;
+                    }
+                }
+
+                // Add vertex
+                polygonTool.vertices.push([px, py]);
+                polygonTool.active = true;
+                renderRegions(); // redraws preview
             }
         }
 
@@ -2309,10 +2378,205 @@
             }
         }
 
+        // ============================================
+        // Region Drawing Functions
+        // ============================================
+
+        function finishRegion() {
+            if (polygonTool.vertices.length < 3) return;
+            const name = prompt('Region name:', 'New Region');
+            if (!name) {
+                // Cancelled — discard
+                cancelRegion();
+                return;
+            }
+            const region = {
+                id: 'region-' + Date.now(),
+                name: name,
+                vertices: [...polygonTool.vertices]  // deep copy
+            };
+            REGIONS.push(region);
+            cancelRegion();
+            renderRegions();
+        }
+
+        function cancelRegion() {
+            polygonTool.active = false;
+            polygonTool.vertices = [];
+            polygonTool.previewVertices = [];
+        }
+
+        /**
+         * Render all saved regions + live polygon preview.
+         * Regions are drawn on the SVG as semi-transparent polygons
+         * with vertex handles for editing when the draw-region tool is active.
+         */
+        function renderRegions() {
+            const svg = document.getElementById('map-overlay');
+            // Get or create regions layer
+            let regionsLayer = document.getElementById('regions-layer');
+            if (!regionsLayer) {
+                regionsLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                regionsLayer.setAttribute('id', 'regions-layer');
+                // Insert after waypoint-markers
+                const markers = document.getElementById('waypoint-markers');
+                if (markers && markers.nextSibling) {
+                    svg.insertBefore(regionsLayer, markers.nextSibling);
+                } else {
+                    svg.appendChild(regionsLayer);
+                }
+            }
+            regionsLayer.innerHTML = '';
+
+            const { w: svgW, h: svgH } = getSVGDimensions();
+
+            // Render saved regions
+            REGIONS.forEach(region => {
+                if (!region.vertices || region.vertices.length < 3) return;
+
+                const pointsStr = region.vertices
+                    .map(v => `${(v[0]/100)*svgW},${(v[1]/100)*svgH}`)
+                    .join(' ');
+
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', pointsStr);
+                poly.setAttribute('fill', 'rgba(124, 58, 237, 0.12)');
+                poly.setAttribute('stroke', 'rgba(124, 58, 237, 0.5)');
+                poly.setAttribute('stroke-width', '1.5');
+                poly.setAttribute('class', 'region-polygon');
+                poly.setAttribute('data-region-id', region.id);
+                poly.style.transition = 'fill 0.2s';
+
+                // Hover effect
+                poly.addEventListener('mouseenter', () => {
+                    poly.setAttribute('fill', 'rgba(124, 58, 237, 0.22)');
+                    poly.setAttribute('stroke', 'rgba(124, 58, 237, 0.8)');
+                });
+                poly.addEventListener('mouseleave', () => {
+                    poly.setAttribute('fill', 'rgba(124, 58, 237, 0.12)');
+                    poly.setAttribute('stroke', 'rgba(124, 58, 237, 0.5)');
+                });
+
+                // Double-click to delete
+                poly.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete region "${region.name}"?`)) {
+                        const idx = REGIONS.findIndex(r => r.id === region.id);
+                        if (idx >= 0) REGIONS.splice(idx, 1);
+                        renderRegions();
+                    }
+                });
+
+                regionsLayer.appendChild(poly);
+
+                // Region name label (centroid)
+                if (region.vertices.length >= 3) {
+                    let cx = 0, cy = 0;
+                    region.vertices.forEach(v => { cx += v[0]; cy += v[1]; });
+                    cx = (cx / region.vertices.length / 100) * svgW;
+                    cy = (cy / region.vertices.length / 100) * svgH;
+
+                    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    label.setAttribute('x', cx);
+                    label.setAttribute('y', cy);
+                    label.setAttribute('text-anchor', 'middle');
+                    label.setAttribute('dominant-baseline', 'middle');
+                    label.setAttribute('fill', '#c4b5fd');
+                    label.setAttribute('font-size', '10');
+                    label.setAttribute('font-family', 'Times New Roman, serif');
+                    label.setAttribute('letter-spacing', '0.08em');
+                    label.setAttribute('pointer-events', 'none');
+                    label.textContent = region.name;
+                    regionsLayer.appendChild(label);
+                }
+
+                // Vertex handles (small circles at each corner)
+                region.vertices.forEach((v, vi) => {
+                    const vx = (v[0] / 100) * svgW;
+                    const vy = (v[1] / 100) * svgH;
+                    const handle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    handle.setAttribute('cx', vx);
+                    handle.setAttribute('cy', vy);
+                    handle.setAttribute('r', '4');
+                    handle.setAttribute('fill', '#a78bfa');
+                    handle.setAttribute('stroke', '#7c3aed');
+                    handle.setAttribute('stroke-width', '1');
+                    handle.setAttribute('class', 'region-vertex');
+                    handle.setAttribute('data-region-id', region.id);
+                    handle.setAttribute('data-vertex-index', vi);
+                    handle.style.cursor = 'move';
+                    regionsLayer.appendChild(handle);
+                });
+            });
+
+            // Render live polygon preview (currently being drawn)
+            if (polygonTool.active && polygonTool.vertices.length >= 1) {
+                // Edges drawn so far
+                for (let i = 0; i < polygonTool.vertices.length - 1; i++) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', (polygonTool.vertices[i][0] / 100) * svgW);
+                    line.setAttribute('y1', (polygonTool.vertices[i][1] / 100) * svgH);
+                    line.setAttribute('x2', (polygonTool.vertices[i+1][0] / 100) * svgW);
+                    line.setAttribute('y2', (polygonTool.vertices[i+1][1] / 100) * svgH);
+                    line.setAttribute('stroke', '#a78bfa');
+                    line.setAttribute('stroke-width', '2');
+                    line.setAttribute('stroke-dasharray', '6 3');
+                    line.setAttribute('pointer-events', 'none');
+                    regionsLayer.appendChild(line);
+                }
+
+                // Vertex dots for placed vertices
+                polygonTool.vertices.forEach(v => {
+                    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    dot.setAttribute('cx', (v[0] / 100) * svgW);
+                    dot.setAttribute('cy', (v[1] / 100) * svgH);
+                    dot.setAttribute('r', '5');
+                    dot.setAttribute('fill', '#a78bfa');
+                    dot.setAttribute('stroke', '#7c3aed');
+                    dot.setAttribute('stroke-width', '2');
+                    dot.setAttribute('pointer-events', 'none');
+                    regionsLayer.appendChild(dot);
+                });
+
+                // Larger dot on first vertex (close target)
+                if (polygonTool.vertices.length >= 3) {
+                    const first = polygonTool.vertices[0];
+                    const closeDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    closeDot.setAttribute('cx', (first[0] / 100) * svgW);
+                    closeDot.setAttribute('cy', (first[1] / 100) * svgH);
+                    closeDot.setAttribute('r', '8');
+                    closeDot.setAttribute('fill', 'none');
+                    closeDot.setAttribute('stroke', '#22c55e');
+                    closeDot.setAttribute('stroke-width', '2');
+                    closeDot.setAttribute('stroke-dasharray', '3 3');
+                    closeDot.setAttribute('pointer-events', 'none');
+                    closeDot.style.animation = 'pulse 1.5s ease-in-out infinite';
+                    regionsLayer.appendChild(closeDot);
+                }
+
+                // Rubber-band line from last vertex to mouse
+                if (polygonTool.previewVertices.length === 2) {
+                    const last = polygonTool.vertices[polygonTool.vertices.length - 1];
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', (last[0] / 100) * svgW);
+                    line.setAttribute('y1', (last[1] / 100) * svgH);
+                    line.setAttribute('x2', (polygonTool.previewVertices[0] / 100) * svgW);
+                    line.setAttribute('y2', (polygonTool.previewVertices[1] / 100) * svgH);
+                    line.setAttribute('stroke', '#fbbf24');
+                    line.setAttribute('stroke-width', '1.5');
+                    line.setAttribute('stroke-dasharray', '4 4');
+                    line.setAttribute('opacity', '0.6');
+                    line.setAttribute('pointer-events', 'none');
+                    regionsLayer.appendChild(line);
+                }
+            }
+        }
+
         function exportMapData() {
             const data = {
                 waypoints: WAYPOINTS,
-                connections: CONNECTIONS
+                connections: CONNECTIONS,
+                regions: REGIONS
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -2335,9 +2599,14 @@
                     if (waypointList && data.connections) {
                         WAYPOINTS.length = 0;
                         CONNECTIONS.length = 0;
+                        REGIONS.length = 0;
                         WAYPOINTS.push(...waypointList);
                         CONNECTIONS.push(...data.connections);
+                        if (data.regions && Array.isArray(data.regions)) {
+                            REGIONS.push(...data.regions);
+                        }
                         renderMap();
+                        renderRegions();
                         alert('Map data imported successfully!');
                     }
                 } catch (err) {

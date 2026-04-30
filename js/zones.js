@@ -1,20 +1,12 @@
 /**
- * ZoneOfControl — SVG-based zone-of-influence circles for bases/waypoints
+ * ZoneOfControl — SVG-based zone-of-influence for bases/waypoints + custom polygon regions
  *
- * Each base projects a semi-transparent circular zone on the map.
- * Zones are hoverable, clickable, and visually layered with states:
- *   - Owned by player (purple glass)
- *   - Owned by enemy (red glass + pulse)
- *   - Neutral (dim translucent)
- *   - Condemned trap present (chain badge)
- *   - Fog status (visible/explored/unexplored — handled by FogOfWar masks)
+ * Two rendering modes:
+ * 1. Circular zones — auto-generated for every base/waypoint
+ * 2. Polygon regions — user-drawn in editor, exported, loaded at game start
  *
- * Usage:
- *   const zones = new ZoneOfControl(svg, 'zones-layer', baseSystem, {
- *       kingRadius: 12, baseRadius: 8, waypointRadius: 5
- *   });
- *   zones.render();                          // draw all zones
- *   zones.update(ownedBaseIds, traps, fog);  // update state each frame
+ * Both support hover/click/tooltip with visual states:
+ *   - Owned (purple), Enemy (red+pulse), Neutral (dim), Hovered (white highlight)
  */
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -31,19 +23,20 @@ const COLORS = {
     owned:    { fill: 'rgba(124, 58, 237, 0.14)',  stroke: 'rgba(124, 58, 237, 0.55)',  pulse: '#7c3aed' },
     enemy:    { fill: 'rgba(239, 68, 68, 0.12)',   stroke: 'rgba(239, 68, 68, 0.50)',    pulse: '#ef4444' },
     neutral:  { fill: 'rgba(100, 100, 120, 0.06)',  stroke: 'rgba(100, 100, 120, 0.25)',  pulse: null },
-    hovered:  { fill: 'rgba(255, 255, 255, 0.10)',  stroke: 'rgba(255, 255, 255, 0.60)',  pulse: null }
+    hovered:  { fill: 'rgba(255, 255, 255, 0.10)',  stroke: 'rgba(255, 255, 255, 0.60)',  pulse: null },
+    region:   { fill: 'rgba(124, 58, 237, 0.08)',   stroke: 'rgba(124, 58, 237, 0.35)',  pulse: null }
 };
 
 export class ZoneOfControl {
     /**
-     * @param {SVGSVGElement} svg - The map SVG
-     * @param {string} layerId - ID of the <g> element for zones (e.g. 'zones-layer')
-     * @param {Object} baseSystem - BaseSystem instance with getAllBases()
+     * @param {SVGSVGElement} svg
+     * @param {string} layerId
+     * @param {Object} baseSystem — with getAll()
      * @param {Object} [opts]
-     * @param {Object<string,number>} [opts.radii] - Radius per base type
-     * @param {Function} [opts.onZoneClick] - Called with (baseId) on zone click
-     * @param {Function} [opts.onZoneHover] - Called with (baseId, event) on hover
-     * @param {Function} [opts.onZoneLeave] - Called with (baseId) on hover out
+     * @param {Object<string,number>} [opts.radii]
+     * @param {Function} [opts.onZoneClick] — (zoneId, event)
+     * @param {Function} [opts.onZoneHover] — (zoneId, event)
+     * @param {Function} [opts.onZoneLeave] — (zoneId)
      */
     constructor(svg, layerId, baseSystem, opts = {}) {
         this.svg = svg;
@@ -54,32 +47,44 @@ export class ZoneOfControl {
         this.onZoneHover = opts.onZoneHover || null;
         this.onZoneLeave = opts.onZoneLeave || null;
 
-        /** @type {Map<string, SVGCircleElement>} baseId → circle element */
+        /** @type {Map<string, SVGCircleElement>} */
         this._circles = new Map();
-
-        /** @type {Map<string, SVGCircleElement>} baseId → outer pulse ring */
+        /** @type {Map<string, SVGCircleElement>} */
         this._pulseRings = new Map();
-
-        /** @type {Map<string, Object>} baseId → zone state */
+        /** @type {Map<string, Object>} */
         this._states = new Map();
-
         /** @type {string|null} */
         this._hoveredId = null;
+
+        // Region polygons
+        /** @type {Array<{id: string, name: string, vertices: number[][], element: SVGPolygonElement|null}>} */
+        this._regions = [];
 
         this._layer = null;
         this._initialized = false;
     }
 
     /**
-     * Get the <g> layer, creating it if it doesn't exist.
+     * Load custom polygon regions from editor-exported JSON.
+     * Call before render() or anytime to add/update regions.
+     * @param {Array<{id: string, name: string, vertices: number[][]}>} regions
      */
+    loadRegions(regions) {
+        this._regions = regions.map(r => ({
+            ...r,
+            element: null  // will be created in render()
+        }));
+        if (this._initialized) {
+            this._renderRegions();
+        }
+    }
+
     _getLayer() {
         if (this._layer) return this._layer;
         let g = this.svg.querySelector(`#${this.layerId}`);
         if (!g) {
             g = document.createElementNS(NS, 'g');
             g.setAttribute('id', this.layerId);
-            // Insert after connection-paths, before base-borders
             const paths = this.svg.querySelector('#connection-paths');
             if (paths && paths.nextSibling) {
                 this.svg.insertBefore(g, paths.nextSibling);
@@ -92,7 +97,7 @@ export class ZoneOfControl {
     }
 
     /**
-     * Render all zone circles from baseSystem data. Call once after construction.
+     * Render all zones (circles + regions). Call once after construction.
      */
     render() {
         const layer = this._getLayer();
@@ -104,7 +109,6 @@ export class ZoneOfControl {
             const x = (base.x / 100) * dims.w;
             const y = (base.y / 100) * dims.h;
 
-            // Main zone circle
             const circle = document.createElementNS(NS, 'circle');
             circle.setAttribute('cx', x);
             circle.setAttribute('cy', y);
@@ -118,7 +122,6 @@ export class ZoneOfControl {
             circle.style.cursor = 'pointer';
             circle.style.transition = 'fill 0.3s ease, stroke 0.3s ease, opacity 0.5s ease';
 
-            // Pulse ring (hidden by default, shown for enemy/trap)
             const pulse = document.createElementNS(NS, 'circle');
             pulse.setAttribute('cx', x);
             pulse.setAttribute('cy', y);
@@ -131,7 +134,6 @@ export class ZoneOfControl {
             pulse.setAttribute('pointer-events', 'none');
             pulse.style.transition = 'opacity 0.5s ease';
 
-            // Event listeners
             circle.addEventListener('mouseenter', (e) => this._onEnter(base.id, e));
             circle.addEventListener('mouseleave', () => this._onLeave(base.id));
             circle.addEventListener('click', (e) => this._onClick(base.id, e));
@@ -142,26 +144,56 @@ export class ZoneOfControl {
             this._circles.set(base.id, circle);
             this._pulseRings.set(base.id, pulse);
             this._states.set(base.id, {
-                owned: false,
-                enemy: false,
-                hasTrap: false,
-                visible: false,
-                explored: false,
-                creatureCount: 0
+                owned: false, enemy: false, hasTrap: false,
+                visible: true, explored: true, creatureCount: 0
             });
         }
+
+        // Render polygon regions
+        this._renderRegions();
 
         this._initialized = true;
     }
 
     /**
-     * Update zone visual states based on current game state.
-     * Call every frame or whenever state changes.
-     *
-     * @param {Set<string>} ownedBaseIds - Player-owned base IDs
-     * @param {Set<string>} enemyBaseIds - Enemy-owned base IDs
-     * @param {Map<string,boolean>} trapMap - baseId → has active trap
-     * @param {import('./fogOfWar.js').FogOfWar} [fog] - FogOfWar instance
+     * Render saved polygon regions as SVG <polygon> elements.
+     */
+    _renderRegions() {
+        const layer = this._getLayer();
+        const dims = this._getMapDims();
+
+        // Remove old region elements
+        layer.querySelectorAll('.zone-region-polygon').forEach(el => el.remove());
+
+        for (const region of this._regions) {
+            if (!region.vertices || region.vertices.length < 3) continue;
+
+            const pointsStr = region.vertices
+                .map(v => `${(v[0] / 100) * dims.w},${(v[1] / 100) * dims.h}`)
+                .join(' ');
+
+            const poly = document.createElementNS(NS, 'polygon');
+            poly.setAttribute('points', pointsStr);
+            poly.setAttribute('class', 'zone-region-polygon');
+            poly.setAttribute('data-region-id', region.id);
+            poly.setAttribute('fill', COLORS.region.fill);
+            poly.setAttribute('stroke', COLORS.region.stroke);
+            poly.setAttribute('stroke-width', '1.5');
+            poly.setAttribute('pointer-events', 'all');
+            poly.style.cursor = 'pointer';
+            poly.style.transition = 'fill 0.3s ease, stroke 0.3s ease';
+
+            poly.addEventListener('mouseenter', (e) => this._onEnter(region.id, e));
+            poly.addEventListener('mouseleave', () => this._onLeave(region.id));
+            poly.addEventListener('click', (e) => this._onClick(region.id, e));
+
+            layer.appendChild(poly);
+            region.element = poly;
+        }
+    }
+
+    /**
+     * Update zone visual states. Call every frame.
      */
     update(ownedBaseIds, enemyBaseIds, trapMap, fog) {
         if (!this._initialized) return;
@@ -170,19 +202,18 @@ export class ZoneOfControl {
         const bases = this.baseSystem.getAll();
         const baseMap = new Map(bases.map(b => [b.id, b]));
 
+        // Update circle zones
         for (const [baseId, state] of this._states) {
             const base = baseMap.get(baseId);
             if (!base) continue;
-
-            const x = (base.x / 100) * dims.w;
-            const y = (base.y / 100) * dims.h;
 
             state.owned = ownedBaseIds.has(baseId);
             state.enemy = enemyBaseIds.has(baseId);
             state.hasTrap = trapMap ? !!trapMap.get(baseId) : false;
 
-            // Fog status
             if (fog) {
+                const x = (base.x / 100) * dims.w;
+                const y = (base.y / 100) * dims.h;
                 state.visible = fog.isVisible(x, y);
                 state.explored = state.visible || fog.isExplored(x, y);
             } else {
@@ -194,15 +225,12 @@ export class ZoneOfControl {
             const pulse = this._pulseRings.get(baseId);
             if (!circle) continue;
 
-            // Determine visual state
             const isHovered = baseId === this._hoveredId;
 
             if (!state.explored) {
-                // Never explored — hide zone entirely (fog handles the rest)
                 circle.setAttribute('opacity', '0');
                 if (pulse) pulse.setAttribute('opacity', '0');
             } else if (!state.visible) {
-                // Explored but not currently visible — very dim
                 circle.setAttribute('fill', COLORS.neutral.fill);
                 circle.setAttribute('stroke', 'rgba(100,100,120,0.08)');
                 circle.setAttribute('opacity', '0.4');
@@ -224,13 +252,11 @@ export class ZoneOfControl {
                 circle.setAttribute('stroke', COLORS.enemy.stroke);
                 circle.setAttribute('stroke-width', '1.5');
                 circle.setAttribute('opacity', '1');
-                // Pulse animation for enemy zones
                 if (pulse) {
                     pulse.setAttribute('stroke', COLORS.enemy.pulse);
                     pulse.setAttribute('opacity', '0.5');
                 }
             } else {
-                // Neutral
                 circle.setAttribute('fill', COLORS.neutral.fill);
                 circle.setAttribute('stroke', COLORS.neutral.stroke);
                 circle.setAttribute('stroke-width', '1');
@@ -238,7 +264,6 @@ export class ZoneOfControl {
                 if (pulse) pulse.setAttribute('opacity', '0');
             }
 
-            // Trap indicator — override pulse with gold warning
             if (state.hasTrap && state.visible && pulse) {
                 pulse.setAttribute('stroke', '#fbbf24');
                 pulse.setAttribute('stroke-width', '2');
@@ -246,47 +271,61 @@ export class ZoneOfControl {
                 pulse.setAttribute('opacity', state.enemy ? '0.7' : '0.35');
             }
         }
-    }
 
-    /**
-     * Re-render all zone positions (call after editor moves bases).
-     */
-    reposition() {
-        const dims = this._getMapDims();
-        const bases = this.baseSystem.getAll();
-        const baseMap = new Map(bases.map(b => [b.id, b]));
+        // Update region polygons
+        for (const region of this._regions) {
+            if (!region.element) continue;
+            const isHovered = region.id === this._hoveredId;
 
-        for (const [baseId, circle] of this._circles) {
-            const base = baseMap.get(baseId);
-            if (!base) continue;
-
-            const radius = this.radii[base.type] || this.radii['base'];
-            const x = (base.x / 100) * dims.w;
-            const y = (base.y / 100) * dims.h;
-
-            circle.setAttribute('cx', x);
-            circle.setAttribute('cy', y);
-            circle.setAttribute('r', radius);
-
-            const pulse = this._pulseRings.get(baseId);
-            if (pulse) {
-                pulse.setAttribute('cx', x);
-                pulse.setAttribute('cy', y);
-                pulse.setAttribute('r', radius + 1);
+            if (isHovered) {
+                region.element.setAttribute('fill', COLORS.hovered.fill);
+                region.element.setAttribute('stroke', COLORS.hovered.stroke);
+                region.element.setAttribute('stroke-width', '2');
+            } else {
+                region.element.setAttribute('fill', COLORS.region.fill);
+                region.element.setAttribute('stroke', COLORS.region.stroke);
+                region.element.setAttribute('stroke-width', '1.5');
             }
         }
     }
 
+    reposition() {
+        // Update region polygons only (circles don't move in gameplay)
+        this._renderRegions();
+    }
+
     /**
-     * Get the base ID under a screen point (for tooltip/click routing).
-     * @param {number} svgX - SVG coordinate X
-     * @param {number} svgY - SVG coordinate Y
-     * @returns {string|null} baseId or null
+     * Point-in-polygon test for a region.
      */
+    _pointInPolygon(px, py, vertices, dims) {
+        const n = vertices.length;
+        let inside = false;
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+            const xi = (vertices[i][0] / 100) * dims.w;
+            const yi = (vertices[i][1] / 100) * dims.h;
+            const xj = (vertices[j][0] / 100) * dims.w;
+            const yj = (vertices[j][1] / 100) * dims.h;
+            if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
     hitTest(svgX, svgY) {
         const dims = this._getMapDims();
-        const bases = this.baseSystem.getAll();
 
+        // Check regions first (more specific shapes)
+        for (const region of this._regions) {
+            if (region.vertices && region.vertices.length >= 3) {
+                if (this._pointInPolygon(svgX, svgY, region.vertices, dims)) {
+                    return region.id;
+                }
+            }
+        }
+
+        // Fall back to circular zones
+        const bases = this.baseSystem.getAll();
         for (const base of bases) {
             const radius = this.radii[base.type] || this.radii['base'];
             const cx = (base.x / 100) * dims.w;
@@ -300,8 +339,6 @@ export class ZoneOfControl {
         return null;
     }
 
-    // ── Private helpers ──
-
     _getMapDims() {
         if (this.svg.clientWidth && this.svg.clientHeight) {
             return { w: this.svg.clientWidth, h: this.svg.clientHeight };
@@ -310,25 +347,17 @@ export class ZoneOfControl {
         return { w: bbox.width || 1000, h: bbox.height || 800 };
     }
 
-    _onEnter(baseId, event) {
-        this._hoveredId = baseId;
-        if (this.onZoneHover) {
-            this.onZoneHover(baseId, event);
-        }
+    _onEnter(zoneId, event) {
+        this._hoveredId = zoneId;
+        if (this.onZoneHover) this.onZoneHover(zoneId, event);
     }
 
-    _onLeave(baseId) {
-        if (this._hoveredId === baseId) {
-            this._hoveredId = null;
-        }
-        if (this.onZoneLeave) {
-            this.onZoneLeave(baseId);
-        }
+    _onLeave(zoneId) {
+        if (this._hoveredId === zoneId) this._hoveredId = null;
+        if (this.onZoneLeave) this.onZoneLeave(zoneId);
     }
 
-    _onClick(baseId, event) {
-        if (this.onZoneClick) {
-            this.onZoneClick(baseId, event);
-        }
+    _onClick(zoneId, event) {
+        if (this.onZoneClick) this.onZoneClick(zoneId, event);
     }
 }
