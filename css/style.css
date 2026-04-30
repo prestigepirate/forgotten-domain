@@ -1664,12 +1664,14 @@ body {
     display: none;
 }
 
+.editor-palette.hide-labels .btn-label {
+    display: none;
+}
+
 .editor-palette.hide-labels .editor-palette-btn {
-    max-width: 34px;
-    overflow: hidden;
-    text-overflow: clip;
     padding: 6px 8px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    letter-spacing: 0;
 }
 
 .editor-palette.hide-labels .editor-palette-actions {

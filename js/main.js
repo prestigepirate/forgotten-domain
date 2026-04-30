@@ -483,17 +483,17 @@ function createEditorPalette() {
         <div class="editor-palette-title">Map Editor</div>
         <button class="editor-palette-eye" id="editor-eye-btn" title="Hide labels">👁</button>
         <div class="editor-palette-actions">
-            <button class="editor-palette-btn" data-action="move">&#9872; Move</button>
-            <button class="editor-palette-btn" data-action="connect">&#9727; Connect</button>
-            <button class="editor-palette-btn" data-action="add-base">&#9670; +Base</button>
-            <button class="editor-palette-btn" data-action="add-waypoint">&#9678; +Waypoint</button>
-            <button class="editor-palette-btn" data-action="add-king">&#9813; +King</button>
-            <button class="editor-palette-btn" data-action="add-player">&#9878; +Player Base</button>
-            <button class="editor-palette-btn" data-action="add-enemy">&#9760; +Enemy Base</button>
-            <button class="editor-palette-btn editor-palette-accent" data-action="decorations">&#127794; Decorations</button>
-            <button class="editor-palette-btn editor-palette-danger" data-action="remove">&#10007; Remove</button>
-            <button class="editor-palette-btn" data-action="export">&#128229; Export</button>
-            <button class="editor-palette-btn editor-palette-exit" data-action="exit">&#10005; Exit</button>
+            <button class="editor-palette-btn" data-action="move">&#9872;<span class="btn-label"> Move</span></button>
+            <button class="editor-palette-btn" data-action="connect">&#9727;<span class="btn-label"> Connect</span></button>
+            <button class="editor-palette-btn" data-action="add-base">&#9670;<span class="btn-label"> +Base</span></button>
+            <button class="editor-palette-btn" data-action="add-waypoint">&#9678;<span class="btn-label"> +Waypoint</span></button>
+            <button class="editor-palette-btn" data-action="add-king">&#9813;<span class="btn-label"> +King</span></button>
+            <button class="editor-palette-btn" data-action="add-player">&#9878;<span class="btn-label"> +Player Base</span></button>
+            <button class="editor-palette-btn" data-action="add-enemy">&#9760;<span class="btn-label"> +Enemy Base</span></button>
+            <button class="editor-palette-btn editor-palette-accent" data-action="decorations">&#127794;<span class="btn-label"> Decorations</span></button>
+            <button class="editor-palette-btn editor-palette-danger" data-action="remove">&#10007;<span class="btn-label"> Remove</span></button>
+            <button class="editor-palette-btn" data-action="export">&#128229;<span class="btn-label"> Export</span></button>
+            <button class="editor-palette-btn editor-palette-exit" data-action="exit">&#10005;<span class="btn-label"> Exit</span></button>
         </div>
     `;
 
