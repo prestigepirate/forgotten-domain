@@ -207,10 +207,9 @@ export class Renderer {
         this.svgHeight = h > 0 ? h : 800;
         this.svg.setAttribute('viewBox', `0 0 ${this.svgWidth} ${this.svgHeight}`);
         this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        console.log('[Renderer] SVG dimensions:', this.svgWidth, 'x', this.svgHeight,
-            '| layers.markers:', !!this.layers.markers,
-            '| layers.borders:', !!this.layers.borders,
-            '| layers.sigils:', !!this.layers.sigils);
+        // SVG diagnostic — dimensions confirmed
+        // console.log('[Renderer] SVG dimensions:', ...);
+        // See browser devtools for runtime dimensions
     }
 
     /**
