@@ -11,24 +11,31 @@
         let hideTimeout;
 
         // ============================================
-        // Spell cache for MagickBook panel
+        // Database cache for MagickBook panel
         // ============================================
         let cachedSpells = null;
+        let cachedCreatures = null;
 
-        async function loadSpells() {
-            if (cachedSpells) return cachedSpells;
+        async function loadDatabase() {
+            if (cachedSpells && cachedCreatures) return { spells: cachedSpells, creatures: cachedCreatures };
             try {
                 const res = await fetch('creatures-database.json');
                 if (!res.ok) throw new Error('Not found');
                 const db = await res.json();
                 cachedSpells = (db.spells || []).sort((a, b) => a.cost - b.cost);
+                cachedCreatures = (db.creatures || []);
             } catch (e) {
                 cachedSpells = [];
+                cachedCreatures = [];
             }
-            return cachedSpells;
+            return { spells: cachedSpells, creatures: cachedCreatures };
         }
 
-        function buildMagickbookPanel(spells) {
+        // ============================================
+        // MagickBook panel builder
+        // ============================================
+
+        function buildMagickbookPanel(spells, creatures) {
             const header = `
                 <div class="nav-panel-header">
                     <div class="nav-panel-header-dot"></div>
@@ -36,14 +43,29 @@
                     <span class="nav-panel-header-id">GRIM-0451</span>
                 </div>`;
 
-            if (spells.length === 0) {
-                return header + `
-                    <div class="nav-panel-row">
-                        <span class="nav-panel-label">Grimoire State</span>
-                        <span class="nav-panel-status">Sealed</span>
-                    </div>`;
-            }
+            const tabs = `
+                <div class="mb-minitabs">
+                    <button class="mb-minitab active" data-mb-tab="spells">Spells (${spells.length})</button>
+                    <button class="mb-minitab" data-mb-tab="creatures">Creatures (${creatures.length})</button>
+                    <button class="mb-minitab" data-mb-tab="condemned">Condemned</button>
+                </div>`;
 
+            const spellsPane = buildSpellsPane(spells);
+            const creaturesPane = buildCreaturesPane(creatures);
+            const condemnedPane = buildCondemnedPane();
+
+            return header + tabs + `
+                <div class="mb-panes">
+                    <div class="mb-pane active" data-mb-pane="spells">${spellsPane}</div>
+                    <div class="mb-pane" data-mb-pane="creatures">${creaturesPane}</div>
+                    <div class="mb-pane" data-mb-pane="condemned">${condemnedPane}</div>
+                </div>`;
+        }
+
+        function buildSpellsPane(spells) {
+            if (spells.length === 0) {
+                return '<div class="mb-empty-state">No spells inscribed</div>';
+            }
             const rows = spells.map(s => `
                 <div class="mb-spell-row">
                     <span class="mb-spell-cost">${s.cost}</span>
@@ -51,13 +73,67 @@
                     <span class="mb-spell-type ${s.type.toLowerCase()}">${s.type}</span>
                 </div>
             `).join('');
+            return `<div class="mb-spell-list">${rows}</div>`;
+        }
 
-            return header + `
-                <div class="nav-panel-row">
-                    <span class="nav-panel-label">Inscribed Spells</span>
-                    <span class="nav-panel-value highlight">${spells.length}</span>
-                </div>
-                <div class="mb-spell-list">${rows}</div>`;
+        function buildCreaturesPane(creatures) {
+            if (creatures.length === 0) {
+                return '<div class="mb-empty-state">No creatures catalogued</div>';
+            }
+
+            const CONTINENT_ORDER = ['voxya', 'orilyth', 'korvess', 'sanguis', 'silith9'];
+            const CONTINENT_NAMES = {
+                voxya: 'Voxya', orilyth: 'Orilyth', korvess: 'Korvess',
+                sanguis: 'Sanguis', silith9: 'Silith-9'
+            };
+            const CONTINENT_COLORS = {
+                voxya: '#800080', orilyth: '#3b82f6', korvess: '#10b981',
+                sanguis: '#ef4444', silith9: '#c0c0c0'
+            };
+
+            // Group by continent, sorted by level then name
+            const groups = {};
+            for (const c of creatures) {
+                const key = c.continent || 'unknown';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(c);
+            }
+            for (const key of Object.keys(groups)) {
+                groups[key].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+            }
+
+            let html = '';
+            for (const cont of CONTINENT_ORDER) {
+                const list = groups[cont];
+                if (!list || list.length === 0) continue;
+                html += `<div class="mb-cret-section">
+                    <div class="mb-cret-continent">
+                        <span class="mb-cret-dot" style="background:${CONTINENT_COLORS[cont]}"></span>
+                        ${CONTINENT_NAMES[cont]} <span class="mb-cret-count">(${list.length})</span>
+                    </div>`;
+                for (const c of list) {
+                    html += `<div class="mb-cret-row">
+                        <span class="mb-cret-lv">Lv${c.level}</span>
+                        <span class="mb-cret-name">${esc(c.name)}</span>
+                        <span class="mb-cret-type">${esc(c.type || '')}</span>
+                        <span class="mb-cret-stats">${c.atk}/${c.def}</span>
+                        <span class="mb-cret-cost">⊕${c.essenceCost}</span>
+                    </div>`;
+                }
+                html += '</div>';
+            }
+            return `<div class="mb-spell-list">${html}</div>`;
+        }
+
+        function buildCondemnedPane() {
+            return `
+                <div class="mb-spell-list">
+                    <div class="mb-empty-state">
+                        <div class="mb-empty-icon">⛓</div>
+                        <div>Condemned — forbidden magicks sealed away</div>
+                        <div class="mb-empty-sub">None yet discovered</div>
+                    </div>
+                </div>`;
         }
 
         function esc(str) {
@@ -68,7 +144,7 @@
         }
 
         // ============================================
-        // Panel content map
+        // Panel content map (non-MagickBook panels)
         // ============================================
         const panelContentMap = {
             player: `
@@ -119,8 +195,8 @@
             `,
         };
 
-        // Preload spells for MagickBook panel
-        loadSpells();
+        // Preload database
+        loadDatabase();
 
         // ============================================
         // Event listeners
@@ -132,8 +208,9 @@
             item.addEventListener('mouseenter', async () => {
                 clearTimeout(hideTimeout);
                 if (panelKey === 'magickbook') {
-                    const spells = await loadSpells();
-                    panelContent.innerHTML = buildMagickbookPanel(spells);
+                    const db = await loadDatabase();
+                    panelContent.innerHTML = buildMagickbookPanel(db.spells, db.creatures);
+                    wireMiniTabs();
                 } else {
                     panelContent.innerHTML = panelContentMap[panelKey] || '';
                 }
@@ -159,5 +236,28 @@
                 setTimeout(() => panel.classList.add('hidden'), 200);
             }, 150);
         });
+
+        // ============================================
+        // Mini-tab switching (inside MagickBook panel)
+        // ============================================
+        function wireMiniTabs() {
+            const tabs = panelContent.querySelectorAll('.mb-minitab');
+            const panes = panelContent.querySelectorAll('.mb-pane');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const target = tab.dataset.mbTab;
+
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    panes.forEach(p => p.classList.remove('active'));
+                    const pane = panelContent.querySelector(`[data-mb-pane="${target}"]`);
+                    if (pane) pane.classList.add('active');
+                });
+            });
+        }
     });
 })();

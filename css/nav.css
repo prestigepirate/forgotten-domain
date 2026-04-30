@@ -313,3 +313,167 @@
     background: rgba(239, 68, 68, 0.12);
     color: #f87171;
 }
+
+/* ============================================
+   MAGICKBOOK MINI-TABS
+   ============================================ */
+
+.mb-minitabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(124, 180, 255, 0.08);
+    padding-bottom: 8px;
+}
+
+.mb-minitab {
+    background: none;
+    border: 1px solid transparent;
+    color: rgba(160, 180, 200, 0.5);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mb-minitab:hover {
+    color: rgba(200, 215, 235, 0.8);
+    background: rgba(124, 180, 255, 0.05);
+}
+
+.mb-minitab.active {
+    color: #c4b5fd;
+    background: rgba(124, 58, 237, 0.12);
+    border-color: rgba(124, 58, 237, 0.3);
+    text-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
+}
+
+.mb-pane {
+    display: none;
+}
+
+.mb-pane.active {
+    display: block;
+}
+
+/* ============================================
+   MAGICKBOOK CREATURE LIST
+   ============================================ */
+
+.mb-cret-section {
+    margin-bottom: 8px;
+}
+
+.mb-cret-continent {
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(160, 180, 200, 0.5);
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.mb-cret-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mb-cret-count {
+    color: rgba(160, 180, 200, 0.35);
+    font-size: 0.5rem;
+}
+
+.mb-cret-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0 4px 11px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.015);
+    font-size: 0.58rem;
+    transition: background 0.15s;
+}
+
+.mb-cret-row:hover {
+    background: rgba(124, 180, 255, 0.03);
+}
+
+.mb-cret-lv {
+    flex-shrink: 0;
+    width: 28px;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.5rem;
+    color: rgba(160, 180, 200, 0.4);
+}
+
+.mb-cret-name {
+    flex: 1;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 0.58rem;
+    color: rgba(210, 220, 240, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mb-cret-type {
+    flex-shrink: 0;
+    font-size: 0.5rem;
+    color: rgba(160, 180, 200, 0.45);
+    max-width: 70px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mb-cret-stats {
+    flex-shrink: 0;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.5rem;
+    color: rgba(180, 200, 220, 0.55);
+    width: 48px;
+    text-align: right;
+}
+
+.mb-cret-cost {
+    flex-shrink: 0;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: #a78bfa;
+    width: 30px;
+    text-align: right;
+}
+
+/* ============================================
+   MAGICKBOOK EMPTY STATE
+   ============================================ */
+
+.mb-empty-state {
+    text-align: center;
+    padding: 24px 16px;
+    color: rgba(160, 180, 200, 0.4);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+}
+
+.mb-empty-icon {
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+    opacity: 0.5;
+}
+
+.mb-empty-sub {
+    font-size: 0.52rem;
+    color: rgba(160, 180, 200, 0.25);
+    margin-top: 4px;
+}
