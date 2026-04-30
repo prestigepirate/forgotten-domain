@@ -8,27 +8,27 @@
     "voxya": {
       "color": "#800080",
       "displayName": "Voxya",
-      "description": "Shadow, death, void — the Shattered Archipelago"
+      "description": "Shadow, death, void \u2014 the Shattered Archipelago"
     },
     "orilyth": {
       "color": "#3b82f6",
       "displayName": "Orilyth",
-      "description": "Energy, crystal, data — the Veil of Whispers"
+      "description": "Energy, crystal, data \u2014 the Veil of Whispers"
     },
     "korvess": {
       "color": "#10b981",
       "displayName": "Korvess",
-      "description": "Mutation, flora, evolution — the Verdant Abyss"
+      "description": "Mutation, flora, evolution \u2014 the Verdant Abyss"
     },
     "sanguis": {
       "color": "#ef4444",
       "displayName": "Sanguis",
-      "description": "Magma, spirit, defense — the Crimson Veil"
+      "description": "Magma, spirit, defense \u2014 the Crimson Veil"
     },
     "silith9": {
       "color": "#c0c0c0",
       "displayName": "Silith-9",
-      "description": "Machine, cybernetic, cold precision — the False Moon"
+      "description": "Machine, cybernetic, cold precision \u2014 the False Moon"
     }
   },
   "creatures": [
@@ -179,7 +179,6 @@
       "effect": "At the start of every minute, deal 800 damage to the nearest enemy King's Throne.",
       "sprite": "assets/units/voxya-eternal-dusk-sovereign.png"
     },
-
     {
       "id": "orilyth-spark-drone",
       "continent": "orilyth",
@@ -190,7 +189,7 @@
       "def": 900,
       "movement": 2,
       "type": "Energy Construct",
-      "sprite": "assets/units/voxya-voidmire-stalker.png",
+      "sprite": "assets/units/orilyth-spark-drone.png",
       "effect": null,
       "flavor": "A humming shard of bottled lightning, eager to discharge."
     },
@@ -204,7 +203,7 @@
       "def": 1100,
       "movement": 1,
       "type": "Crystal Guardian",
-      "sprite": "assets/units/voxya-throne-wraith.png",
+      "sprite": "assets/units/orilyth-crystal-sentry.png",
       "effect": null,
       "flavor": "Faceted eyes see every whisper carried on the storm."
     },
@@ -218,7 +217,7 @@
       "def": 1300,
       "movement": 2,
       "type": "Caster",
-      "sprite": "assets/units/voxya-dusk-gate-lurker.png",
+      "sprite": "assets/units/orilyth-stormcaller-adept.png",
       "effect": null,
       "flavor": "The youngest adepts can redirect a storm with a whisper."
     },
@@ -232,7 +231,7 @@
       "def": 1000,
       "movement": 1,
       "type": "Information Entity",
-      "sprite": "assets/units/voxya-gloomforge-thrall.png",
+      "sprite": "assets/units/orilyth-data-wraith.png",
       "effect": null,
       "flavor": "It lives inside the message, feeding on its meaning."
     },
@@ -246,7 +245,7 @@
       "def": 1300,
       "movement": 2,
       "type": "Storm Caster",
-      "sprite": "assets/units/voxya-skyrift-harvester.png",
+      "sprite": "assets/units/orilyth-lightning-weaver.png",
       "effect": "Deals 400 splash damage to all enemy creatures at the same base on arrival.",
       "flavor": "Her loom is the sky; her thread is lightning."
     },
@@ -260,7 +259,7 @@
       "def": 2200,
       "movement": 1,
       "type": "Fortress Construct",
-      "sprite": "assets/units/voxya-weeping-stone-revenant.png",
+      "sprite": "assets/units/orilyth-crystal-spire-warden.png",
       "effect": "This creature cannot be moved by enemy effects.",
       "flavor": "The spire has stood for a thousand years. It will stand for a thousand more."
     },
@@ -274,7 +273,7 @@
       "def": 1100,
       "movement": 2,
       "type": "Encoded Warrior",
-      "sprite": "assets/units/voxya-stormspire-shade.png",
+      "sprite": "assets/units/orilyth-cipher-knight.png",
       "effect": "Gains +400 ATK when attacking a Silith-9 creature.",
       "flavor": "Every blow is a decryption key against the False Moon."
     },
@@ -288,7 +287,7 @@
       "def": 2400,
       "movement": 1,
       "type": "Primordial Storm",
-      "sprite": "assets/units/voxya-archipelago-leviathan.png",
+      "sprite": "assets/units/orilyth-storm-leviathan.png",
       "effect": "On summon: deal 600 damage to all enemy creatures within 1 hop.",
       "flavor": "The oldest storm in the Veil, given form and purpose."
     },
@@ -302,11 +301,10 @@
       "def": 2600,
       "movement": 2,
       "type": "Royal Intelligence",
-      "sprite": "assets/units/voxya-eternal-dusk-sovereign.png",
+      "sprite": "assets/units/orilyth-data-sovereign.png",
       "effect": "Reveal one random enemy creature's stats at the start of each minute.",
       "flavor": "Knowledge is the only currency that cannot be stolen."
     },
-
     {
       "id": "korvess-thornling-swarm",
       "continent": "korvess",
@@ -317,7 +315,7 @@
       "def": 800,
       "movement": 2,
       "type": "Mutant Swarm",
-      "sprite": "assets/units/voxya-voidmire-stalker.png",
+      "sprite": "assets/units/korvess-thornling-swarm.png",
       "effect": null,
       "flavor": "A thousand tiny mouths, all screaming for flesh."
     },
@@ -331,7 +329,7 @@
       "def": 1400,
       "movement": 1,
       "type": "Animated Flora",
-      "sprite": "assets/units/voxya-dusk-gate-lurker.png",
+      "sprite": "assets/units/korvess-rotbark-sentinel.png",
       "effect": null,
       "flavor": "It has stood watch since before the Fracture. It remembers."
     },
@@ -345,7 +343,7 @@
       "def": 1200,
       "movement": 2,
       "type": "Symbiote Caster",
-      "sprite": "assets/units/voxya-throne-wraith.png",
+      "sprite": "assets/units/korvess-vinespeaker.png",
       "effect": null,
       "flavor": "She sings to the roots, and the roots obey."
     },
@@ -359,7 +357,7 @@
       "def": 1100,
       "movement": 1,
       "type": "Evolved Insectoid",
-      "sprite": "assets/units/voxya-gloomforge-thrall.png",
+      "sprite": "assets/units/korvess-chitin-brute.png",
       "effect": null,
       "flavor": "Each generation sheds a stronger shell."
     },
@@ -373,7 +371,7 @@
       "def": 1200,
       "movement": 2,
       "type": "Fungal Mutant",
-      "sprite": "assets/units/voxya-skyrift-harvester.png",
+      "sprite": "assets/units/korvess-spore-horror.png",
       "effect": "When destroyed, deal 500 damage to the creature that destroyed it.",
       "flavor": "Its death is just another stage in its life cycle."
     },
@@ -387,7 +385,7 @@
       "def": 2000,
       "movement": 1,
       "type": "Flora Trap",
-      "sprite": "assets/units/voxya-weeping-stone-revenant.png",
+      "sprite": "assets/units/korvess-carnivorous-cradle.png",
       "effect": "Enemy creatures that move into this base take 300 damage.",
       "flavor": "It blooms only when prey steps inside."
     },
@@ -401,7 +399,7 @@
       "def": 1000,
       "movement": 2,
       "type": "Apex Mutant",
-      "sprite": "assets/units/voxya-stormspire-shade.png",
+      "sprite": "assets/units/korvess-alpha-predator.png",
       "effect": "Gains +300 ATK for each enemy creature at the same base.",
       "flavor": "The jungle crowned it. The jungle is never wrong."
     },
@@ -415,7 +413,7 @@
       "def": 2800,
       "movement": 1,
       "type": "Ancient Colossus",
-      "sprite": "assets/units/voxya-shadow-throne-tyrant.png",
+      "sprite": "assets/units/korvess-verdant-titan.png",
       "effect": "Heals 400 HP to your King's Throne at the start of each minute.",
       "flavor": "The forest itself rose to defend its children."
     },
@@ -429,11 +427,10 @@
       "def": 2300,
       "movement": 2,
       "type": "Collective Intelligence",
-      "sprite": "assets/units/voxya-eternal-dusk-sovereign.png",
+      "sprite": "assets/units/korvess-hive-mind-sovereign.png",
       "effect": "All your creatures at the same base share their highest ATK value.",
       "flavor": "What one knows, all know. What one strikes, all kill."
     },
-
     {
       "id": "sanguis-cinder-hound",
       "continent": "sanguis",
@@ -444,7 +441,7 @@
       "def": 800,
       "movement": 2,
       "type": "Magma Beast",
-      "sprite": "assets/units/voxya-voidmire-stalker.png",
+      "sprite": "assets/units/sanguis-cinder-hound.png",
       "effect": null,
       "flavor": "Its footsteps leave smoldering prints in solid rock."
     },
@@ -458,7 +455,7 @@
       "def": 1500,
       "movement": 1,
       "type": "Elemental Defender",
-      "sprite": "assets/units/voxya-dusk-gate-lurker.png",
+      "sprite": "assets/units/sanguis-magma-guardian.png",
       "effect": null,
       "flavor": "Cooled on the outside, burning eternal within."
     },
@@ -472,7 +469,7 @@
       "def": 1100,
       "movement": 2,
       "type": "Spirit Caster",
-      "sprite": "assets/units/voxya-throne-wraith.png",
+      "sprite": "assets/units/sanguis-ember-seer.png",
       "effect": null,
       "flavor": "She reads the future in the dance of dying embers."
     },
@@ -486,7 +483,7 @@
       "def": 1300,
       "movement": 1,
       "type": "Warrior Spirit",
-      "sprite": "assets/units/voxya-gloomforge-thrall.png",
+      "sprite": "assets/units/sanguis-ash-phalanx.png",
       "effect": null,
       "flavor": "A thousand warriors, compressed into a single burning form."
     },
@@ -500,7 +497,7 @@
       "def": 1100,
       "movement": 2,
       "type": "Fire Knight",
-      "sprite": "assets/units/voxya-stormspire-shade.png",
+      "sprite": "assets/units/sanguis-flame-lancer.png",
       "effect": "Pierces through: ignores 400 DEF when attacking.",
       "flavor": "Her lance was forged in the heart of a dying star."
     },
@@ -514,7 +511,7 @@
       "def": 2400,
       "movement": 1,
       "type": "Fortress Spirit",
-      "sprite": "assets/units/voxya-weeping-stone-revenant.png",
+      "sprite": "assets/units/sanguis-crimson-bastion.png",
       "effect": "All friendly creatures at this base gain +300 DEF.",
       "flavor": "The walls bleed, but they never break."
     },
@@ -528,7 +525,7 @@
       "def": 1400,
       "movement": 2,
       "type": "Volcanic Drake",
-      "sprite": "assets/units/voxya-skyrift-harvester.png",
+      "sprite": "assets/units/sanguis-pyroclastic-wyrm.png",
       "effect": "Can move through enemy-occupied bases without engaging.",
       "flavor": "It swims through stone as if it were water."
     },
@@ -542,7 +539,7 @@
       "def": 2500,
       "movement": 1,
       "type": "Primordial Elemental",
-      "sprite": "assets/units/voxya-shadow-throne-tyrant.png",
+      "sprite": "assets/units/sanguis-magma-sovereign.png",
       "effect": "At the start of each minute, deal 400 damage to all enemy creatures at adjacent bases.",
       "flavor": "The mountain speaks. All of Sanguis listens."
     },
@@ -556,11 +553,10 @@
       "def": 2200,
       "movement": 3,
       "type": "Rebirth Spirit",
-      "sprite": "assets/units/voxya-eternal-dusk-sovereign.png",
+      "sprite": "assets/units/sanguis-phoenix-ascendant.png",
       "effect": "Once per game, when destroyed: revive at your King's Throne with full stats.",
       "flavor": "Death is merely the fire that makes her brighter."
     },
-
     {
       "id": "silith9-chrome-drone",
       "continent": "silith9",
@@ -571,7 +567,7 @@
       "def": 700,
       "movement": 2,
       "type": "Autonomous Unit",
-      "sprite": "assets/units/voxya-voidmire-stalker.png",
+      "sprite": "assets/units/silith9-chrome-drone.png",
       "effect": null,
       "flavor": "It has no fear subroutine."
     },
@@ -585,7 +581,7 @@
       "def": 1300,
       "movement": 1,
       "type": "Defensive Turret",
-      "sprite": "assets/units/voxya-dusk-gate-lurker.png",
+      "sprite": "assets/units/silith9-grid-sentry.png",
       "effect": null,
       "flavor": "It scans. It waits. It never blinks."
     },
@@ -599,7 +595,7 @@
       "def": 1000,
       "movement": 3,
       "type": "Recon Drone",
-      "sprite": "assets/units/voxya-throne-wraith.png",
+      "sprite": "assets/units/silith9-neural-scout.png",
       "effect": null,
       "flavor": "Its eyes are the Nine's eyes. You are already observed."
     },
@@ -613,7 +609,7 @@
       "def": 900,
       "movement": 1,
       "type": "Genetically Engineered",
-      "sprite": "assets/units/voxya-gloomforge-thrall.png",
+      "sprite": "assets/units/silith9-bioforge-abomination.png",
       "effect": null,
       "flavor": "A hundred donor genomes, one perfect killing machine."
     },
@@ -627,7 +623,7 @@
       "def": 900,
       "movement": 2,
       "type": "Energy Weapon",
-      "sprite": "assets/units/voxya-stormspire-shade.png",
+      "sprite": "assets/units/silith9-plasma-reaver.png",
       "effect": "Deals +500 damage to creatures with DEF above 1500.",
       "flavor": "Armor is irrelevant. Plasma does not discriminate."
     },
@@ -641,7 +637,7 @@
       "def": 1500,
       "movement": 2,
       "type": "Quantum Entity",
-      "sprite": "assets/units/voxya-skyrift-harvester.png",
+      "sprite": "assets/units/silith9-phase-wraith.png",
       "effect": "Can move through one occupied base per turn without engaging.",
       "flavor": "It exists in two hexes until observed."
     },
@@ -655,7 +651,7 @@
       "def": 2500,
       "movement": 1,
       "type": "Siege Engine",
-      "sprite": "assets/units/voxya-weeping-stone-revenant.png",
+      "sprite": "assets/units/silith9-chrome-colossus.png",
       "effect": "Deals double ATK when attacking a King's Throne.",
       "flavor": "The Nine built it to crack worlds."
     },
@@ -669,7 +665,7 @@
       "def": 2000,
       "movement": 2,
       "type": "Elite Cyborg",
-      "sprite": "assets/units/voxya-shadow-throne-tyrant.png",
+      "sprite": "assets/units/silith9-nexus-reaper.png",
       "effect": "When this destroys a creature, summon a Chrome Drone at the same base.",
       "flavor": "Every kill feeds the Nexus. Every death builds the army."
     },
@@ -683,7 +679,7 @@
       "def": 2800,
       "movement": 1,
       "type": "Command AI",
-      "sprite": "assets/units/voxya-eternal-dusk-sovereign.png",
+      "sprite": "assets/units/silith9-prime-directive.png",
       "effect": "All enemy creatures lose 200 ATK while this is on the field.",
       "flavor": "The Nine speak as one. Their voice ends worlds."
     }
