@@ -1649,7 +1649,6 @@ export class Renderer {
         const decos = state.decorationManager.getAll();
         if (!decos || decos.length === 0) return;
 
-        // Import ASSET_DEFINITIONS dynamically (decorations.js exports it)
         const assetMap = state._assetMap;
         if (!assetMap) return;
 
@@ -1667,14 +1666,26 @@ export class Renderer {
             group.setAttribute('transform',
                 `translate(${pixelPos.x}, ${pixelPos.y}) scale(${scale}) rotate(${rotation})`);
 
-            // Use the SVG viewBox-scaled inner content
-            const inner = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             const w = (asset.defaultWidth / 100) * this.svgWidth;
             const h = (asset.defaultHeight / 100) * this.svgHeight;
-            // Scale the 100x100 viewBox asset to its pixel dimensions
-            inner.setAttribute('transform', `translate(${-w/2}, ${-h/2}) scale(${w/100}, ${h/100})`);
-            inner.innerHTML = asset.svg;
-            group.appendChild(inner);
+
+            // Use PNG image if available, otherwise fall back to inline SVG
+            if (asset.png) {
+                const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+                img.setAttribute('x', -w / 2);
+                img.setAttribute('y', -h / 2);
+                img.setAttribute('width', w);
+                img.setAttribute('height', h);
+                img.setAttribute('href', asset.png);
+                img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                img.style.imageRendering = 'auto';
+                group.appendChild(img);
+            } else if (asset.svg) {
+                const inner = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                inner.setAttribute('transform', `translate(${-w/2}, ${-h/2}) scale(${w/100}, ${h/100})`);
+                inner.innerHTML = asset.svg;
+                group.appendChild(inner);
+            }
 
             // In edit mode, make decorations clickable for selection/deletion
             if (this.isEditMode) {

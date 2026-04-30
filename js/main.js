@@ -639,10 +639,14 @@ function showDecorationAssetPanel() {
     const assetCards = allAssets.map(a => {
         const w = a.defaultWidth * 14;
         const h = a.defaultHeight * 14;
+        // Use PNG thumbnail if available, otherwise render inline SVG
+        const thumbHTML = a.png
+            ? `<img src="${a.png}" alt="${a.name}" style="width:${w}px;height:${h}px;object-fit:contain;">`
+            : `<svg viewBox="0 0 100 100" width="${w}" height="${h}">${a.svg}</svg>`;
         return `
         <div class="deco-asset-card" data-asset-id="${a.id}" title="${a.name} (${a.category})">
             <div class="deco-asset-thumb" style="width:${w}px;height:${h}px">
-                <svg viewBox="0 0 100 100" width="${w}" height="${h}">${a.svg}</svg>
+                ${thumbHTML}
             </div>
             <span class="deco-asset-name">${a.name}</span>
         </div>`;
