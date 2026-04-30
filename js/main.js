@@ -1360,6 +1360,9 @@ function resolveCombatAtBase(baseId) {
         }
     }
 
+    // Apply pending splash/area damage from effects triggered during combat
+    _resolvePendingDamage(baseId, playerUnits, enemyUnits);
+
     // Re-render after combat
     state.renderer.renderCreatures();
     state.renderer.renderMarkers();
@@ -1466,6 +1469,19 @@ function _destroyCreatureDirect(victim) {
     if (state.enemyAI && (victim.owner === 'enemy' || victim._isEnemy)) {
         const idx = state.enemyAI.creatures.findIndex(c => c.id === victim.id);
         if (idx !== -1) state.enemyAI.creatures.splice(idx, 1);
+    }
+}
+
+function _resolvePendingDamage(baseId, playerUnits, enemyUnits) {
+    // Resolve splash/area damage on all creatures at this base
+    const allAtBase = [...playerUnits, ...enemyUnits].filter(c => c._pendingDamage);
+    for (const creature of allAtBase) {
+        const dmg = creature._pendingDamage;
+        delete creature._pendingDamage;
+        if (dmg > creature.def) {
+            showToast(`${creature.name} takes ${dmg} splash damage and is destroyed!`, 'warning', 3000);
+            _destroyCreatureDirect(creature);
+        }
     }
 }
 
