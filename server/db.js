@@ -211,7 +211,30 @@ const queries = {
             spells_cast = COALESCE(spells_cast, 0) + ?,
             last_played = CURRENT_TIMESTAMP
         WHERE user_id = ?
-    `, [gamesPlayed, gamesWon, totalTicks, territoriesClaimed, creaturesSummoned, spellsCast, userId])
+    `, [gamesPlayed, gamesWon, totalTicks, territoriesClaimed, creaturesSummoned, spellsCast, userId]),
+
+    // Leaderboard: top players by composite score
+    getLeaderboard: (limit = 20) => getAll(`
+        SELECT
+            u.username,
+            u.display_name,
+            u.origin_name,
+            u.origin_icon,
+            COALESCE(s.games_played, 0) as games_played,
+            COALESCE(s.games_won, 0) as games_won,
+            COALESCE(s.territories_claimed, 0) as territories_claimed,
+            COALESCE(s.creatures_summoned, 0) as creatures_summoned,
+            COALESCE(s.spells_cast, 0) as spells_cast,
+            (COALESCE(s.territories_claimed, 0) * 100 +
+             COALESCE(s.creatures_summoned, 0) * 50 +
+             COALESCE(s.spells_cast, 0) * 25 +
+             COALESCE(s.games_won, 0) * 500) as score
+        FROM users u
+        LEFT JOIN user_stats s ON u.id = s.user_id
+        WHERE s.user_id IS NOT NULL
+        ORDER BY score DESC
+        LIMIT ?
+    `, [limit])
 };
 
 export { initDatabase, queries, saveDatabase };

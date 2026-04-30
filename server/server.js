@@ -265,6 +265,25 @@ app.post('/api/auth/stats', authenticateToken, (req, res) => {
   }
 });
 
+// Leaderboard endpoint (public, no auth required)
+app.get('/api/leaderboard', (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const leaderboard = queries.getLeaderboard(limit);
+
+    // Add rank
+    const ranked = leaderboard.map((entry, i) => ({
+      rank: i + 1,
+      ...entry
+    }));
+
+    res.json({ leaderboard: ranked });
+  } catch (err) {
+    console.error('Leaderboard error:', err);
+    res.status(500).json({ error: 'Failed to fetch leaderboard.' });
+  }
+});
+
 // Initialize database and start server
 initDatabase()
   .then(() => {
