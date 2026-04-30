@@ -8,6 +8,7 @@
 import { createPlanetSystem } from './provinces.js';
 import { Renderer } from './renderer.js';
 import { getElement, setEnabled, log } from './utils.js';
+import { trackGameStarted, trackCreatureSummoned, trackSpellCast, trackTerritoryClaimed } from './statsReporter.js';
 import { SigilManager, SIGIL_MANA_COST, formatTimeRemaining } from './sigils.js';
 import { loadCreatureDatabase, buildCreatureIndex, getCreaturesByContinent, getSummonCost } from './creatureDatabase.js';
 import { createToastContainer, showToast } from './toasts.js';
@@ -238,6 +239,9 @@ async function init() {
 
     log('Game ready!');
     setStatus('Select a base to begin');
+
+    // Track game start for leaderboard
+    trackGameStarted();
 }
 
 // ============================================
@@ -1517,6 +1521,7 @@ function _onKingBaseDestroyed(base, whose) {
     if (whose === 'enemy') {
         showToast(`VICTORY! ${base.name} has fallen!`, 'success', 8000);
         setStatus(`VICTORY: Enemy king base ${base.name} destroyed!`);
+        trackTerritoryClaimed();
     } else {
         showToast(`DEFEAT! Your ${base.name} has been destroyed!`, 'error', 8000);
         setStatus(`DEFEAT: Your king base has fallen...`);
@@ -1612,6 +1617,7 @@ function handleSigilEvent(entity, eventType) {
         case 'sigil-complete':
             showToast('Sigil complete!', 'success', 3000);
             state.actionSlots.used = Math.max(0, state.actionSlots.used - 1);
+            trackSpellCast();
             break;
         case 'sigil-destroyed':
             showToast('Sigil destroyed', 'warning', 3000);
@@ -1883,6 +1889,8 @@ function promoteSummonedCreature(summoned) {
     const idx = state.summonedCreatures.findIndex(sc => sc.id === summoned.id);
     if (idx !== -1) state.summonedCreatures.splice(idx, 1);
     showToast(`${summoned.name} Lv.${summoned.level} joins your army!`, 'success', 4000);
+    // Track for leaderboard
+    trackCreatureSummoned();
     // Run onSummon effects
     executeEffects('onSummon', creature, { gameState: state, baseId: creature.baseId });
     // Trigger combat if enemies are at this base
