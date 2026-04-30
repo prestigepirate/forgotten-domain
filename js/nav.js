@@ -370,18 +370,9 @@
 
                 const rowRect = row.getBoundingClientRect();
                 const panelRect = panelContent.getBoundingClientRect();
-                const panelScreenRight = panelRect.right;
-                const tooltipWidth = 260;
-                const gap = 12;
-
-                // Flip to left side if tooltip would overflow past panel right edge
-                if (panelScreenRight + tooltipWidth + gap > window.innerWidth) {
-                    tooltipEl.style.left = 'auto';
-                    tooltipEl.style.right = 'calc(100% + ' + gap + 'px)';
-                } else {
-                    tooltipEl.style.left = 'calc(100% + ' + gap + 'px)';
-                    tooltipEl.style.right = 'auto';
-                }
+                // Always show tooltip to the left of the panel
+                tooltipEl.style.left = 'auto';
+                tooltipEl.style.right = 'calc(100% + 12px)';
                 tooltipEl.style.top = (rowRect.top - panelRect.top) + 'px';
                 tooltipEl.classList.add('visible');
             });
