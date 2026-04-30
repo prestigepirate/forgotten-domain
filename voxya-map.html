@@ -587,6 +587,38 @@
             box-shadow: 0 0 25px rgba(124, 58, 237, 0.5);
         }
 
+        /* Hide Labels Mode */
+        .edit-mode.hide-labels .tool-label {
+            display: none;
+        }
+        .edit-mode.hide-labels .edit-panel-title {
+            display: none;
+        }
+        .edit-mode.hide-labels .edit-tool {
+            height: 38px;
+            font-size: 1.1rem;
+        }
+        .edit-mode.hide-labels .waypoint-tooltip {
+            display: none !important;
+        }
+        .edit-mode.hide-labels .asset-library-title,
+        .edit-mode.hide-labels .asset-categories,
+        .edit-mode.hide-labels .asset-size-control label {
+            display: none;
+        }
+        .edit-mode.hide-labels .edit-panel {
+            min-width: 60px;
+            padding: 12px;
+        }
+        #toggle-labels-btn {
+            transition: all 0.25s ease;
+        }
+        #toggle-labels-btn.active {
+            background: rgba(124, 58, 237, 0.4);
+            border-color: #a78bfa;
+            color: #f0f0f5;
+        }
+
         /* Edit mode markers styling */
         .edit-mode .waypoint-marker {
             cursor: move;
@@ -944,6 +976,7 @@
                 <button class="edit-action-btn danger" id="clear-assets-btn">Clear All Assets</button>
             </div>
             <button class="close-edit-btn" id="close-edit-btn">Done</button>
+            <button class="edit-action-btn" id="toggle-labels-btn" style="margin-top:8px">👁 Hide Labels</button>
             </div><!-- end edit-panel-inner -->
         </div>
         <input type="file" id="import-file" accept=".json" style="display:none">
@@ -1685,6 +1718,19 @@
                     panel.classList.toggle('minimized');
                     btn.textContent = panel.classList.contains('minimized') ? '+' : '−';
                     btn.title = panel.classList.contains('minimized') ? 'Maximize Panel' : 'Minimize Panel';
+                }
+            });
+
+            // Toggle labels visibility
+            let labelsHidden = false;
+            document.getElementById('toggle-labels-btn')?.addEventListener('click', () => {
+                const viewer = document.querySelector('.map-viewer');
+                const btn = document.getElementById('toggle-labels-btn');
+                labelsHidden = !labelsHidden;
+                if (viewer) viewer.classList.toggle('hide-labels', labelsHidden);
+                if (btn) {
+                    btn.textContent = labelsHidden ? '👁 Show Labels' : '👁 Hide Labels';
+                    btn.classList.toggle('active', labelsHidden);
                 }
             });
 
