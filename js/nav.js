@@ -268,11 +268,20 @@
                     const db = await loadDatabase();
                     panelContent.innerHTML = buildMagickbookPanel(db.spells, db.creatures);
                     wireMiniTabs();
+                    panel.style.left = '50%';
+                    panel.style.right = 'auto';
+                    panel.style.transform = 'translateX(-50%) translateY(0)';
                 } else if (panelKey === 'leaderboard') {
                     const board = await loadLeaderboard();
                     panelContent.innerHTML = buildLeaderboardPanel(board);
+                    panel.style.left = 'auto';
+                    panel.style.right = '16px';
+                    panel.style.transform = 'translateY(0)';
                 } else {
                     panelContent.innerHTML = panelContentMap[panelKey] || '';
+                    panel.style.left = '50%';
+                    panel.style.right = 'auto';
+                    panel.style.transform = 'translateX(-50%) translateY(0)';
                 }
                 panel.classList.add('visible');
                 panel.classList.remove('hidden');
