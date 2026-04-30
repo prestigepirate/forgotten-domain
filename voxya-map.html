@@ -803,7 +803,7 @@
     </header>
 
     <!-- Back to Menu -->
-    <a href="index.html" class="back-menu-btn">
+    <a href="menu.html" class="back-menu-btn">
         <span>&#8592;</span>
         <span>Back to Menu</span>
     </a>
@@ -2282,5 +2282,18 @@
             init();
         }
     </script>
+
+    <!-- Bottom Nav Bar -->
+    <nav class="bottom-nav">
+        <a href="menu.html" class="nav-item">HOME</a>
+        <a href="#" class="nav-item" data-panel="player">PLAYER</a>
+        <a href="#" class="nav-item" data-panel="magickbook">MAGICKBOOK</a>
+        <a href="#" class="nav-item" data-panel="academicks">ACADEMICKS</a>
+    </nav>
+    <div class="nav-panel hidden" id="nav-panel">
+        <div class="nav-panel-content" id="nav-panel-content"></div>
+    </div>
+
+    <script src="js/nav.js"></script>
 </body>
 </html>

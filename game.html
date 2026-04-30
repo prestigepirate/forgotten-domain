@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voxya - The Shattered Archipelago</title>
     <link rel="stylesheet" href="css/style.css?v=7">
+    <link rel="stylesheet" href="css/nav.css">
     <style>
         /* Page-specific overrides */
         :root {
@@ -38,7 +39,7 @@
             left: 0;
             right: 0;
             height: 60px;
-            background: linear-gradient(180deg, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.8) 100%);
+            background: linear-gradient(180deg, rgba(10,10,15,0.6) 0%, rgba(10,10,15,0.6) 100%);
             border-bottom: 1px solid rgba(255,255,255,0.08);
             display: flex;
             align-items: center;
@@ -52,32 +53,34 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            z-index: 1;
         }
 
-        .back-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: none;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
-            color: #a0a0b0;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.15s;
-            text-decoration: none;
+        .origin-overlay {
+            position: fixed;
+            top: 64px;
+            left: 24px;
+            font-size: 0.55rem;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 0.06em;
+            z-index: 997;
+            pointer-events: none;
         }
 
-        .back-btn:hover {
-            border-color: rgba(124,58,237,0.4);
-            color: #fff;
+        .header-location {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.06em;
         }
 
         .header-title-group {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
             flex-direction: column;
             align-items: center;
+            pointer-events: none;
         }
 
         .header-title {
@@ -101,6 +104,7 @@
             display: flex;
             align-items: center;
             gap: 16px;
+            z-index: 1;
         }
 
         .header-stat {
@@ -126,6 +130,119 @@
 
         .header-stat-value.mana { color: #a78bfa; }
         .header-stat-value.tick { color: #60a5fa; }
+
+        .header-slots {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .slot-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .slot-indicator.slot-free {
+            background: rgba(16, 185, 129, 0.7);
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+        }
+        .slot-indicator.slot-used {
+            background: rgba(239, 68, 68, 0.7);
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+            animation: slotPulse 1.2s ease-in-out infinite;
+        }
+        @keyframes slotPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        .shard-bar {
+            position: fixed;
+            top: 92px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 6px 20px;
+            background: rgba(10,10,15,0.6);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            z-index: 999;
+            backdrop-filter: blur(10px);
+        }
+
+        .shard {
+            cursor: default;
+        }
+
+        .shard-ring {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid var(--ring-color);
+            background: transparent;
+            box-shadow: 0 0 10px var(--ring-glow), inset 0 0 6px var(--ring-glow);
+        }
+
+        .shard-ring.voxya   { --ring-color: #7c3aed; --ring-glow: rgba(124,58,237,0.6); }
+        .shard-ring.orilyth { --ring-color: #3b82f6; --ring-glow: rgba(59,130,246,0.6); }
+        .shard-ring.korvess { --ring-color: #22c55e; --ring-glow: rgba(34,197,94,0.6); }
+        .shard-ring.sanguis { --ring-color: #ef4444; --ring-glow: rgba(239,68,68,0.6); }
+        .shard-ring.silith9 { --ring-color: #94a3b8; --ring-glow: rgba(148,163,184,0.6); }
+
+        .shard-value {
+            font-size: 0.78rem;
+            font-weight: 200;
+            color: rgba(255,255,255,0.75);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1;
+            letter-spacing: 0.02em;
+        }
+
+        .resource-bar {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 5px 18px;
+            background: rgba(10,10,15,0.6);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            z-index: 1001;
+            backdrop-filter: blur(8px);
+        }
+
+        .resource {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            cursor: default;
+        }
+
+        .resource-label {
+            font-size: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .resource-value {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #d0d0d0;
+            font-family: monospace;
+        }
 
         /* ============================================
            MAP VIEWPORT
@@ -192,88 +309,6 @@
             50%      { opacity: 1; }
         }
 
-        @keyframes movePulse {
-            0%, 100% { opacity: 0.4; transform: scale(1); }
-            50%      { opacity: 0.9; transform: scale(1.15); }
-        }
-
-        /* ============================================
-           BOTTOM ACTION BAR
-           ============================================ */
-
-        .bottom-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 64px;
-            background: linear-gradient(0deg, rgba(10,10,15,0.96) 0%, rgba(10,10,15,0.85) 100%);
-            border-top: 1px solid rgba(255,255,255,0.06);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 0 20px;
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-        }
-
-        .action-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 8px 20px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            color: #a0a0b0;
-            cursor: pointer;
-            font-size: 0.72rem;
-            font-weight: 500;
-            letter-spacing: 0.04em;
-            transition: all 0.15s;
-            min-width: 100px;
-        }
-
-        .action-btn:hover:not(:disabled) {
-            background: rgba(124,58,237,0.15);
-            border-color: rgba(124,58,237,0.4);
-            color: #e0e0e0;
-            transform: translateY(-1px);
-        }
-
-        .action-btn:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-
-        .action-btn .btn-icon {
-            font-size: 1.1rem;
-        }
-
-        .action-btn.primary {
-            background: rgba(124,58,237,0.25);
-            border-color: rgba(124,58,237,0.5);
-            color: #c084fc;
-        }
-
-        .action-btn.primary:hover:not(:disabled) {
-            background: rgba(124,58,237,0.4);
-            color: #e0e0ff;
-        }
-
-        .action-btn.danger {
-            border-color: rgba(239,68,68,0.3);
-        }
-
-        .action-btn.danger:hover:not(:disabled) {
-            background: rgba(239,68,68,0.15);
-            border-color: rgba(239,68,68,0.5);
-            color: #fca5a5;
-        }
-
         /* ============================================
            STATUS MESSAGE
            ============================================ */
@@ -332,6 +367,12 @@
             border-color: rgba(124,58,237,0.4);
             color: #fff;
             background: rgba(124,58,237,0.15);
+        }
+
+        .zoom-btn.active {
+            border-color: rgba(239,68,68,0.5);
+            color: #ef4444;
+            background: rgba(239,68,68,0.15);
         }
 
         /* ============================================
@@ -415,36 +456,14 @@
             box-shadow: 0 0 30px rgba(124, 58, 237, 0.5);
         }
 
-        /* ============================================
-           LOADING / EMPTY STATE
-           ============================================ */
 
-        .empty-state {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 500;
-            pointer-events: none;
-        }
-
-        .empty-state-text {
-            font-family: 'Times New Roman', serif;
-            font-size: 1.4rem;
-            color: rgba(255,255,255,0.2);
-            letter-spacing: 0.12em;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header class="game-header">
         <div class="header-left">
-            <a href="index.html" class="back-btn">
-                <span>&#8592;</span> Menu
-            </a>
+            <span class="header-location">Location: Northern Hemisphere</span>
         </div>
         <div class="header-title-group">
             <span class="header-title">VOXYA</span>
@@ -452,23 +471,75 @@
         </div>
         <div class="header-right">
             <div class="header-stat">
-                <span class="header-stat-label">Turn</span>
-                <span class="header-stat-value tick" id="tick-count">0</span>
+                <span class="header-stat-label">Slots</span>
+                <span class="header-slots" id="action-slots">
+                    <span class="slot-indicator slot-free" id="slot-1"></span>
+                    <span class="slot-indicator slot-free" id="slot-2"></span>
+                    <span class="slot-indicator slot-free" id="slot-3"></span>
+                </span>
             </div>
             <div class="header-stat">
-            <span class="header-stat-label">Essence</span>
-            <span class="header-stat-value essence" id="mana-count">99/99</span>
-            </div>
-            <div class="header-stat">
-                <span class="header-stat-label">Actions</span>
-                <span class="header-stat-value" id="actions-count">20</span>
-            </div>
-            <div class="header-stat">
-                <span class="header-stat-label">Origin</span>
-                <span class="header-stat-value" id="origin-name">-</span>
+                <span class="header-stat-label">Time</span>
+                <span class="header-stat-value tick" id="tick-count">0:00</span>
             </div>
         </div>
     </header>
+
+    <!-- Origin Overlay -->
+    <div class="origin-overlay" id="origin-name">-</div>
+
+    <!-- Resource Bar -->
+    <div class="resource-bar" id="resource-bar">
+        <span class="resource" data-resource="nexium" title="Nexium">
+            <span class="resource-label">Nexium</span>
+            <span class="resource-value" id="res-nexium">10</span>
+        </span>
+        <span class="resource" data-resource="vortite" title="Vortite">
+            <span class="resource-label">Vortite</span>
+            <span class="resource-value" id="res-vortite">10</span>
+        </span>
+        <span class="resource" data-resource="chronite" title="Chronite">
+            <span class="resource-label">Chronite</span>
+            <span class="resource-value" id="res-chronite">10</span>
+        </span>
+        <span class="resource" data-resource="helixium" title="Helixium">
+            <span class="resource-label">Helixium</span>
+            <span class="resource-value" id="res-helixium">10</span>
+        </span>
+        <span class="resource" data-resource="voidsteel" title="Voidsteel">
+            <span class="resource-label">Voidsteel</span>
+            <span class="resource-value" id="res-voidsteel">10</span>
+        </span>
+    </div>
+
+    <!-- Shard Bar -->
+    <div class="shard-bar" id="header-shards">
+        <span class="shard" data-shard="voxya" title="Voxya Shards">
+            <span class="shard-ring voxya">
+                <span class="shard-value" id="shard-voxya">99</span>
+            </span>
+        </span>
+        <span class="shard" data-shard="orilyth" title="Orilyth Shards">
+            <span class="shard-ring orilyth">
+                <span class="shard-value" id="shard-orilyth">0</span>
+            </span>
+        </span>
+        <span class="shard" data-shard="korvess" title="Korvess Shards">
+            <span class="shard-ring korvess">
+                <span class="shard-value" id="shard-korvess">0</span>
+            </span>
+        </span>
+        <span class="shard" data-shard="sanguis" title="Sanguis Shards">
+            <span class="shard-ring sanguis">
+                <span class="shard-value" id="shard-sanguis">0</span>
+            </span>
+        </span>
+        <span class="shard" data-shard="silith9" title="Silith-9 Shards">
+            <span class="shard-ring silith9">
+                <span class="shard-value" id="shard-silith9">0</span>
+            </span>
+        </span>
+    </div>
 
     <!-- Starfield -->
     <div class="starfield" id="starfield"></div>
@@ -531,6 +602,7 @@
                 <g id="base-borders"></g>
                 <g id="sigils-layer"></g>
                 <g id="base-markers"></g>
+                <g id="decorations-layer"></g>
                 <g id="units-layer"></g>
                 <g id="selection-layer"></g>
             </svg>
@@ -547,6 +619,7 @@
         <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
         <button class="zoom-btn" id="zoom-out" title="Zoom Out">&minus;</button>
         <button class="zoom-btn" id="reset-view" title="Reset View">&#8635;</button>
+        <button class="zoom-btn" id="toggle-waypoint-names" title="Toggle Waypoint Names">WP</button>
     </div>
 
     <!-- Editor Toggle -->
@@ -554,21 +627,6 @@
         &#9998; Edit Map
     </button>
 
-    <!-- Bottom Action Bar -->
-    <footer class="bottom-bar">
-        <button class="action-btn" id="btn-sigil" disabled>
-            <span class="btn-icon">&#10015;</span>
-            Craft Sigil
-        </button>
-        <button class="action-btn primary" id="btn-summon" disabled>
-            <span class="btn-icon">&#9733;</span>
-            Summon Creature
-        </button>
-        <button class="action-btn" id="btn-end-turn">
-            <span class="btn-icon">&#8634;</span>
-            End Turn
-        </button>
-    </footer>
 
 <!-- Base Tooltip -->
     <div class="base-tooltip" id="base-tooltip" style="
@@ -593,11 +651,19 @@
         <p id="tooltip-desc" style="font-size:0.78rem;color:#a0a0b0;line-height:1.4;"></p>
     </div>
 
-    <!-- Additional Base Button (edit mode) -->
-    <button class="edit-toggle hidden" id="btn-add-base" style="bottom:130px;">
-        + Add Base
-    </button>
+
+    <!-- Bottom Nav Bar -->
+    <nav class="bottom-nav">
+        <a href="menu.html" class="nav-item">HOME</a>
+        <a href="#" class="nav-item" data-panel="player">PLAYER</a>
+        <a href="#" class="nav-item" data-panel="magickbook">MAGICKBOOK</a>
+        <a href="#" class="nav-item" data-panel="academicks">ACADEMICKS</a>
+    </nav>
+    <div class="nav-panel hidden" id="nav-panel">
+        <div class="nav-panel-content" id="nav-panel-content"></div>
+    </div>
 
     <script type="module" src="js/main.js?v=19"></script>
+    <script src="js/nav.js"></script>
 </body>
 </html>

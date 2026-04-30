@@ -3,10 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgotten Domain: Wyvvrstvrm</title>
+    <title>Forgotten Domain</title>
     <link rel="stylesheet" href="css/menu.css">
 </head>
 <body>
+    <!-- Header Bar -->
+    <header class="menu-header">
+        <div class="header-brand">FORGOTTEN DOMAIN: WYVVRSTVRM</div>
+        <div class="header-auth">
+            <button class="auth-btn login-btn hidden" id="login-btn">Log In</button>
+            <div class="user-menu hidden" id="user-menu">
+                <span class="user-menu-name" id="user-menu-name">@user</span>
+                <button class="auth-btn logout-btn" id="logout-btn">Log Out</button>
+            </div>
+        </div>
+    </header>
+
     <!-- Cosmic Background -->
     <div class="cosmic-bg">
         <div class="stars" id="stars"></div>
@@ -15,89 +27,120 @@
         <div class="nebula nebula-3"></div>
     </div>
 
+
     <!-- Main Menu Container -->
     <div class="main-menu">
-        <!-- Epic Title -->
-        <div class="title-container">
-            <h1 class="game-title">
-                <span class="title-line title-glow">FORGOTTEN DOMAIN</span>
-            </h1>
-            <h2 class="game-subtitle title-glow-subtle">WORLD</h2>
-        </div>
+        <!-- Planet Connection Lines SVG -->
+        <svg class="planet-connections" id="planet-connections">
+            <defs>
+                <filter id="lineGlow">
+                    <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                    <feMerge>
+                        <feMergeNode in="blur"/>
+                        <feMergeNode in="blur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+                <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.8"/>
+                    <stop offset="50%" stop-color="#4a90d9" stop-opacity="0.5"/>
+                    <stop offset="100%" stop-color="#f0f0f5" stop-opacity="0.15"/>
+                </linearGradient>
+            </defs>
+        </svg>
 
         <!-- Five Planets Container -->
         <div class="planets-container">
-            <!-- Voxya - Deep Purple/Black -->
-            <a href="voxya.html" class="planet-link" data-continent="voxya">
+            <!-- Voxya – The Hollow Echo -->
+            <a href="game.html?planet=voxya" class="planet-link" data-continent="voxya">
                 <div class="planet planet-voxya">
+                    <img src="assets/planets/voxya-planet.png" alt="Voxya" class="planet-image" />
                     <div class="planet-glow"></div>
-                    <div class="planet-surface"></div>
-                    <div class="planet-atmosphere"></div>
                 </div>
                 <span class="planet-name">Voxya</span>
+                <span class="planet-tagline">The Hollow Echo</span>
             </a>
 
-            <!-- Arcanica - Bright Blue -->
-            <a href="arcanica.html" class="planet-link" data-continent="arcanica">
-                <div class="planet planet-arcanica">
+            <!-- Orilyth – The Veil of Whispers -->
+            <a href="game.html?planet=orilyth" class="planet-link" data-continent="orilyth">
+                <div class="planet planet-orilyth">
+                    <img src="assets/planets/orilyth-planet.png" alt="Orilyth" class="planet-image" />
                     <div class="planet-glow"></div>
-                    <div class="planet-surface"></div>
-                    <div class="planet-atmosphere"></div>
                 </div>
-                <span class="planet-name">Arcanica</span>
+                <span class="planet-name">Orilyth</span>
+                <span class="planet-tagline">The Veil of Whispers</span>
             </a>
 
-            <!-- Verdantia - Vibrant Green -->
-            <a href="verdantia.html" class="planet-link" data-continent="verdantia">
-                <div class="planet planet-verdantia">
+            <!-- Korvess – The Verdant Abyss -->
+            <a href="game.html?planet=korvess" class="planet-link" data-continent="korvess">
+                <div class="planet planet-korvess">
+                    <img src="assets/planets/korvess-planet.png" alt="Korvess" class="planet-image" />
                     <div class="planet-glow"></div>
-                    <div class="planet-surface"></div>
-                    <div class="planet-atmosphere"></div>
                 </div>
-                <span class="planet-name">Verdantia</span>
+                <span class="planet-name">Korvess</span>
+                <span class="planet-tagline">The Verdant Abyss</span>
             </a>
 
-            <!-- Emboria - Fiery Orange/Red -->
-            <a href="emboria.html" class="planet-link" data-continent="emboria">
-                <div class="planet planet-emboria">
+            <!-- Sanguis – The Crimson Veil -->
+            <a href="game.html?planet=sanguis" class="planet-link" data-continent="sanguis">
+                <div class="planet planet-sanguis">
+                    <img src="assets/planets/sanguis-planet.png" alt="Sanguis" class="planet-image" />
                     <div class="planet-glow"></div>
-                    <div class="planet-surface"></div>
-                    <div class="planet-atmosphere"></div>
                 </div>
-                <span class="planet-name">Emboria</span>
+                <span class="planet-name">Sanguis</span>
+                <span class="planet-tagline">The Crimson Veil</span>
             </a>
 
-            <!-- Silvaryn - Mystical Pink/Violet -->
-            <a href="silvaryn.html" class="planet-link" data-continent="silvaryn">
-                <div class="planet planet-silvaryn">
+            <!-- Silith-9 – The False Moon -->
+            <a href="game.html?planet=silith9" class="planet-link" data-continent="silith-9">
+                <div class="planet planet-silith9">
+                    <img src="assets/planets/silith9-planet.png" alt="Silith-9" class="planet-image" />
                     <div class="planet-glow"></div>
-                    <div class="planet-surface"></div>
-                    <div class="planet-atmosphere"></div>
                 </div>
-                <span class="planet-name">Silvaryn</span>
+                <span class="planet-name">Silith-9</span>
+                <span class="planet-tagline">The False Moon</span>
             </a>
         </div>
 
-        <!-- Continue Game Button -->
-        <div class="continue-section">
-            <button class="continue-btn" id="continue-btn">
-                <span class="btn-icon">&#9203;</span>
-                <span>Continue Game</span>
-            </button>
+        <!-- Username Display Center -->
+        <div class="user-display">
+            <span class="user-username" id="user-username">@prestigepirate</span>
         </div>
+
     </div>
 
     <!-- Loading Overlay -->
     <div class="loading-overlay hidden" id="loading-overlay">
+        <div class="loading-bg-painted"></div>
+        <div class="loading-bg-vignette"></div>
         <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <p class="loading-text">Entering <span id="loading-continent">...</span></p>
+            <div class="loading-spin-ring">
+                <div class="loading-spin-ring-outer"></div>
+                <div class="loading-spin-ring-mid"></div>
+                <div class="loading-spin-ring-inner"></div>
+            </div>
+            <p class="loading-text-warp">Entering <span id="loading-continent">...</span></p>
             <div class="loading-bar">
                 <div class="loading-progress" id="loading-progress"></div>
             </div>
+            <div class="loading-embers" id="loading-embers"></div>
         </div>
     </div>
 
+    <!-- Bottom Nav Bar -->
+    <nav class="bottom-nav">
+        <a href="menu.html" class="nav-item active" data-panel="home">HOME</a>
+        <a href="#" class="nav-item" data-panel="player">PLAYER</a>
+        <a href="#" class="nav-item" data-panel="magickbook">MAGICKBOOK</a>
+        <a href="#" class="nav-item" data-panel="academicks">ACADEMICKS</a>
+    </nav>
+
+    <!-- Nav Panel -->
+    <div class="nav-panel hidden" id="nav-panel">
+        <div class="nav-panel-content" id="nav-panel-content"></div>
+    </div>
+
     <script src="js/menu.js" type="module"></script>
+    <script src="js/nav.js"></script>
 </body>
 </html>

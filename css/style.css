@@ -1615,3 +1615,189 @@ body {
     background: rgba(239, 68, 68, 0.2) !important;
     border-color: rgba(239, 68, 68, 0.5) !important;
 }
+
+.editor-palette-accent {
+    border-color: rgba(16, 185, 129, 0.35) !important;
+    color: #34d399 !important;
+}
+
+.editor-palette-accent:hover {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgba(16, 185, 129, 0.6) !important;
+}
+
+.editor-palette-accent.active {
+    background: rgba(16, 185, 129, 0.25) !important;
+    border-color: #10b981 !important;
+    color: #6ee7b7 !important;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* ============================================
+   Decoration Asset Panel
+   ============================================ */
+
+.decoration-asset-panel {
+    position: fixed;
+    top: 76px;
+    right: 16px;
+    width: 280px;
+    max-height: calc(100vh - 120px);
+    background: rgba(10, 10, 18, 0.97);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    border-radius: 12px;
+    padding: 0;
+    z-index: 5001;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 8px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(16, 185, 129, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.deco-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+    flex-shrink: 0;
+}
+
+.deco-panel-title {
+    font-family: 'Times New Roman', serif;
+    font-size: 0.8rem;
+    color: #34d399;
+    letter-spacing: 0.06em;
+}
+
+.deco-panel-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.deco-action-btn {
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #a0a0b0;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.deco-action-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e0e0e0;
+}
+
+.deco-action-btn.active {
+    background: rgba(239, 68, 68, 0.35);
+    border-color: #ef4444;
+    color: #fca5a5;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+#deco-close {
+    font-size: 0.85rem;
+    padding: 2px 7px;
+}
+
+.deco-category-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.deco-cat-tab {
+    padding: 3px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    color: #808090;
+    font-size: 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+
+.deco-cat-tab:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: #a0a0b0;
+}
+
+.deco-cat-tab.active {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+    color: #34d399;
+}
+
+.deco-asset-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    overflow-y: auto;
+    flex: 1;
+    align-content: flex-start;
+}
+
+.deco-asset-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 50px;
+}
+
+.deco-asset-card:hover {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.deco-asset-card.selected {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.deco-asset-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.deco-asset-name {
+    font-size: 0.55rem;
+    color: #9090a0;
+    text-align: center;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.deco-panel-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+}
+
+.deco-count {
+    font-size: 0.6rem;
+    color: #606070;
+}

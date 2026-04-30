@@ -21,12 +21,12 @@
  * @param {boolean} isComplete - Whether build is finished (affects glow)
  * @returns {SVGGElement}
  */
-export function createSigilRuneSVG(cx, cy, radius = 16, isComplete = false) {
+export function createSigilRuneSVG(cx, cy, radius = 16, isComplete = false, colorOverride = null) {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'sigil-rune');
 
-    const color = '#c084fc';  // soft purple for all sigils
-    const glowColor = isComplete ? '#c084fc' : '#7c3aed';
+    const color = colorOverride || '#c084fc';
+    const glowColor = isComplete ? color : (colorOverride ? colorOverride : '#7c3aed');
 
     // Outer glow ring
     const glowRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');

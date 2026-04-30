@@ -9,21 +9,21 @@
     --voxya-secondary: #4b0082;
     --voxya-glow: #7c3aed;
 
-    --arcanica-primary: #0a1628;
-    --arcanica-secondary: #1e3a5f;
-    --arcanica-glow: #4a90d9;
+    --orilyth-primary: #0a1628;
+    --orilyth-secondary: #1e3a5f;
+    --orilyth-glow: #4a90d9;
 
-    --verdantia-primary: #0a2814;
-    --verdantia-secondary: #1e5f3a;
-    --verdantia-glow: #10b981;
+    --korvess-primary: #0a2814;
+    --korvess-secondary: #1e5f3a;
+    --korvess-glow: #10b981;
 
-    --emboria-primary: #280a0a;
-    --emboria-secondary: #5f1e1e;
-    --emboria-glow: #e74c3c;
+    --sanguis-primary: #280a0a;
+    --sanguis-secondary: #5f1e1e;
+    --sanguis-glow: #e74c3c;
 
-    --silvaryn-primary: #2a0a28;
-    --silvaryn-secondary: #5f1e5a;
-    --silvaryn-glow: #d94aed;
+    --silith9-primary: #1a1a24;
+    --silith9-secondary: #3a3a4f;
+    --silith9-glow: #a8b4c0;
 
     /* Common */
     --bg-dark: #050508;
@@ -59,22 +59,16 @@ body {
     right: 0;
     height: 60px;
     background: linear-gradient(180deg, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.8) 100%);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 40px;
+    padding: 0 24px;
     z-index: 1000;
     backdrop-filter: blur(10px);
 }
 
-.header-title {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.title-text {
+.header-brand {
     font-family: 'Times New Roman', Times, serif;
     font-size: 1.3rem;
     font-weight: 400;
@@ -83,67 +77,18 @@ body {
     text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.5), 0 0 30px rgba(255,255,255,0.3);
 }
 
-.title-subtitle {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    font-size: 0.65rem;
-    font-weight: 400;
-    letter-spacing: 0.2em;
-    color: rgba(255, 255, 255, 0.3);
-    text-transform: uppercase;
-    margin-top: 4px;
-}
-
-.header-mana {
+.header-auth {
     display: flex;
-    gap: 16px;
     align-items: center;
+    gap: 12px;
 }
 
-.mana-orb {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid;
-    transition: all 0.3s ease;
-}
-
-.mana-orb:hover {
-    transform: scale(1.15);
-    box-shadow: 0 0 15px currentColor;
-}
-
-.mana-orb.white {
-    border-color: #e8e8e8;
-    background: transparent;
-    box-shadow: 0 0 10px rgba(232,232,232,0.3);
-}
-
-.mana-orb.blue {
-    border-color: #4a90d9;
-    background: transparent;
-    box-shadow: 0 0 10px rgba(74,144,217,0.3);
-}
-
-.mana-orb.purple {
-    border-color: #8b5cf6;
-    background: transparent;
-    box-shadow: 0 0 10px rgba(139,92,246,0.3);
-}
-
-.mana-orb.red {
-    border-color: #e74c3c;
-    background: transparent;
-    box-shadow: 0 0 10px rgba(231,76,60,0.3);
-}
-
-.mana-orb.green {
-    border-color: #10b981;
-    background: transparent;
-    box-shadow: 0 0 10px rgba(16,185,129,0.3);
+.hidden {
+    display: none !important;
 }
 
 /* ============================================
-   LOGIN BUTTON
+   LOGIN / LOGOUT BUTTONS
    ============================================ */
 
 .login-btn {
@@ -207,7 +152,7 @@ body {
 
 .user-menu-name {
     font-size: 0.8rem;
-    color: var(--primary-light);
+    color: var(--voxya-glow);
     font-weight: 500;
     letter-spacing: 0.05em;
 }
@@ -361,9 +306,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    padding-top: 100px; /* Position below header */
+    justify-content: center;
     height: 100vh;
+    padding-bottom: 35vh;
 }
 
 /* ============================================
@@ -447,9 +392,53 @@ body {
     transform: translateY(-10px);
 }
 
-.planet-link:hover .planet-name {
+.planet-link:hover .planet-name,
+.planet-link:hover .planet-tagline {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* Planet image styling */
+.planet-image {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    z-index: 2;
+    transition: all 0.4s ease;
+    animation: planetFloat 6s ease-in-out infinite;
+}
+
+.planet-link:hover .planet-image {
+    transform: scale(1.1);
+    filter: brightness(1.15) saturate(1.2);
+}
+
+@keyframes planetFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-5px) rotate(2deg); }
+}
+
+.planet-name {
+    margin-top: 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    transform: translateY(5px);
+}
+
+.planet-tagline {
+    margin-top: 2px;
+    font-size: 0.6rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+    transform: translateY(5px);
 }
 
 /* ============================================
@@ -490,100 +479,64 @@ body {
     50% { opacity: 0.7; transform: scale(1.15); }
 }
 
-.planet-image {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    z-index: 2;
-    transition: all 0.4s ease;
-    animation: planetFloat 6s ease-in-out infinite;
-}
-
-.planet-link:hover .planet-image {
-    transform: scale(1.1);
-    filter: brightness(1.15) saturate(1.2);
-}
-
-@keyframes planetFloat {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-5px) rotate(2deg); }
-}
-
-.planet-name {
-    margin-top: 16px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    opacity: 0.7;
-    transition: all 0.3s ease;
-    transform: translateY(5px);
-}
-
-/* --- Voxya - Deep Purple/Black --- */
+/* --- Voxya – The Hollow Echo --- */
 .planet-voxya .planet-glow {
     background: radial-gradient(ellipse at 30% 30%, var(--voxya-glow) 0%, transparent 70%);
 }
 .planet-voxya { color: var(--voxya-glow); }
-.planet-voxya .planet-name {
+.planet-voxya .planet-name,
+.planet-voxya .planet-tagline {
     color: var(--voxya-glow);
     text-shadow: 0 0 10px var(--voxya-glow);
 }
 
-/* --- Arcanica - Bright Blue --- */
-.planet-arcanica .planet-glow {
-    background: radial-gradient(ellipse at 30% 30%, var(--arcanica-glow) 0%, transparent 70%);
+/* --- Orilyth – The Veil of Whispers --- */
+.planet-orilyth .planet-glow {
+    background: radial-gradient(ellipse at 30% 30%, var(--orilyth-glow) 0%, transparent 70%);
 }
-.planet-arcanica { color: var(--arcanica-glow); }
-.planet-arcanica .planet-name {
-    color: var(--arcanica-glow);
-    text-shadow: 0 0 10px var(--arcanica-glow);
-}
-
-/* --- Verdantia - Vibrant Green --- */
-.planet-verdantia .planet-glow {
-    background: radial-gradient(ellipse at 30% 30%, var(--verdantia-glow) 0%, transparent 70%);
-}
-.planet-verdantia { color: var(--verdantia-glow); }
-.planet-verdantia .planet-name {
-    color: var(--verdantia-glow);
-    text-shadow: 0 0 10px var(--verdantia-glow);
+.planet-orilyth { color: var(--orilyth-glow); }
+.planet-orilyth .planet-name,
+.planet-orilyth .planet-tagline {
+    color: var(--orilyth-glow);
+    text-shadow: 0 0 10px var(--orilyth-glow);
 }
 
-/* --- Emboria - Fiery Orange/Red --- */
-.planet-emboria .planet-glow {
-    background: radial-gradient(ellipse at 30% 30%, var(--emboria-glow) 0%, transparent 70%);
+/* --- Korvess – The Verdant Abyss --- */
+.planet-korvess .planet-glow {
+    background: radial-gradient(ellipse at 30% 30%, var(--korvess-glow) 0%, transparent 70%);
 }
-.planet-emboria { color: var(--emboria-glow); }
-.planet-emboria .planet-name {
-    color: var(--emboria-glow);
-    text-shadow: 0 0 10px var(--emboria-glow);
+.planet-korvess { color: var(--korvess-glow); }
+.planet-korvess .planet-name,
+.planet-korvess .planet-tagline {
+    color: var(--korvess-glow);
+    text-shadow: 0 0 10px var(--korvess-glow);
 }
 
-/* --- Silvaryn - Mystical Pink/Violet --- */
-.planet-silvaryn .planet-glow {
-    background: radial-gradient(ellipse at 30% 30%, var(--silvaryn-glow) 0%, transparent 70%);
+/* --- Sanguis – The Crimson Veil --- */
+.planet-sanguis .planet-glow {
+    background: radial-gradient(ellipse at 30% 30%, var(--sanguis-glow) 0%, transparent 70%);
 }
-.planet-silvaryn { color: var(--silvaryn-glow); }
-.planet-silvaryn .planet-name {
-    color: var(--silvaryn-glow);
-    text-shadow: 0 0 10px var(--silvaryn-glow);
+.planet-sanguis { color: var(--sanguis-glow); }
+.planet-sanguis .planet-name,
+.planet-sanguis .planet-tagline {
+    color: var(--sanguis-glow);
+    text-shadow: 0 0 10px var(--sanguis-glow);
+}
+
+/* --- Silith-9 – The False Moon --- */
+.planet-silith9 .planet-glow {
+    background: radial-gradient(ellipse at 30% 30%, var(--silith9-glow) 0%, transparent 70%);
+}
+.planet-silith9 { color: var(--silith9-glow); }
+.planet-silith9 .planet-name,
+.planet-silith9 .planet-tagline {
+    color: var(--silith9-glow);
+    text-shadow: 0 0 10px var(--silith9-glow);
 }
 
 /* ============================================
    ORBITING ANIMATION
    ============================================ */
-
-.planets-container {
-    animation: orbitSway 60s ease-in-out infinite;
-}
-
-@keyframes orbitSway {
-    0%, 100% { transform: rotate(-2deg); }
-    50% { transform: rotate(2deg); }
-}
 
 /* Individual planet orbit offsets */
 .planet-link:nth-child(1) .planet { animation: planetOrbit1 20s ease-in-out infinite; animation-delay: 0s; }
@@ -758,6 +711,7 @@ body {
 }
 
 /* Floating ember particles */
+.loading-embers,
 .loading-ember-particles {
     position: absolute;
     inset: 0;
@@ -919,18 +873,22 @@ body {
 
 .connection-line {
     stroke: url(#lineGradient);
-    stroke-width: 2;
-    stroke-dasharray: 4, 3;
+    stroke-width: 1.5;
+    stroke-dasharray: 2, 6;
     stroke-linecap: round;
     fill: none;
     filter: url(#lineGlow);
-    opacity: 0.4;
-    animation: linePulse 3s ease-in-out infinite;
+    opacity: 0.7;
+    animation: lineFlow 1.5s linear infinite, linePulse 3s ease-in-out infinite;
+}
+
+@keyframes lineFlow {
+    to { stroke-dashoffset: -8; }
 }
 
 @keyframes linePulse {
-    0%, 100% { opacity: 0.3; stroke-width: 2; }
-    50% { opacity: 0.6; stroke-width: 3; }
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.85; }
 }
 
 /* ============================================
@@ -959,60 +917,225 @@ body {
 }
 
 /* ============================================
-   BOTTOM ACTION BAR
+   BOTTOM NAV BAR — NASA / SpaceX inspired
    ============================================ */
 
-.bottom-action-bar {
+.bottom-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 80px;
-    background: linear-gradient(0deg, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.85) 100%);
-    border-top: 1px solid rgba(255,255,255,0.08);
+    height: 44px;
+    background: linear-gradient(0deg, rgba(8,8,12,0.97) 0%, rgba(14,14,20,0.9) 100%);
+    border-top: 1px solid rgba(255,255,255,0.06);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 0 20px;
+    gap: 0;
     z-index: 1000;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-.action-tab {
+.bottom-nav::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 5%;
+    right: 5%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124, 180, 255, 0.3), rgba(124, 180, 255, 0.5), rgba(124, 180, 255, 0.3), transparent);
+}
+
+.nav-item {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 160px;
-    height: 50px;
-    padding: 0 24px;
-    background: rgba(30, 30, 45, 0.5);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 6px;
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.action-tab:hover:not(:disabled) {
-    background: rgba(40, 40, 55, 0.7);
-    border-color: rgba(124, 58, 237, 0.5);
-    box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
-    transform: translateY(-2px);
-}
-
-.action-tab:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.tab-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
+    height: 100%;
+    padding: 0 28px;
+    color: rgba(180, 195, 215, 0.6);
+    text-decoration: none;
+    font-size: 0.65rem;
     font-weight: 500;
-    white-space: nowrap;
-    color: rgba(240, 240, 245, 0.9);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: all 0.25s ease;
+    cursor: pointer;
+}
+
+.nav-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: #7cb4ff;
+    box-shadow: 0 0 8px rgba(124, 180, 255, 0.6);
+    transition: all 0.25s ease;
+    transform: translateX(-50%);
+}
+
+.nav-item:hover {
+    color: rgba(220, 230, 255, 0.9);
+}
+
+.nav-item:hover::after {
+    width: 60%;
+}
+
+.nav-item.active {
+    color: #ffffff;
+}
+
+.nav-item.active::after {
+    width: 60%;
+    background: #7cb4ff;
+    box-shadow: 0 0 12px rgba(124, 180, 255, 0.8);
+}
+
+/* ============================================
+   NAV PANEL — hover-triggered above bottom nav
+   ============================================ */
+
+.nav-panel {
+    position: fixed;
+    bottom: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 680px;
+    max-width: 92vw;
+    background: rgba(6, 10, 20, 0.1);
+    border: 1px solid rgba(124, 180, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5), 0 0 80px rgba(124, 180, 255, 0.05);
+    z-index: 999;
+    backdrop-filter: blur(30px) saturate(1.4);
+    -webkit-backdrop-filter: blur(30px) saturate(1.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateX(-50%) translateY(8px);
+}
+
+/* Subtle top-edge accent line */
+.nav-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124, 180, 255, 0.3), rgba(124, 180, 255, 0.5), rgba(124, 180, 255, 0.3), transparent);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.nav-panel.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.nav-panel-content {
+    position: relative;
+    z-index: 2;
+    padding: 28px 34px;
+    min-height: 200px;
+    color: rgba(200, 215, 235, 0.85);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* NASA-style panel header bar */
+.nav-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(124, 180, 255, 0.1);
+}
+
+.nav-panel-header-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #7cb4ff;
+    box-shadow: 0 0 6px rgba(124, 180, 255, 0.6);
+}
+
+.nav-panel-header-title {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(180, 200, 230, 0.9);
+}
+
+.nav-panel-header-id {
+    margin-left: auto;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    color: rgba(124, 180, 255, 0.4);
+}
+
+/* NASA-style data row */
+.nav-panel-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.nav-panel-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(160, 180, 200, 0.5);
+}
+
+.nav-panel-value {
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.68rem;
+    color: rgba(200, 220, 245, 0.75);
+}
+
+.nav-panel-value.highlight {
+    color: #7cb4ff;
+    text-shadow: 0 0 6px rgba(124, 180, 255, 0.3);
+}
+
+/* Status indicator */
+.nav-panel-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(124, 200, 180, 0.7);
+}
+
+.nav-panel-status::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #4cd9a0;
+    box-shadow: 0 0 5px rgba(76, 217, 160, 0.6);
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
 
 /* ============================================

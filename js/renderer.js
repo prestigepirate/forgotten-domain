@@ -57,6 +57,7 @@ export class Renderer {
 
         // Custom base names toggle
         this.showCustomBaseNames = true;
+        this.showWaypointNames = true;
 
         // Selection/trails toggle - paths ON by default
         this.showSelectionEffects = true;
@@ -70,6 +71,7 @@ export class Renderer {
             borders: document.getElementById('base-borders'),
             paths: document.getElementById('connection-paths'),
             markers: document.getElementById('base-markers'),
+            decorations: document.getElementById('decorations-layer'),
             creatures: document.getElementById('units-layer'),
             selection: document.getElementById('selection-layer'),
             sigils: document.getElementById('sigils-layer')
@@ -233,6 +235,7 @@ export class Renderer {
         this.renderConnectionPaths();
         this.renderBaseBorders();
         this.renderBaseMarkers();
+        this.renderDecorations();
         this.renderCreatures();
     }
 
@@ -245,7 +248,8 @@ export class Renderer {
         this.pathStartBase = null;
         this.addBaseMode = false;
         this.deleteMode = false;
-        if (!enabled && this.carryingBaseId) {
+        this._clearConnectionHighlight();
+        if (this.carryingBaseId) {
             this._dropBase();
         }
         this.renderAll();
@@ -255,9 +259,9 @@ export class Renderer {
      * Enable add base mode
      */
     setAddBaseMode(enabled) {
+        this._handleModeSwitch();
         this.addBaseMode = enabled;
-        this.pathCreationMode = false;
-        this.pathStartBase = null;
+        this.newBaseType = 'base';
     }
 
     /**
@@ -272,6 +276,14 @@ export class Renderer {
      */
     toggleCustomBaseNames() {
         this.showCustomBaseNames = !this.showCustomBaseNames;
+        this.renderBaseMarkers();
+    }
+
+    /**
+     * Toggle waypoint name labels on/off
+     */
+    toggleWaypointNames() {
+        this.showWaypointNames = !this.showWaypointNames;
         this.renderBaseMarkers();
     }
 
@@ -744,41 +756,46 @@ export class Renderer {
         group.appendChild(coordsLabel);
         group.appendChild(handleLabel);
 
-        // Click to pick up / click to place; Shift+click for path creation
+        // Click to pick up / click to place; Shift+click or Connect mode for path creation
         group.addEventListener('mousedown', (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            // Delete mode: left-click removes the base
+            // Left-click in delete mode: remove the base
             if (this.deleteMode && e.button === 0) {
                 this._deleteBase(base.id);
                 return;
             }
 
-            // Connect mode active OR Shift+click: create path between bases
+            // Right-click in delete mode: also remove
+            if (this.deleteMode && e.button === 2) {
+                this._deleteBase(base.id);
+                return;
+            }
+
+            // Left-click while in path creation mode (or Shift+click): connect bases
             if (e.button === 0 && (e.shiftKey || this.pathCreationMode)) {
                 this._justHandledPickDrop = true;
                 this._onBaseClick(base.id);
                 return;
             }
 
-            // Right-click: delete base
-            if (e.button === 2) {
-                this._deleteBase(base.id);
-                return;
-            }
+            // In delete mode but neither left nor right click: ignore
+            if (this.deleteMode) return;
 
-            // Regular left click: pick up / drop toggle
-            this._justHandledPickDrop = true;
-            if (this.carryingBaseId === base.id) {
-                this._dropBase();
-            } else if (this.carryingBaseId && this.carryingBaseId !== base.id) {
-                this._dropBase();
-                this._pickUpBase(base.id);
-            } else if (!this.carryingBaseId) {
-                this._pickUpBase(base.id);
-            } else {
-                this._justHandledPickDrop = false;
+            // Left click (move mode or no mode): pick up / drop toggle
+            if (e.button === 0) {
+                this._justHandledPickDrop = true;
+                if (this.carryingBaseId === base.id) {
+                    this._dropBase();
+                } else if (this.carryingBaseId && this.carryingBaseId !== base.id) {
+                    this._dropBase();
+                    this._pickUpBase(base.id);
+                } else if (!this.carryingBaseId) {
+                    this._pickUpBase(base.id);
+                } else {
+                    this._justHandledPickDrop = false;
+                }
             }
         });
 
@@ -800,72 +817,94 @@ export class Renderer {
      * Render gameplay mode marker (static)
      */
     _renderGameplayMarker(group, base, center, style, isCapital) {
-        // Determine if this is a custom base
-        const isCustomBase = base.id.startsWith('custom-province-');
+        const isEnemyKing = base.type === 'enemy-king-base';
+        const showHP = isCapital || isEnemyKing;
 
         // Icon - Crown for capital, Shiny Diamond for others
         let icon;
-        if (isCapital) {
-            icon = this._createCrown(center.x, center.y, style.radius * 0.7, '#f4d03f');
-            // Add glow to crown
+        if (showHP) {
+            const crownColor = isEnemyKing ? '#ef4444' : '#f4d03f';
+            icon = this._createCrown(center.x, center.y, style.radius * 0.7, crownColor);
             const glowGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             glowGroup.style.filter = 'url(#strong-glow)';
-            glowGroup.style.pointerEvents = 'none'; // pass clicks to parent group
+            glowGroup.style.pointerEvents = 'none';
             glowGroup.appendChild(icon);
             icon = glowGroup;
 
-            // Yellow ring around crown
+            // Ring around crown
             const crownRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             crownRing.setAttribute('cx', center.x);
             crownRing.setAttribute('cy', center.y);
             crownRing.setAttribute('r', style.radius * 1.8);
             crownRing.setAttribute('fill', 'none');
-            crownRing.setAttribute('stroke', '#f4d03f');
+            crownRing.setAttribute('stroke', crownColor);
             crownRing.setAttribute('stroke-width', '2.5');
             crownRing.style.filter = 'url(#strong-glow)';
             crownRing.style.opacity = '0.7';
             crownRing.style.pointerEvents = 'none';
             group.appendChild(crownRing);
 
-            // Lifepoint display box above crown (Shadow Throne)
+            // HP display — dynamic from game state
+            const gs = window.gameState;
+            const hpData = gs && gs.kingBaseHP ? gs.kingBaseHP[base.id] : null;
+            const hpCurrent = hpData ? hpData.current : 8000;
+            const hpMax = hpData ? hpData.max : 8000;
+            const hpPct = hpMax > 0 ? hpCurrent / hpMax : 0;
+            const hpColor = isEnemyKing ? '#ef4444' : '#f4d03f';
+            const hpBarBg = isEnemyKing ? 'rgba(80,20,20,0.85)' : 'rgba(0,0,0,0.85)';
+
+            const boxW = 100;
+            const boxH = 40;
+            const boxY = center.y - style.radius * 4.8;
+
             const lpBox = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             lpBox.style.pointerEvents = 'none';
 
-            // Sleek black box background
+            // Background
             const lpBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            lpBg.setAttribute('x', center.x - 50);
-            lpBg.setAttribute('y', center.y - style.radius * 4.2);
-            lpBg.setAttribute('width', 100);
-            lpBg.setAttribute('height', 28);
+            lpBg.setAttribute('x', center.x - boxW / 2);
+            lpBg.setAttribute('y', boxY);
+            lpBg.setAttribute('width', boxW);
+            lpBg.setAttribute('height', boxH);
             lpBg.setAttribute('rx', 2);
-            lpBg.style.fill = 'rgba(0, 0, 0, 0.85)';
-            lpBg.style.stroke = '#f4d03f';
+            lpBg.style.fill = hpBarBg;
+            lpBg.style.stroke = hpColor;
             lpBg.style.strokeWidth = '1';
             lpBg.style.filter = 'url(#strong-glow)';
             lpBox.appendChild(lpBg);
 
-            // Top highlight line
-            const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            highlight.setAttribute('x1', center.x - 48);
-            highlight.setAttribute('y1', center.y - style.radius * 4.2 + 1);
-            highlight.setAttribute('x2', center.x + 48);
-            highlight.setAttribute('y2', center.y - style.radius * 4.2 + 1);
-            highlight.setAttribute('stroke', 'rgba(244, 208, 63, 0.3)');
-            highlight.setAttribute('stroke-width', '1');
-            lpBox.appendChild(highlight);
+            // HP bar background
+            const barBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            barBg.setAttribute('x', center.x - boxW / 2 + 6);
+            barBg.setAttribute('y', boxY + boxH - 12);
+            barBg.setAttribute('width', boxW - 12);
+            barBg.setAttribute('height', 6);
+            barBg.setAttribute('rx', 2);
+            barBg.style.fill = 'rgba(255,255,255,0.1)';
+            lpBox.appendChild(barBg);
 
-            // Lifepoint value text
+            // HP bar fill
+            const barFill = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            barFill.setAttribute('x', center.x - boxW / 2 + 6);
+            barFill.setAttribute('y', boxY + boxH - 12);
+            barFill.setAttribute('width', Math.max(0, (boxW - 12) * hpPct));
+            barFill.setAttribute('height', 6);
+            barFill.setAttribute('rx', 2);
+            barFill.style.fill = hpColor;
+            barFill.style.filter = hpPct < 0.3 ? 'url(#strong-glow)' : 'none';
+            lpBox.appendChild(barFill);
+
+            // HP text
             const lpText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             lpText.setAttribute('x', center.x);
-            lpText.setAttribute('y', center.y - style.radius * 4.2 + 20);
+            lpText.setAttribute('y', boxY + 18);
             lpText.setAttribute('text-anchor', 'middle');
-            lpText.textContent = '8000';
-            lpText.style.fill = '#f4d03f';
-            lpText.style.fontSize = '20px';
+            lpText.textContent = hpCurrent;
+            lpText.style.fill = hpColor;
+            lpText.style.fontSize = '18px';
             lpText.style.fontWeight = '700';
             lpText.style.fontFamily = 'Segoe UI, sans-serif';
-            lpText.style.letterSpacing = '3px';
-            lpText.style.textShadow = '0 0 12px rgba(244, 208, 63, 0.9)';
+            lpText.style.letterSpacing = '2px';
             lpBox.appendChild(lpText);
 
             group.appendChild(lpBox);
@@ -878,11 +917,11 @@ export class Renderer {
         if (icon) icon.style.pointerEvents = 'none';
 
         // Label background (only show if not a custom base or toggle is on)
-        // For waypoints: only show label for junctions (3+ connections) or isolated (0)
-        // to reduce map clutter — path nodes with 1-2 connections stay unlabeled
+        // Waypoints: only show label for junctions (3+ connections) or isolated (0)
+        // unless waypoint names are toggled off entirely
         const isWaypoint = base.type === 'waypoint' || base.type === 'Waypoint';
         const neighborCount = (base.neighbors && base.neighbors.length) || 0;
-        const waypointShowLabel = !isWaypoint || neighborCount === 0 || neighborCount >= 3;
+        const waypointShowLabel = !isWaypoint || (this.showWaypointNames && (neighborCount === 0 || neighborCount >= 3));
         const showLabel = (!isCustomBase || this.showCustomBaseNames) && waypointShowLabel;
 
         const labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -1013,8 +1052,9 @@ export class Renderer {
      * Handle click on SVG (add base or deselect)
      */
     _onSVGClick(e) {
-        // Only handle clicks on the background (not on bases)
+        // Only handle clicks on the background (not on bases or decorations)
         if (e.target.closest('.base-marker')) return;
+        if (e.target.closest('.placed-decoration')) return;
 
         const rect = this.svg.getBoundingClientRect();
         const pixelX = e.clientX - rect.left;
@@ -1034,11 +1074,12 @@ export class Renderer {
             return;
         }
 
-        // Cancel path creation if clicking background
-        if (this.pathCreationMode) {
-            this.pathCreationMode = false;
+        // Cancel in-progress connection if clicking background (stay in connect mode)
+        if (this.pathCreationMode && this.pathStartBase) {
             this.pathStartBase = null;
+            this._clearConnectionHighlight();
             this.renderConnectionPaths();
+            this._setEditorStatus('Connect Mode: Click first base, then second base to create a path');
         }
     }
 
@@ -1166,27 +1207,94 @@ export class Renderer {
      * Handle base click (path creation)
      */
     _onBaseClick(baseId) {
+        if (!this.pathCreationMode) return;
+
         // If no start base yet (first click), set it and begin
-        if (!this.pathCreationMode || !this.pathStartBase) {
-            // Start path creation
-            this.pathCreationMode = true;
+        if (!this.pathStartBase) {
             this.pathStartBase = baseId;
             this.renderConnectionPaths();
+            this._highlightConnectionStart(baseId);
             console.log('[Editor] Path start:', baseId);
+            this._setEditorStatus('Connect Mode: Now click a second base to connect');
         } else if (this.pathStartBase === baseId) {
-            // Click same base again — cancel path creation
-            this.pathCreationMode = false;
+            // Click same base again — cancel this connection attempt
             this.pathStartBase = null;
+            this._clearConnectionHighlight();
             this.renderConnectionPaths();
             console.log('[Editor] Path cancelled');
+            this._setEditorStatus('Connect Mode: Click first base, then second base to create a path');
         } else {
             // Complete path between two different bases
             const success = this.baseSystem.addConnection(this.pathStartBase, baseId);
             console.log('[Editor] Path created:', this.pathStartBase, '->', baseId, 'success:', success);
-            this.pathCreationMode = false;
+            // Clear the start highlight
+            this._clearConnectionHighlight();
             this.pathStartBase = null;
-            this.renderAll();
+            // Just re-render connection paths — DON'T call renderAll() (breaks event loop)
+            this.renderConnectionPaths();
+            if (success) {
+                this._setEditorStatus('Connect Mode: Path created! Click another pair or press Connect to exit');
+            } else {
+                this._setEditorStatus('Connect Mode: Connection failed (may already exist). Try again');
+            }
         }
+    }
+
+    /**
+     * Highlight a base as the start of a connection
+     */
+    _highlightConnectionStart(baseId) {
+        // Remove any existing highlight
+        this._clearConnectionHighlight();
+        const group = this.layers.markers?.querySelector(`.base-marker[data-base="${baseId}"]`);
+        if (!group) return;
+        // Add a prominent class or ring
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        ring.setAttribute('class', 'connection-start-ring');
+        const marker = group.querySelector('circle');
+        if (!marker) return;
+        const r = parseFloat(marker.getAttribute('r') || '12') + 6;
+        ring.setAttribute('cx', marker.getAttribute('cx'));
+        ring.setAttribute('cy', marker.getAttribute('cy'));
+        ring.setAttribute('r', r);
+        ring.style.fill = 'none';
+        ring.style.stroke = '#f4d03f';
+        ring.style.strokeWidth = '2.5';
+        ring.style.strokeDasharray = '6, 3';
+        ring.style.filter = 'url(#strong-glow)';
+        ring.style.pointerEvents = 'none';
+        group.appendChild(ring);
+    }
+
+    /**
+     * Clear connection start highlight
+     */
+    _clearConnectionHighlight() {
+        document.querySelectorAll('.connection-start-ring').forEach(el => el.remove());
+    }
+
+    /**
+     * Set editor status text — falls back to global status method
+     */
+    _setEditorStatus(text) {
+        const el = document.getElementById('editor-status');
+        if (el) { el.textContent = text; return; }
+        if (typeof setStatus === 'function') setStatus(text);
+    }
+
+    /**
+     * Clean up editor state when switching modes — drops carried base,
+     * clears connection highlights, and resets path creation state
+     */
+    _handleModeSwitch() {
+        if (this.carryingBaseId) {
+            this._dropBase();
+        }
+        this._clearConnectionHighlight();
+        this.pathCreationMode = false;
+        this.pathStartBase = null;
+        this.addBaseMode = false;
+        this.deleteMode = false;
     }
 
     /**
@@ -1364,6 +1472,7 @@ export class Renderer {
     refresh() {
         this.renderBaseBorders();
         this.renderBaseMarkers();
+        this.renderDecorations();
         this.renderCreatures();
         this.renderSigilsAndSummoned();
         this.renderSelection();
@@ -1405,14 +1514,18 @@ export class Renderer {
         if (!visual) return;
 
         // Flip the creature image horizontally based on direction
+        // NOTE: Image has a permanent centering transform translate(-w/2, 0)
+        // so orientation must compose with that, not replace it
         const image = visual.querySelector('image');
         if (image) {
+            const w = parseFloat(image.getAttribute('width')) || 48;
+            const centerX = -(w / 2);
             if (movingRight) {
-                // Flip to face right (default is facing left)
-                image.setAttribute('transform', 'scale(-1, 1) translate(-56, 0)');
+                // Flip to face right — scale(-1,1) around the center point
+                image.setAttribute('transform', `scale(-1, 1) translate(${centerX}, 0)`);
             } else {
-                // Keep default left-facing orientation
-                image.setAttribute('transform', 'scale(1, 1)');
+                // Keep default left-facing orientation — just the centering
+                image.setAttribute('transform', `translate(${centerX}, 0)`);
             }
         }
     }
@@ -1523,8 +1636,67 @@ export class Renderer {
     }
 
     /**
+     * Render placed decorations on the decorations layer.
+     * Each decoration references an asset definition and is positioned by x%/y%.
+     */
+    renderDecorations() {
+        if (!this.layers.decorations) return;
+        this.layers.decorations.innerHTML = '';
+
+        const state = window.gameState;
+        if (!state || !state.decorationManager) return;
+
+        const decos = state.decorationManager.getAll();
+        if (!decos || decos.length === 0) return;
+
+        // Import ASSET_DEFINITIONS dynamically (decorations.js exports it)
+        const assetMap = state._assetMap;
+        if (!assetMap) return;
+
+        decos.forEach(deco => {
+            const asset = assetMap.get(deco.assetId);
+            if (!asset) return;
+
+            const pixelPos = this.percentToPixels(deco.x, deco.y);
+            const scale = deco.scale || 1;
+            const rotation = deco.rotation || 0;
+
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            group.setAttribute('class', 'placed-decoration');
+            group.setAttribute('data-deco-id', deco.id);
+            group.setAttribute('transform',
+                `translate(${pixelPos.x}, ${pixelPos.y}) scale(${scale}) rotate(${rotation})`);
+
+            // Use the SVG viewBox-scaled inner content
+            const inner = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const w = (asset.defaultWidth / 100) * this.svgWidth;
+            const h = (asset.defaultHeight / 100) * this.svgHeight;
+            // Scale the 100x100 viewBox asset to its pixel dimensions
+            inner.setAttribute('transform', `translate(${-w/2}, ${-h/2}) scale(${w/100}, ${h/100})`);
+            inner.innerHTML = asset.svg;
+            group.appendChild(inner);
+
+            // In edit mode, make decorations clickable for selection/deletion
+            if (this.isEditMode) {
+                group.style.cursor = 'pointer';
+                group.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (typeof window.handleDecorationSelected === 'function') {
+                        window.handleDecorationSelected(deco.id, e.clientX, e.clientY);
+                    }
+                });
+            } else {
+                group.style.pointerEvents = 'none';
+            }
+
+            this.layers.decorations.appendChild(group);
+        });
+    }
+
+    /**
      * Render sigils and summoned creatures on the sigils layer.
-     * Reads from window.gameState.sigils and window.gameState.summonedCreatures.
+     * Reads from window.gameState.sigils, window.gameState.summonedCreatures,
+     * and window.gameState.enemyAI for enemy sigils/summons.
      */
     renderSigilsAndSummoned() {
         if (!this.layers.sigils) return;
@@ -1532,11 +1704,18 @@ export class Renderer {
         const state = window.gameState;
         if (!state) return;
 
-        const hasSigils = state.sigils && state.sigils.size > 0;
-        const hasSummons = state.summonedCreatures && state.summonedCreatures.length > 0;
+        const playerSigils = state.sigils;
+        const playerSummons = state.summonedCreatures;
+        const enemyAI = state.enemyAI;
+        const enemySigils = enemyAI ? enemyAI.getSigilsMap() : null;
+        const enemySummons = enemyAI ? enemyAI.getSummonedCreatures() : null;
 
-        // Skip if nothing to render (but always check for completion changes)
-        if (!hasSigils && !hasSummons) {
+        const hasPlayerSigils = playerSigils && playerSigils.size > 0;
+        const hasPlayerSummons = playerSummons && playerSummons.length > 0;
+        const hasEnemySigils = enemySigils && enemySigils.size > 0;
+        const hasEnemySummons = enemySummons && enemySummons.length > 0;
+
+        if (!hasPlayerSigils && !hasPlayerSummons && !hasEnemySigils && !hasEnemySummons) {
             if (this.layers.sigils.innerHTML !== '') {
                 this.layers.sigils.innerHTML = '';
             }
@@ -1545,75 +1724,101 @@ export class Renderer {
 
         this.layers.sigils.innerHTML = '';
 
-        // Render sigils
-        if (hasSigils) {
-            state.sigils.forEach((sigil, baseId) => {
-                const base = this.baseSystem.getById(baseId);
-                if (!base) return;
+        /**
+         * Helper: render a single sigil at a base position.
+         */
+        const renderSigilAt = (sigil, baseId, isEnemy) => {
+            const base = this.baseSystem.getById(baseId);
+            if (!base) return;
 
-                const center = this.percentToPixels(base.x, base.y);
+            const center = this.percentToPixels(base.x, base.y);
+            const fraction = sigil.isComplete ? 1 :
+                Math.min(1, (Date.now() - sigil.buildStartTime) / sigil.buildDuration);
 
-                // Calculate build progress from real time
-                const fraction = sigil.isComplete ? 1 :
-                    Math.min(1, (Date.now() - sigil.buildStartTime) / sigil.buildDuration);
+            const completeColor = isEnemy ? '#f87171' : '#c084fc';
+            const progressColor = isEnemy ? '#ef4444' : '#c084fc';
+            const labelColor = isEnemy ? '#fca5a5' : '#a78bfa';
 
-                // Sigil rune
-                const rune = createSigilRuneSVG(center.x, center.y, 14, sigil.isComplete);
-                if (sigil.isComplete) {
-                    rune.style.cursor = 'pointer';
-                    rune.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.selectBase(base.id, e.clientX, e.clientY);
-                    });
+            // Sigil rune
+            const rune = createSigilRuneSVG(center.x, center.y, 14, sigil.isComplete, completeColor);
+            if (sigil.isComplete) {
+                rune.style.cursor = 'pointer';
+                rune.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.selectBase(base.id, e.clientX, e.clientY);
+                });
+            }
+            this.layers.sigils.appendChild(rune);
+
+            // Progress ring during build
+            if (!sigil.isComplete) {
+                const ring = createProgressRing(center.x, center.y, 22, fraction, progressColor);
+                this.layers.sigils.appendChild(ring);
+                const label = createSigilLabel(center.x, center.y + 36, 'Building...', labelColor);
+                this.layers.sigils.appendChild(label);
+            } else {
+                const label = createSigilLabel(center.x, center.y + 30,
+                    isEnemy ? 'Enemy Sigil' : 'Sigil', labelColor);
+                this.layers.sigils.appendChild(label);
+            }
+        };
+
+        // Render player sigils
+        if (hasPlayerSigils) {
+            playerSigils.forEach((sigil, baseId) => {
+                renderSigilAt(sigil, baseId, false);
+
+                // Render player summoned creatures at this sigil
+                if (hasPlayerSummons) {
+                    const base = this.baseSystem.getById(baseId);
+                    if (base) {
+                        const center = this.percentToPixels(base.x, base.y);
+                        const atBase = playerSummons.filter(sc => sc.baseId === baseId);
+                        atBase.forEach((sc, index) => {
+                            const angle = (index * (Math.PI * 2 / 6)) - Math.PI / 2;
+                            const offsetR = 38;
+                            const scx = center.x + Math.cos(angle) * offsetR;
+                            const scy = center.y + Math.sin(angle) * offsetR;
+                            const summonFraction = sc.isComplete ? 1 :
+                                Math.min(1, (Date.now() - sc.summonStartTime) / sc.summonDuration);
+                            const visual = createSummonedCreatureSVG(sc, scx, scy, sc.isComplete);
+                            this.layers.sigils.appendChild(visual);
+                            if (!sc.isComplete) {
+                                const sRing = createProgressRing(scx, scy, 26, summonFraction, '#60a5fa');
+                                this.layers.sigils.appendChild(sRing);
+                            }
+                        });
+                    }
                 }
-                this.layers.sigils.appendChild(rune);
+            });
+        }
 
-                // Progress ring during build
-                if (!sigil.isComplete) {
-                    const ring = createProgressRing(center.x, center.y, 22, fraction, '#c084fc');
-                    this.layers.sigils.appendChild(ring);
+        // Render enemy sigils
+        if (hasEnemySigils) {
+            enemySigils.forEach((sigil, baseId) => {
+                renderSigilAt(sigil, baseId, true);
 
-                    const label = createSigilLabel(center.x, center.y + 36,
-                        'Building...', '#a78bfa');
-                    this.layers.sigils.appendChild(label);
-                } else {
-                    const label = createSigilLabel(center.x, center.y + 30,
-                        'Sigil', '#c084fc');
-                    this.layers.sigils.appendChild(label);
-                }
-
-                // Render summoned creatures stacked on this sigil
-                if (state.summonedCreatures && state.summonedCreatures.length > 0) {
-                    const atBase = state.summonedCreatures.filter(
-                        sc => sc.baseId === baseId
-                    );
-
-                    atBase.forEach((sc, index) => {
-                        const angle = (index * (Math.PI * 2 / 6)) - Math.PI / 2;
-                        const offsetR = 38;
-                        const scx = center.x + Math.cos(angle) * offsetR;
-                        const scy = center.y + Math.sin(angle) * offsetR;
-
-                        const summonFraction = sc.isComplete ? 1 :
-                            Math.min(1, (Date.now() - sc.summonStartTime) / sc.summonDuration);
-
-                        // Summoned creature card
-                        const visual = createSummonedCreatureSVG(sc, scx, scy, sc.isComplete);
-                        if (sc.isComplete) {
-                            visual.style.cursor = 'pointer';
-                            visual.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                // Select the summoned creature (future: integrate with creature selection)
-                            });
-                        }
-                        this.layers.sigils.appendChild(visual);
-
-                        // Progress ring for summoning
-                        if (!sc.isComplete) {
-                            const sRing = createProgressRing(scx, scy, 26, summonFraction, '#60a5fa');
-                            this.layers.sigils.appendChild(sRing);
-                        }
-                    });
+                // Render enemy summoned creatures at this sigil
+                if (hasEnemySummons) {
+                    const base = this.baseSystem.getById(baseId);
+                    if (base) {
+                        const center = this.percentToPixels(base.x, base.y);
+                        const atBase = enemySummons.filter(sc => sc.baseId === baseId);
+                        atBase.forEach((sc, index) => {
+                            const angle = (index * (Math.PI * 2 / 6)) - Math.PI / 2;
+                            const offsetR = 38;
+                            const scx = center.x + Math.cos(angle) * offsetR;
+                            const scy = center.y + Math.sin(angle) * offsetR;
+                            const summonFraction = sc.isComplete ? 1 :
+                                Math.min(1, (Date.now() - sc.summonStartTime) / sc.summonDuration);
+                            const visual = createSummonedCreatureSVG(sc, scx, scy, sc.isComplete);
+                            this.layers.sigils.appendChild(visual);
+                            if (!sc.isComplete) {
+                                const sRing = createProgressRing(scx, scy, 26, summonFraction, '#ef4444');
+                                this.layers.sigils.appendChild(sRing);
+                            }
+                        });
+                    }
                 }
             });
         }
@@ -1784,15 +1989,37 @@ export class Renderer {
         // Update the creature group appearance to show moving state
         const group = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${creatureId}"]`);
         if (group) {
+            // Ensure creature is fully visible during movement
             group.style.opacity = '1';
-            group.style.filter = 'drop-shadow(0 0 14px #a78bfa) drop-shadow(0 0 28px #7c3aed)';
+            group.style.visibility = 'visible';
+            group.style.display = 'block';
+            group.style.pointerEvents = 'all';
+
+            // Log diagnostic info
+            console.log('[Move] Creature group found, transform:', group.getAttribute('transform'),
+                'img:', !!group.querySelector('image'));
+
+            // Re-verify the sprite image renders — force a repaint without reload
+            const img = group.querySelector('image');
+            if (img) {
+                img.style.opacity = '1';
+                img.style.visibility = 'visible';
+            }
+
+            // TEMP: Remove CSS drop-shadow glow on .creature during movement
+            // CSS drop-shadow + animated SVG transform causes Chrome to drop <image> rendering
+            const creatureEl = group.querySelector('.creature');
+            if (creatureEl) {
+                creatureEl._savedFilter = creatureEl.style.filter;
+                creatureEl.style.filter = 'none';
+            }
             // Add a moving label
             const existingLabel = group.querySelector('.movement-label');
             if (!existingLabel) {
                 const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 label.setAttribute('class', 'movement-label');
                 label.setAttribute('x', '0');
-                label.setAttribute('y', '-50');
+                label.setAttribute('y', '-150');
                 label.setAttribute('text-anchor', 'middle');
                 label.setAttribute('fill', '#a78bfa');
                 label.setAttribute('font-size', '9');
@@ -1845,8 +2072,12 @@ export class Renderer {
             // Update creature group position
             const group = this.layers.creatures?.querySelector(`.creature-group[data-creature-id="${creatureId}"]`);
             if (group) {
+                // Use standard SVG transform attribute
                 group.setAttribute('transform', `translate(${Math.round(x)}, ${Math.round(y)})`);
                 group.dataset.needsPosition = 'false';
+                // Safety: ensure creature stays visible throughout movement
+                group.style.opacity = '1';
+                group.style.visibility = 'visible';
 
                 // Update orientation (face direction of travel)
                 const movingRight = moveState.hopEndPos.x > moveState.hopStartPos.x;
@@ -1886,6 +2117,12 @@ export class Renderer {
                         group.style.opacity = '1';
                         const label = group.querySelector('.movement-label');
                         if (label) label.remove();
+                        // Restore the .creature glow filter if it was removed during movement
+                        const creatureEl = group.querySelector('.creature');
+                        if (creatureEl && creatureEl._savedFilter !== undefined) {
+                            creatureEl.style.filter = creatureEl._savedFilter;
+                            delete creatureEl._savedFilter;
+                        }
                         // Snap to correct base position
                         group.dataset.needsPosition = 'true';
                     }

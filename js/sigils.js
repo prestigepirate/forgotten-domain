@@ -95,7 +95,7 @@ export class SigilManager {
         this.sigils.set(baseId, sigil);
 
         if (this.mana) {
-            this.mana.mana = Math.max(0, this.mana.mana - SIGIL_MANA_COST);
+            this.mana.mana = Math.max(0, Math.floor(this.mana.mana) - SIGIL_MANA_COST);
         }
 
         if (this.onStateChanged) {
@@ -162,7 +162,7 @@ export class SigilManager {
         this.summoned.push(summoned);
 
         if (this.mana) {
-            this.mana.mana = Math.max(0, this.mana.mana - summonCost);
+            this.mana.mana = Math.max(0, Math.floor(this.mana.mana) - summonCost);
         }
 
         if (this.onStateChanged) {

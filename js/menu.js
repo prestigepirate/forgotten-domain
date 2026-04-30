@@ -8,15 +8,19 @@ import { generateStars } from './utils.js';
 document.addEventListener('DOMContentLoaded', () => {
     checkAuthState();
     generateStars();
-
-    // Draw planet connection lines
-    drawPlanetConnections();
-
-    // Setup planet link interactions
     setupPlanetLinks();
+});
 
-    // Setup continue button
-    setupContinueButton();
+// Wait for all images to load before drawing lines
+window.addEventListener('load', () => {
+    drawPlanetConnections();
+});
+
+// Redraw lines on resize (debounced)
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(drawPlanetConnections, 150);
 });
 
 /**
@@ -67,46 +71,34 @@ function checkAuthState() {
 function drawPlanetConnections() {
     const svg = document.getElementById('planet-connections');
     const userDisplay = document.querySelector('.user-display');
-    const planets = document.querySelectorAll('.planet-link');
+    const planetLinks = document.querySelectorAll('.planet-link');
 
-    if (!svg || !userDisplay || planets.length === 0) return;
+    if (!svg || !userDisplay || planetLinks.length === 0) return;
 
-    // Get user display center position
+    // Remove old lines (keep defs)
+    const defs = svg.querySelector('defs');
+    while (svg.lastChild && svg.lastChild !== defs) {
+        svg.removeChild(svg.lastChild);
+    }
+
     const userRect = userDisplay.getBoundingClientRect();
     const userX = userRect.left + userRect.width / 2;
-    const userY = userRect.top;
+    const userY = userRect.top + userRect.height / 2;
 
-    planets.forEach((planetLink, index) => {
-        const planet = planetLink.querySelector('.planet');
-        if (!planet) return;
+    planetLinks.forEach((link, index) => {
+        const linkRect = link.getBoundingClientRect();
+        const x1 = linkRect.left + linkRect.width / 2;
+        const y1 = linkRect.bottom + 5;
 
-        const planetRect = planet.getBoundingClientRect();
-        const planetX = planetRect.left + planetRect.width / 2;
-        const planetY = planetRect.bottom;
-
-        // Create dotted line path
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', planetX);
-        line.setAttribute('y1', planetY);
-        line.setAttribute('x2', userX);
-        line.setAttribute('y2', userY);
+        line.setAttribute('x1', String(x1));
+        line.setAttribute('y1', String(y1));
+        line.setAttribute('x2', String(userX));
+        line.setAttribute('y2', String(userY));
         line.setAttribute('class', 'connection-line');
-        line.setAttribute('stroke-dasharray', '6, 4');
-
-        // Stagger animation delays for each line
-        line.style.animationDelay = `${index * 0.3}s`;
+        line.style.animationDelay = `${index * 0.25}s`;
 
         svg.appendChild(line);
-    });
-
-    // Redraw on resize
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            svg.innerHTML = svg.querySelector('defs').outerHTML;
-            drawPlanetConnections();
-        }, 200);
     });
 }
 
@@ -163,6 +155,13 @@ function setupPlanetLinks() {
 
             const continentName = link.dataset.continent;
             const href = link.href;
+            const continentDisplay = link.querySelector('.planet-name')?.textContent || continentName;
+            const loadingContinent = document.getElementById('loading-continent');
+
+            // Update loading screen text
+            if (loadingContinent) {
+                loadingContinent.textContent = continentDisplay.toUpperCase();
+            }
 
             // Spawn ember particles
             if (emberContainer) {
@@ -185,36 +184,3 @@ function setupPlanetLinks() {
     });
 }
 
-/**
- * Setup continue button - loads last saved game or Voxya by default
- */
-function setupContinueButton() {
-    const continueBtn = document.getElementById('continue-btn');
-
-    continueBtn.addEventListener('click', () => {
-        // Check for saved game
-        const savedGame = localStorage.getItem('fdw_save');
-
-        if (savedGame) {
-            // Load saved game
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingContinent = document.getElementById('loading-continent');
-
-            loadingContinent.textContent = 'Saved World';
-            loadingOverlay.classList.remove('hidden');
-
-            setTimeout(() => {
-                window.location.href = 'voxya.html'; // Default to voxya for now
-            }, 2200);
-        } else {
-            // No save found, show message
-            continueBtn.textContent = 'No Saved Game Found';
-            continueBtn.style.opacity = '0.7';
-
-            setTimeout(() => {
-                continueBtn.innerHTML = '<span class="btn-icon">&#9203;</span><span>Continue Game</span>';
-                continueBtn.style.opacity = '1';
-            }, 2000);
-        }
-    });
-}

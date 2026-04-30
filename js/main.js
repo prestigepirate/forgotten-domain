@@ -5,12 +5,15 @@
  * Initializes game systems: bases, rendering, sigils, summoning
  */
 
-import { createVoxyaSystem } from './provinces.js';
+import { createPlanetSystem } from './provinces.js';
 import { Renderer } from './renderer.js';
 import { getElement, setEnabled, log } from './utils.js';
 import { SigilManager, SIGIL_MANA_COST, formatTimeRemaining } from './sigils.js';
 import { loadCreatureDatabase, buildCreatureIndex, getCreaturesByContinent, getSummonCost } from './creatureDatabase.js';
 import { createToastContainer, showToast } from './toasts.js';
+import { EnemyAI } from './enemyAI.js';
+import { executeEffects, getEffectiveStats } from './effects.js';
+import { DecorationManager, ASSET_DEFINITIONS } from './decorations.js';
 
 // ============================================
 // Game Constants
@@ -19,17 +22,49 @@ import { createToastContainer, showToast } from './toasts.js';
 const PLAYER_ID = 'player-1';
 const PLAYER_NAME = 'Shadow Lord';
 const MIN_SUMMON_COST = 3;
+const ACTION_REGEN_RATE_MS = 3000;     // 1 action per 3 seconds
+const MANA_REGEN_RATE_MS = 5000;       // 1 mana per 5 seconds
+const RESOURCE_REGEN_RATE_MS = 15000;  // 1 of each resource per 15 seconds
+const MAX_REGEN_DELTA_MS = 60000;      // clamp regen to 60s max per frame
+
+// Planet detection — must be defined before state uses it
+const planet = new URLSearchParams(window.location.search).get('planet') || 'voxya';
+const PLANET_DISPLAY = {
+    voxya:   { title: 'VOXYA',   subtitle: 'The Shattered Archipelago' },
+    orilyth: { title: 'ORILYTH', subtitle: 'The Veil of Whispers' },
+    korvess: { title: 'KORVESS', subtitle: 'The Verdant Abyss' },
+    sanguis: { title: 'SANGUIS', subtitle: 'The Crimson Veil' },
+    silith9: { title: 'SILITH-9', subtitle: 'The False Moon' }
+};
 
 // ============================================
 // Game State
 // ============================================
 
 const state = {
-    tick: 0,
-    mana: 99,
-    maxMana: 99,
-    actions: 20,
-    maxActions: 20,
+    startTime: Date.now(),
+    lastRegenTime: Date.now(),
+    manaRegenAccumulator: 0,
+    homePlanet: planet,
+    shards: {
+        voxya: 99,
+        orilyth: 0,
+        korvess: 0,
+        sanguis: 0,
+        silith9: 0
+    },
+    maxShards: 99,
+    resources: {
+        nexium: 10,
+        vortite: 10,
+        chronite: 10,
+        helixium: 10,
+        voidsteel: 10
+    },
+    maxResources: 999,
+    resourceRegenAccumulator: 0,
+    kingBaseHP: {},           // Map<baseId, { current, max }> — 8000 HP per GDD
+    actionSlots: { max: 3, used: 0 },  // 3 action slots per GDD
     selectedBaseId: null,
     baseSystem: null,
     renderer: null,
@@ -41,8 +76,41 @@ const state = {
     creatureDatabase: null,              // Full loaded database
     creatureDBIndex: null,               // Map<id, creatureEntry>
     sigilManager: null,                  // SigilManager instance
+    enemyAI: null,                       // EnemyAI instance
+    lastPeriodicEffects: Date.now(),     // Last time periodic effects were checked
+    // Decoration system
+    decorationManager: null,             // DecorationManager instance
+    _assetMap: null,                     // Map<assetId, AssetDefinition> for quick lookup
+    decorationPlaceMode: false,          // true when placing decorations in editor
+    selectedDecoId: null,                // currently selected decoration id
     // Move mode state
     moveMode: null                       // { creatureId } or null
+};
+
+function getTotalMana() {
+    return state.shards.voxya + state.shards.orilyth + state.shards.korvess
+         + state.shards.sanguis + state.shards.silith9;
+}
+
+function spendMana(amount) {
+    // Deduct from home planet shards first, then others
+    const order = [state.homePlanet, ...Object.keys(state.shards).filter(k => k !== state.homePlanet)];
+    let remaining = amount;
+    for (const key of order) {
+        const take = Math.min(state.shards[key], remaining);
+        state.shards[key] -= take;
+        remaining -= take;
+        if (remaining <= 0) break;
+    }
+}
+
+// Proxy object for sigils.js compatibility — sigils.js does this.mana.mana -= cost
+const manaProxy = {
+    get mana() { return getTotalMana(); },
+    set mana(v) {
+        const diff = getTotalMana() - v;
+        if (diff > 0) spendMana(diff);
+    }
 };
 
 // ============================================
@@ -51,12 +119,12 @@ const state = {
 
 const ui = {
     tickCount: null,
-    manaCount: null,
-    actionsCount: null,
+    shardValues: {},
+    resourceValues: {},
+    slotEls: [],           // 3 slot indicator elements
     originName: null,
     btnSigil: null,
     btnSummon: null,
-    btnEndTurn: null,
     statusMessage: null
 };
 
@@ -68,24 +136,54 @@ let svgOverlay;
 // ============================================
 
 async function init() {
-    log('Initializing Voxya...');
+    log(`Initializing ${planet}...`);
+
+    // Set planet header
+    const info = PLANET_DISPLAY[planet] || PLANET_DISPLAY.voxya;
+    document.querySelector('.header-title').textContent = info.title;
+    document.querySelector('.header-subtitle').textContent = info.subtitle;
+    document.title = `${info.title} - ${info.subtitle}`;
+
+    // Set planet map image
+    const mapImg = document.querySelector('.map-bg');
+    if (mapImg) mapImg.src = `assets/maps/${planet}-map-full.jpg`;
 
     // Cache UI elements
     ui.tickCount = getElement('tick-count');
-    ui.manaCount = getElement('mana-count');
-    ui.actionsCount = getElement('actions-count');
+    ui.shardValues.voxya = getElement('shard-voxya');
+    ui.shardValues.orilyth = getElement('shard-orilyth');
+    ui.shardValues.korvess = getElement('shard-korvess');
+    ui.shardValues.sanguis = getElement('shard-sanguis');
+    ui.shardValues.silith9 = getElement('shard-silith9');
+    ui.resourceValues.nexium = getElement('res-nexium');
+    ui.resourceValues.vortite = getElement('res-vortite');
+    ui.resourceValues.chronite = getElement('res-chronite');
+    ui.resourceValues.helixium = getElement('res-helixium');
+    ui.resourceValues.voidsteel = getElement('res-voidsteel');
+    ui.slotEls = [
+        getElement('slot-1'),
+        getElement('slot-2'),
+        getElement('slot-3')
+    ];
     ui.btnSigil = getElement('btn-sigil');
-    ui.btnEndTurn = getElement('btn-end-turn');
     ui.statusMessage = getElement('status-message');
     ui.btnSummon = getElement('btn-summon');
     ui.originName = getElement('origin-name');
 
     // Initialize systems
-    state.baseSystem = createVoxyaSystem();
-    state.playerOrigin = 'voxya-throne';
+    state.baseSystem = createPlanetSystem(planet);
+    state.playerOrigin = `${planet}-throne`;
+
+    // Initialize king base HP (8000 per GDD)
+    const allBases = state.baseSystem.getAll();
+    for (const base of allBases) {
+        if (base.type === 'king-base' || base.type === 'enemy-king-base') {
+            state.kingBaseHP[base.id] = { current: 8000, max: 8000 };
+        }
+    }
 
     svgOverlay = getElement('map-overlay');
-    state.renderer = new Renderer(svgOverlay, { theme: 'voxya' });
+    state.renderer = new Renderer(svgOverlay, { theme: planet });
     state.renderer.init(state.baseSystem);
 
     // Setup event listeners BEFORE any async work — so base clicks
@@ -116,11 +214,18 @@ async function init() {
         state.sigils,
         state.summonedCreatures,
         handleSigilEvent,
-        state  // mana state reference
+        manaProxy  // mana proxy for getter/setter compatibility
     );
 
     // Create toast container
     createToastContainer();
+
+    // Initialize enemy AI
+    state.enemyAI = new EnemyAI(planet, state.baseSystem, state.renderer, handleEnemyEvent);
+
+    // Initialize decoration system
+    state.decorationManager = new DecorationManager();
+    state._assetMap = new Map(ASSET_DEFINITIONS.map(a => [a.id, a]));
 
     // Initial UI update
     updateUI();
@@ -163,7 +268,6 @@ function setupEventListeners() {
     // Action buttons
     ui.btnSigil?.addEventListener('click', craftSigil);
     ui.btnSummon?.addEventListener('click', openSummonCreatureMenu);
-    ui.btnEndTurn?.addEventListener('click', endTurn);
 
     // Editor buttons
     getElement('btn-edit-map')?.addEventListener('click', toggleEditMode);
@@ -177,6 +281,36 @@ function setupEventListeners() {
     // even if stopPropagation was called in the bubble phase by
     // the base marker or panning handlers.
     svgOverlay.addEventListener('click', (e) => {
+        // Decoration placement mode — place on background click
+        if (state.decorationPlaceMode && _activeDecorationAssetId && !e.target.closest('.base-marker') && !e.target.closest('.placed-decoration')) {
+            e.stopPropagation();
+            const rect = svgOverlay.getBoundingClientRect();
+            const percentX = ((e.clientX - rect.left) / rect.width) * 100;
+            const percentY = ((e.clientY - rect.top) / rect.height) * 100;
+            const deco = state.decorationManager.placeDecoration(_activeDecorationAssetId, percentX, percentY);
+            if (deco) {
+                state.renderer.renderDecorations();
+                updateDecoCount(document.getElementById('decoration-asset-panel'));
+                const asset = state._assetMap.get(_activeDecorationAssetId);
+                setStatus(`Placed ${asset ? asset.name : 'decoration'} at (${Math.round(percentX)}, ${Math.round(percentY)})`);
+            }
+            return;
+        }
+
+        // Decoration remove mode — click on placed decoration to remove it
+        if (state.decorationPlaceMode && _decorationRemoveMode && e.target.closest('.placed-decoration')) {
+            e.stopPropagation();
+            const decoEl = e.target.closest('.placed-decoration');
+            const decoId = decoEl.dataset.decoId;
+            if (decoId) {
+                state.decorationManager.removeDecoration(decoId);
+                state.renderer.renderDecorations();
+                updateDecoCount(document.getElementById('decoration-asset-panel'));
+                setStatus('Decoration removed');
+            }
+            return;
+        }
+
         // Look up the DOM tree for a base marker
         const marker = e.target.closest('.base-marker');
         if (marker && marker.dataset && marker.dataset.base) {
@@ -223,10 +357,16 @@ function setupEventListeners() {
         const creature = state.renderer.getCreature(creatureId);
         const destBase = state.baseSystem.getById(targetBaseId);
         const destName = destBase ? destBase.name : targetBaseId;
-        if (creature) {
+        const isEnemy = creature && (creature._isEnemy || creature.owner === 'enemy');
+        if (creature && isEnemy) {
+            showToast(`Enemy ${creature.name} has reached ${destName}!`, 'error', 4000);
+            setStatus(`WARNING: Enemy ${creature.name} arrived at ${destName}`);
+        } else if (creature) {
             showToast(`${creature.name} has arrived at ${destName}`, 'success', 3000);
             setStatus(`${creature.name} finished moving to ${destName}`);
         }
+        // Resolve combat at the destination
+        resolveCombatAtBase(targetBaseId);
         state.renderer.renderCreatures();
         state.renderer.renderSelection();
     });
@@ -291,6 +431,13 @@ function toggleEditMode() {
         showEditorPalette();
     } else {
         hideEditorPalette();
+        // Clean up decoration mode
+        state.decorationPlaceMode = false;
+        _activeDecorationAssetId = null;
+        _decorationRemoveMode = false;
+        state.selectedDecoId = null;
+        hideDecorationAssetPanel();
+        state.renderer.renderDecorations();
     }
 
     if (newMode) {
@@ -339,6 +486,7 @@ function createEditorPalette() {
             <button class="editor-palette-btn" data-action="add-king">&#9813; +King</button>
             <button class="editor-palette-btn" data-action="add-player">&#9878; +Player Base</button>
             <button class="editor-palette-btn" data-action="add-enemy">&#9760; +Enemy Base</button>
+            <button class="editor-palette-btn editor-palette-accent" data-action="decorations">&#127794; Decorations</button>
             <button class="editor-palette-btn editor-palette-danger" data-action="remove">&#10007; Remove</button>
             <button class="editor-palette-btn" data-action="export">&#128229; Export</button>
             <button class="editor-palette-btn editor-palette-exit" data-action="exit">&#10005; Exit</button>
@@ -356,54 +504,69 @@ function createEditorPalette() {
         // Remove active state from all buttons
         palette.querySelectorAll('.editor-palette-btn').forEach(b => b.classList.remove('active'));
 
+        // Clean up decoration mode when switching to other tools
+        if (action !== 'decorations') {
+            state.decorationPlaceMode = false;
+            _activeDecorationAssetId = null;
+            _decorationRemoveMode = false;
+            state.selectedDecoId = null;
+            hideDecorationAssetPanel();
+        }
+
         switch (action) {
             case 'move':
                 btn.classList.add('active');
-                state.renderer.addBaseMode = false;
-                state.renderer.pathCreationMode = false;
-                state.renderer.pathStartBase = null;
-                state.renderer.deleteMode = false;
+                state.renderer._handleModeSwitch();
                 setStatus('Move Mode: Drag any base to reposition it');
                 break;
             case 'connect':
                 btn.classList.add('active');
-                state.renderer.addBaseMode = false;
-                state.renderer.deleteMode = false;
+                state.renderer._handleModeSwitch();
                 state.renderer.pathCreationMode = true;
-                state.renderer.pathStartBase = null;
                 setStatus('Connect Mode: Click first base, then second base to create a path');
                 break;
             case 'add-base':
                 btn.classList.add('active');
+                state.renderer._handleModeSwitch();
                 state.renderer.setAddBaseType('base');
                 setStatus('Add Base: Click anywhere on the map');
                 break;
             case 'add-waypoint':
                 btn.classList.add('active');
+                state.renderer._handleModeSwitch();
                 state.renderer.setAddBaseType('waypoint');
                 setStatus('Add Waypoint: Click anywhere on the map');
                 break;
             case 'add-king':
                 btn.classList.add('active');
+                state.renderer._handleModeSwitch();
                 state.renderer.setAddBaseType('king-base');
                 setStatus('Add King Base: Click anywhere on the map');
                 break;
             case 'add-player':
                 btn.classList.add('active');
+                state.renderer._handleModeSwitch();
                 state.renderer.setAddBaseType('player-base');
                 setStatus('Add Player Base: Click anywhere on the map');
                 break;
             case 'add-enemy':
                 btn.classList.add('active');
+                state.renderer._handleModeSwitch();
                 state.renderer.setAddBaseType('enemy-base');
                 setStatus('Add Enemy Base: Click anywhere on the map');
                 break;
             case 'remove':
                 btn.classList.add('active');
-                state.renderer.addBaseMode = false;
-                state.renderer.pathCreationMode = false;
+                state.renderer._handleModeSwitch();
                 state.renderer.deleteMode = true;
-                setStatus('Remove Mode: Click any base to delete it');
+                setStatus('Remove Mode: Click any base to delete it (decorations too)');
+                break;
+            case 'decorations':
+                btn.classList.add('active');
+                state.renderer._handleModeSwitch();
+                state.decorationPlaceMode = true;
+                showDecorationAssetPanel();
+                setStatus('Decorations: Choose an asset, then click the map to place');
                 break;
             case 'export':
                 state.renderer.exportLayout();
@@ -422,6 +585,8 @@ function showEditorPalette() {
         const palette = document.getElementById('editor-palette');
         if (palette) {
             palette.classList.add('visible');
+            // Reset editor state
+            if (state.renderer) state.renderer._handleModeSwitch();
             // Default: activate move mode
             const moveBtn = palette.querySelector('[data-action="move"]');
             if (moveBtn) moveBtn.classList.add('active');
@@ -443,6 +608,193 @@ function hideEditorPalette() {
         }
     } catch (err) {
         console.error('[Editor] hideEditorPalette error:', err.message);
+    }
+}
+
+// ============================================
+// Decoration Asset Panel (Editor)
+// ============================================
+
+let _activeDecorationAssetId = null;
+let _decorationRemoveMode = false;
+
+function showDecorationAssetPanel() {
+    // Remove existing panel
+    hideDecorationAssetPanel();
+
+    const panel = document.createElement('div');
+    panel.id = 'decoration-asset-panel';
+    panel.className = 'decoration-asset-panel';
+
+    const currentPlanet = state.homePlanet || 'voxya';
+    const categories = DecorationManager.getCategories(currentPlanet);
+
+    // Build category tabs
+    const categoryTabs = ['all', ...categories].map(cat =>
+        `<button class="deco-cat-tab" data-cat="${cat}">${cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}</button>`
+    ).join('');
+
+    // Build asset cards
+    const allAssets = DecorationManager.getAssets(currentPlanet);
+    const assetCards = allAssets.map(a => {
+        const w = a.defaultWidth * 14;
+        const h = a.defaultHeight * 14;
+        return `
+        <div class="deco-asset-card" data-asset-id="${a.id}" title="${a.name} (${a.category})">
+            <div class="deco-asset-thumb" style="width:${w}px;height:${h}px">
+                <svg viewBox="0 0 100 100" width="${w}" height="${h}">${a.svg}</svg>
+            </div>
+            <span class="deco-asset-name">${a.name}</span>
+        </div>`;
+    }).join('');
+
+    panel.innerHTML = `
+        <div class="deco-panel-header">
+            <span class="deco-panel-title">&#127794; Decorations</span>
+            <div class="deco-panel-actions">
+                <button class="deco-action-btn" id="deco-remove-toggle" title="Remove Mode">&#10007;</button>
+                <button class="deco-action-btn" id="deco-clear-all" title="Clear All">Clear</button>
+                <button class="deco-action-btn" id="deco-close" title="Close">&times;</button>
+            </div>
+        </div>
+        <div class="deco-category-tabs">${categoryTabs}</div>
+        <div class="deco-asset-grid">${assetCards}</div>
+        <div class="deco-panel-footer">
+            <span class="deco-count">${state.decorationManager.getAll().length} placed</span>
+            <button class="deco-action-btn" id="deco-export">Export</button>
+            <button class="deco-action-btn" id="deco-import">Import</button>
+        </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    // Activate first category tab
+    const firstTab = panel.querySelector('.deco-cat-tab');
+    if (firstTab) firstTab.classList.add('active');
+
+    // Wire category tabs
+    panel.querySelectorAll('.deco-cat-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            panel.querySelectorAll('.deco-cat-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const cat = tab.dataset.cat;
+            filterAssetCards(cat, panel);
+        });
+    });
+
+    // Wire asset card clicks
+    panel.querySelectorAll('.deco-asset-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const assetId = card.dataset.assetId;
+            if (_decorationRemoveMode) {
+                _decorationRemoveMode = false;
+                const rmBtn = panel.querySelector('#deco-remove-toggle');
+                if (rmBtn) rmBtn.classList.remove('active');
+            }
+            panel.querySelectorAll('.deco-asset-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            _activeDecorationAssetId = assetId;
+            setStatus(`Selected: ${card.querySelector('.deco-asset-name').textContent} — click map to place`);
+        });
+    });
+
+    // Remove mode toggle
+    panel.querySelector('#deco-remove-toggle').addEventListener('click', (e) => {
+        _decorationRemoveMode = !_decorationRemoveMode;
+        e.currentTarget.classList.toggle('active', _decorationRemoveMode);
+        _activeDecorationAssetId = null;
+        panel.querySelectorAll('.deco-asset-card').forEach(c => c.classList.remove('selected'));
+        if (_decorationRemoveMode) {
+            setStatus('Decoration Remove Mode: Click a placed decoration to remove it');
+        } else {
+            setStatus('Decorations: Choose an asset, then click the map to place');
+        }
+    });
+
+    // Clear all
+    panel.querySelector('#deco-clear-all').addEventListener('click', () => {
+        if (confirm('Remove ALL placed decorations?')) {
+            state.decorationManager.clear();
+            state.renderer.renderDecorations();
+            updateDecoCount(panel);
+            setStatus('All decorations cleared');
+        }
+    });
+
+    // Export
+    panel.querySelector('#deco-export').addEventListener('click', () => {
+        const json = state.decorationManager.exportToJSON();
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${planet}-decorations.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setStatus('Decorations exported to JSON');
+    });
+
+    // Import
+    panel.querySelector('#deco-import').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.addEventListener('change', () => {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const data = JSON.parse(reader.result);
+                    state.decorationManager.importFromJSON(data);
+                    state.renderer.renderDecorations();
+                    updateDecoCount(panel);
+                    setStatus(`Imported ${data.length} decorations`);
+                } catch (err) {
+                    setStatus('Failed to import decorations: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+        input.click();
+    });
+
+    // Close
+    panel.querySelector('#deco-close').addEventListener('click', () => {
+        hideDecorationAssetPanel();
+        state.decorationPlaceMode = false;
+        _activeDecorationAssetId = null;
+        _decorationRemoveMode = false;
+        setStatus('Decoration mode exited');
+    });
+}
+
+function hideDecorationAssetPanel() {
+    const panel = document.getElementById('decoration-asset-panel');
+    if (panel) panel.remove();
+}
+
+function filterAssetCards(category, panel) {
+    const cards = panel.querySelectorAll('.deco-asset-card');
+    const currentPlanet = state.homePlanet || 'voxya';
+    const assets = DecorationManager.getAssets(currentPlanet);
+    cards.forEach(card => {
+        const assetId = card.dataset.assetId;
+        const asset = assets.find(a => a.id === assetId);
+        if (!asset || (category !== 'all' && asset.category !== category)) {
+            card.style.display = 'none';
+        } else {
+            card.style.display = '';
+        }
+    });
+}
+
+function updateDecoCount(panel) {
+    const countEl = panel?.querySelector('.deco-count');
+    if (countEl) {
+        countEl.textContent = `${state.decorationManager.getAll().length} placed`;
     }
 }
 
@@ -527,6 +879,12 @@ function setupMapInteraction() {
         state.renderer.toggleCustomBaseNames();
     });
 
+    // Toggle waypoint name labels
+    getElement('toggle-waypoint-names')?.addEventListener('click', () => {
+        state.renderer.toggleWaypointNames();
+        document.getElementById('toggle-waypoint-names')?.classList.toggle('active');
+    });
+
     // Toggle visual effects (selection ring, trails, and connection paths)
     getElement('toggle-paths')?.addEventListener('click', () => {
         state.renderer.toggleVisualEffects();
@@ -569,6 +927,24 @@ function onBaseSelected(baseId, clientX, clientY) {
 // Register global handler so renderer can call it directly (bypasses CustomEvent issues)
 window.handleBaseSelected = onBaseSelected;
 
+// Global handler for decoration selection in edit mode
+window.handleDecorationSelected = (decoId, clientX, clientY) => {
+    if (state.decorationPlaceMode && _decorationRemoveMode) {
+        state.decorationManager.removeDecoration(decoId);
+        state.renderer.renderDecorations();
+        updateDecoCount(document.getElementById('decoration-asset-panel'));
+        setStatus('Decoration removed');
+        return;
+    }
+    // In decoration placement mode without remove, show selection
+    state.selectedDecoId = decoId;
+    const deco = state.decorationManager.getAll().find(d => d.id === decoId);
+    if (deco) {
+        const asset = state._assetMap.get(deco.assetId);
+        setStatus(`Selected: ${asset ? asset.name : 'decoration'} at (${Math.round(deco.x)}, ${Math.round(deco.y)})`);
+    }
+};
+
 function clearSelection() {
     state.selectedBaseId = null;
     state.renderer.clearSelection();
@@ -590,16 +966,11 @@ function showBasePopup(base, clientX, clientY) {
     console.log('[Main] showBasePopup called:', base.name, 'type:', base.type, 'clientX:', clientX, 'clientY:', clientY);
     hideBasePopup();
 
-    const sigil = state.sigils.get(base.id);
-    const sigilComplete = sigil && sigil.isComplete;
-    const summonedCount = sigil
-        ? state.summonedCreatures.filter(sc => sc.baseId === base.id && sc.isComplete).length
-        : 0;
+    const isEnemy = base.type === 'enemy-base' || base.type === 'enemy-king-base';
 
     const popup = document.createElement('div');
     popup.id = 'base-action-popup';
     popup.className = 'base-action-popup';
-    // Ensure visibility (belt-and-suspenders)
     popup.style.display = 'block';
     popup.style.visibility = 'visible';
     popup.style.opacity = '1';
@@ -607,66 +978,125 @@ function showBasePopup(base, clientX, clientY) {
     // Header — base name + type
     const header = document.createElement('div');
     header.className = 'popup-header';
+    const typeLabel = isEnemy ? 'Enemy Base' : (base.type || 'Base');
+
+    // HP display for king bases
+    const isKing = base.type === 'king-base' || base.type === 'enemy-king-base';
+    const hpData = isKing ? state.kingBaseHP[base.id] : null;
+    const hpHTML = hpData
+        ? `<span class="popup-base-type" style="color:${isEnemy ? '#ef4444' : '#f4d03f'};margin-left:8px;">HP ${hpData.current}/${hpData.max}</span>`
+        : '';
+
     header.innerHTML = `
         <span class="popup-base-name">${base.name}</span>
-        <span class="popup-base-type">${base.type || 'Base'}</span>
+        <span class="popup-base-type" style="${isEnemy ? 'color:#ef4444' : ''}">${typeLabel}</span>
+        ${hpHTML}
     `;
     popup.appendChild(header);
 
-    // Actions divider
-    const actions = document.createElement('div');
-    actions.className = 'popup-actions';
+    if (isEnemy) {
+        // Enemy base popup — show intel instead of actions
+        const actions = document.createElement('div');
+        actions.className = 'popup-actions';
 
-    if (!sigil) {
-        // No sigil yet — craft one
-        const canCraft = state.mana >= SIGIL_MANA_COST && state.actions > 0;
-        const craftBtn = createPopupButton(`&#10015; Build Sigil (${SIGIL_MANA_COST} essence)`, canCraft, () => {
-            craftSigil();
-            hideBasePopup();
-        });
-        actions.appendChild(craftBtn);
-        console.log('[Main] Popup: added Build Sigil button, enabled:', canCraft, 'mana:', state.mana, 'actions:', state.actions);
-    } else if (!sigilComplete) {
-        // Sigil building — show real-time progress
-        const remainingMs = state.sigilManager.getRemaining(sigil.buildStartTime, sigil.buildDuration);
-        const remainingStr = formatTimeRemaining(remainingMs);
-        const progressDiv = document.createElement('div');
-        progressDiv.className = 'popup-status';
-        progressDiv.innerHTML = `
-            <span class="popup-status-icon">&#10015;</span>
-            <span>Sigil building... ${remainingStr} remaining</span>
+        // Show enemy sigil status
+        const enemySigil = state.enemyAI ? state.enemyAI.sigils.get(base.id) : null;
+        if (enemySigil) {
+            const remainingMs = Math.max(0, enemySigil.buildDuration - (Date.now() - enemySigil.buildStartTime));
+            if (enemySigil.isComplete) {
+                const enemySummoned = state.enemyAI
+                    ? state.enemyAI.getSummonedCreatures().filter(sc => sc.baseId === base.id).length
+                    : 0;
+                const enemyCreatures = state.enemyAI
+                    ? state.enemyAI.getCreatures().filter(c => c.baseId === base.id).length
+                    : 0;
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'popup-status';
+                statusDiv.innerHTML = `
+                    <span class="popup-sigil-ready" style="color:#ef4444;">&#10015; Enemy Sigil Active</span>
+                    <span class="popup-summon-count" style="color:#fca5a5;">${enemyCreatures} creature${enemyCreatures !== 1 ? 's' : ''} present</span>
+                `;
+                actions.appendChild(statusDiv);
+            } else {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'popup-status';
+                statusDiv.innerHTML = `
+                    <span style="color:#ef4444;">&#10015; Enemy sigil building... ${formatTimeRemaining(remainingMs)}</span>
+                `;
+                actions.appendChild(statusDiv);
+            }
+        } else {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'popup-status';
+            statusDiv.innerHTML = `<span style="color:#fca5a5;">No enemy sigil detected</span>`;
+            actions.appendChild(statusDiv);
+        }
+
+        // Intel divider
+        const intelDiv = document.createElement('div');
+        intelDiv.className = 'popup-status';
+        intelDiv.style.marginTop = '8px';
+        intelDiv.innerHTML = `
+            <span style="color:rgba(255,255,255,0.4); font-size:0.65rem;">&#9888; Enemy territory — approach with caution</span>
         `;
-        actions.appendChild(progressDiv);
+        actions.appendChild(intelDiv);
+
+        popup.appendChild(actions);
     } else {
-        // Sigil complete — can summon
-        const canSummon = state.mana >= MIN_SUMMON_COST && state.actions > 0;
-        const summonBtn = createPopupButton('&#9733; Summon Creature', canSummon, () => {
-            openSummonCreatureMenu();
-            hideBasePopup();
-        });
-        actions.appendChild(summonBtn);
+        // Player base popup — existing logic
+        const sigil = state.sigils.get(base.id);
+        const sigilComplete = sigil && sigil.isComplete;
+        const summonedCount = sigil
+            ? state.summonedCreatures.filter(sc => sc.baseId === base.id && sc.isComplete).length
+            : 0;
 
-        // Show sigil status + summoned count
-        const statusDiv = document.createElement('div');
-        statusDiv.className = 'popup-status';
-        statusDiv.innerHTML = `
-            <span class="popup-sigil-ready">&#10015; Sigil active</span>
-            <span class="popup-summon-count">${summonedCount} creature${summonedCount !== 1 ? 's' : ''} present</span>
-        `;
-        actions.appendChild(statusDiv);
+        const actions = document.createElement('div');
+        actions.className = 'popup-actions';
+
+        if (!sigil) {
+            const hasSlot = state.actionSlots.used < state.actionSlots.max;
+            const canCraft = getTotalMana() >= SIGIL_MANA_COST && hasSlot;
+            const craftBtn = createPopupButton(`&#10015; Build Sigil (${SIGIL_MANA_COST} essence)`, canCraft, () => {
+                craftSigil();
+                hideBasePopup();
+            });
+            actions.appendChild(craftBtn);
+        } else if (!sigilComplete) {
+            const remainingMs = state.sigilManager.getRemaining(sigil.buildStartTime, sigil.buildDuration);
+            const remainingStr = formatTimeRemaining(remainingMs);
+            const progressDiv = document.createElement('div');
+            progressDiv.className = 'popup-status';
+            progressDiv.innerHTML = `
+                <span class="popup-status-icon">&#10015;</span>
+                <span>Sigil building... ${remainingStr} remaining</span>
+            `;
+            actions.appendChild(progressDiv);
+        } else {
+            const hasSlot = state.actionSlots.used < state.actionSlots.max;
+            const canSummon = getTotalMana() >= MIN_SUMMON_COST && hasSlot;
+            const summonBtn = createPopupButton('&#9733; Summon Creature', canSummon, () => {
+                openSummonCreatureMenu();
+                hideBasePopup();
+            });
+            actions.appendChild(summonBtn);
+
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'popup-status';
+            statusDiv.innerHTML = `
+                <span class="popup-sigil-ready">&#10015; Sigil active</span>
+                <span class="popup-summon-count">${summonedCount} creature${summonedCount !== 1 ? 's' : ''} present</span>
+            `;
+            actions.appendChild(statusDiv);
+        }
+
+        popup.appendChild(actions);
     }
-
-    popup.appendChild(actions);
 
     // Append to body and position
     document.body.appendChild(popup);
-    console.log('[Main] Popup appended to body, child count:', popup.children.length);
 
-    // Position near click, keeping popup within viewport
     const popupRect = popup.getBoundingClientRect();
-    console.log('[Main] Popup rect:', popupRect.width, 'x', popupRect.height, 'at', popupRect.left, ',', popupRect.top);
-
-    let left = clientX - 100; // center below cursor
+    let left = clientX - 100;
     let top = clientY + 16;
 
     if (left + popupRect.width > window.innerWidth - 10) {
@@ -679,14 +1109,9 @@ function showBasePopup(base, clientX, clientY) {
 
     popup.style.left = `${left}px`;
     popup.style.top = `${top}px`;
-    console.log('[Main] Popup positioned at:', left, ',', top);
 
-    // Dismiss on outside click — use pointerdown for responsiveness.
-    // Installed immediately (no setTimeout). The pointerdown that triggered
-    // this popup called stopPropagation on the base marker, so it won't
-    // reach the document — no risk of self-cancellation.
+    // Dismiss on outside click
     function makeDismissHandler(e) {
-        // Only dismiss if clicking OUTSIDE the popup
         if (popup.contains(e.target)) return;
         hideBasePopup();
         document.removeEventListener('pointerdown', makeDismissHandler);
@@ -723,6 +1148,8 @@ let _activeCreaturePopupId = null;
 function showCreaturePopup(creature, clientX, clientY) {
     hideCreaturePopup();
 
+    const isEnemyCreature = creature._isEnemy || creature.owner === 'enemy';
+
     const popup = document.createElement('div');
     popup.id = 'creature-action-popup';
     popup.className = 'creature-action-popup';
@@ -733,8 +1160,9 @@ function showCreaturePopup(creature, clientX, clientY) {
     // Header — creature name + level + type
     const header = document.createElement('div');
     header.className = 'popup-header';
+    const enemyLabel = isEnemyCreature ? ' <span style="color:#ef4444;font-size:0.6rem;">[ENEMY]</span>' : '';
     header.innerHTML = `
-        <span class="popup-base-name">${creature.name}</span>
+        <span class="popup-base-name">${creature.name}${enemyLabel}</span>
         <span class="popup-base-type">Lv.${creature.level || 1} ${creature.type || 'Creature'}</span>
     `;
     popup.appendChild(header);
@@ -749,39 +1177,46 @@ function showCreaturePopup(creature, clientX, clientY) {
     `;
     popup.appendChild(stats);
 
-    // Actions
-    const actions = document.createElement('div');
-    actions.className = 'popup-actions';
+    if (isEnemyCreature) {
+        // Enemy creature — show limited intel
+        const actions = document.createElement('div');
+        actions.className = 'popup-actions';
+        const intelDiv = document.createElement('div');
+        intelDiv.className = 'popup-status';
+        intelDiv.innerHTML = '<span style="color:rgba(255,255,255,0.4);font-size:0.65rem;">&#9888; Enemy unit — cannot command</span>';
+        actions.appendChild(intelDiv);
+        popup.appendChild(actions);
+    } else {
+        // Player creature — existing actions
+        const actions = document.createElement('div');
+        actions.className = 'popup-actions';
 
-    // Move button
-    const moveBtn = createPopupButton('&#10132; Move', !creature._isMoving, () => {
-        hideCreaturePopup();
-        state.renderer.clearMovementRange();
-        // Don't show range — just enter move mode
-        // The showMovementRange dispatch will be handled by the creatureMoveMode listener
-        if (!creature._isMoving) {
-            // Set up move mode immediately, then dispatch the event
-            state.moveMode = { creatureId: creature.id };
-            setStatus('Select destination for ' + creature.name);
-            // Tell the renderer we entered move mode (clears selection layer)
+        // Move button
+        const moveBtn = createPopupButton('&#10132; Move', !creature._isMoving, () => {
+            hideCreaturePopup();
             state.renderer.clearMovementRange();
-        }
-    });
-    actions.appendChild(moveBtn);
+            if (!creature._isMoving) {
+                state.moveMode = { creatureId: creature.id };
+                setStatus('Select destination for ' + creature.name);
+                state.renderer.clearMovementRange();
+            }
+        });
+        actions.appendChild(moveBtn);
 
-    // Attack button (future)
-    const atkBtn = createPopupButton('&#9876; Attack', false, () => {});
-    atkBtn.title = 'Coming soon';
-    actions.appendChild(atkBtn);
+        // Attack button (future)
+        const atkBtn = createPopupButton('&#9876; Attack', false, () => {});
+        atkBtn.title = 'Coming soon';
+        actions.appendChild(atkBtn);
 
-    // Cast Effect button (future)
-    const castBtn = createPopupButton('&#9889; Cast Effect', false, () => {});
-    castBtn.title = 'Coming soon';
-    actions.appendChild(castBtn);
+        // Cast Effect button (future)
+        const castBtn = createPopupButton('&#9889; Cast Effect', false, () => {});
+        castBtn.title = 'Coming soon';
+        actions.appendChild(castBtn);
 
-    popup.appendChild(actions);
+        popup.appendChild(actions);
+    }
 
-    // Append to body and position
+    // Append to body and position (shared)
     document.body.appendChild(popup);
 
     const popupRect = popup.getBoundingClientRect();
@@ -861,28 +1296,235 @@ function cancelMoveMode() {
     setStatus('Movement cancelled');
 }
 
+// ============================================
+// Combat System
+// ============================================
+
+/**
+ * Resolve combat at a base when creatures arrive.
+ * Called after any creature movement completes.
+ */
+function resolveCombatAtBase(baseId) {
+    const base = state.baseSystem.getById(baseId);
+    if (!base) return;
+
+    const allCreatures = state.renderer ? Array.from(state.renderer.creatures.values()) : [];
+
+    // Also include enemy AI creatures
+    const enemyCreatures = state.enemyAI ? state.enemyAI.getCreatures() : [];
+    const allUnits = [...allCreatures, ...enemyCreatures.filter(ec => !allCreatures.find(ac => ac.id === ec.id))];
+
+    const playerUnits = allUnits.filter(c => c.baseId === baseId && c.owner !== 'enemy' && !c._isEnemy);
+    const enemyUnits = allUnits.filter(c => c.baseId === baseId && (c.owner === 'enemy' || c._isEnemy));
+
+    // No fight if only one side present
+    if (playerUnits.length === 0 && enemyUnits.length === 0) return;
+    if (playerUnits.length === 0 || enemyUnits.length === 0) {
+        // One side present at an enemy king base — deal ATK damage
+        _resolveSiegeDamage(baseId, base, playerUnits, enemyUnits);
+        return;
+    }
+
+    // Both sides present — combat!
+    // Sort by ATK descending
+    playerUnits.sort((a, b) => b.atk - a.atk);
+    enemyUnits.sort((a, b) => b.atk - a.atk);
+
+    const rounds = Math.min(playerUnits.length, enemyUnits.length);
+
+    for (let i = 0; i < rounds; i++) {
+        const attacker = enemyUnits[i];   // enemy attacks first (arriving side)
+        const defender = playerUnits[i];
+
+        if (attacker.atk > defender.def) {
+            // Attacker wins — destroy defender
+            _destroyCreature(defender, attacker);
+        } else if (defender.atk > attacker.def) {
+            // Defender wins — destroy attacker
+            _destroyCreature(attacker, defender);
+        } else {
+            // Stalemate — both take 50% ATK as damage, check if either dies
+            if (attacker.atk >= defender.atk) {
+                _destroyCreature(defender, attacker);
+            }
+            if (defender.atk >= attacker.atk && _creatureExists(attacker)) {
+                _destroyCreature(attacker, defender);
+            }
+        }
+    }
+
+    // Re-render after combat
+    state.renderer.renderCreatures();
+    state.renderer.renderMarkers();
+    state.renderer.renderSelection();
+}
+
+/**
+ * Damage king bases when opposing creatures are unopposed.
+ */
+function _resolveSiegeDamage(baseId, base, playerUnits, enemyUnits) {
+    const isPlayerKing = base.type === 'king-base';
+    const isEnemyKing = base.type === 'enemy-king-base';
+    if (!isPlayerKing && !isEnemyKing) return;
+
+    const hpData = state.kingBaseHP[baseId];
+    if (!hpData || hpData.current <= 0) return;
+
+    if (isEnemyKing && playerUnits.length > 0) {
+        // Player creatures attacking enemy king base
+        let totalDmg = 0;
+        for (const unit of playerUnits) {
+            totalDmg += unit.atk;
+        }
+        hpData.current = Math.max(0, hpData.current - totalDmg);
+        showToast(`Your army deals ${totalDmg} damage to ${base.name}!`, 'success', 4000);
+        setStatus(`Siege: ${base.name} takes ${totalDmg} damage! HP remaining: ${hpData.current}`);
+
+        if (hpData.current <= 0) {
+            _onKingBaseDestroyed(base, 'enemy');
+        }
+    }
+
+    if (isPlayerKing && enemyUnits.length > 0) {
+        // Enemy creatures attacking player king base
+        let totalDmg = 0;
+        for (const unit of enemyUnits) {
+            totalDmg += unit.atk;
+        }
+        hpData.current = Math.max(0, hpData.current - totalDmg);
+        showToast(`Enemy deals ${totalDmg} damage to ${base.name}!`, 'error', 4000);
+        setStatus(`WARNING: ${base.name} under siege! HP remaining: ${hpData.current}`);
+
+        if (hpData.current <= 0) {
+            _onKingBaseDestroyed(base, 'player');
+        }
+    }
+
+    state.renderer.renderMarkers();
+}
+
+/**
+ * Destroy a creature and announce it.
+ */
+function _destroyCreature(victim, killer) {
+    // Run onDeath effect for victim
+    executeEffects('onDeath', victim, { gameState: state, killer });
+
+    // Check if saved from death (return to hand, revive, etc.)
+    if (victim._savedFromDeath) {
+        delete victim._savedFromDeath;
+        showToast(`${victim.name} escapes destruction!`, 'info', 3000);
+        state.renderer.renderCreatures();
+        return;
+    }
+
+    // Remove from renderer
+    if (state.renderer) {
+        state.renderer.removeCreature(victim.id);
+    }
+    // Remove from enemy AI if applicable
+    if (state.enemyAI && (victim.owner === 'enemy' || victim._isEnemy)) {
+        const idx = state.enemyAI.creatures.findIndex(c => c.id === victim.id);
+        if (idx !== -1) state.enemyAI.creatures.splice(idx, 1);
+    }
+    showToast(`${killer.name} destroys ${victim.name}!`, killer.owner === 'enemy' ? 'error' : 'success', 4000);
+
+    // Run onKill effect for killer
+    executeEffects('onKill', killer, { gameState: state, victim });
+}
+
+function _destroyCreatureDirect(victim) {
+    // Destroy without a killer (for effect damage)
+    if (state.renderer) {
+        state.renderer.removeCreature(victim.id);
+    }
+    if (state.enemyAI && (victim.owner === 'enemy' || victim._isEnemy)) {
+        const idx = state.enemyAI.creatures.findIndex(c => c.id === victim.id);
+        if (idx !== -1) state.enemyAI.creatures.splice(idx, 1);
+    }
+}
+
+function _creatureExists(creature) {
+    if (!creature) return false;
+    if (state.renderer && state.renderer.creatures.has(creature.id)) return true;
+    if (state.enemyAI && state.enemyAI.creatures.find(c => c.id === creature.id)) return true;
+    return false;
+}
+
+/**
+ * Called when a king base reaches 0 HP.
+ */
+function _onKingBaseDestroyed(base, whose) {
+    if (whose === 'enemy') {
+        showToast(`VICTORY! ${base.name} has fallen!`, 'success', 8000);
+        setStatus(`VICTORY: Enemy king base ${base.name} destroyed!`);
+    } else {
+        showToast(`DEFEAT! Your ${base.name} has been destroyed!`, 'error', 8000);
+        setStatus(`DEFEAT: Your king base has fallen...`);
+    }
+    state.renderer.renderMarkers();
+    state.renderer.renderSelection();
+}
+
+/**
+ * Run periodic effects for all creatures on the field (every 60s).
+ */
+function runPeriodicEffects() {
+    const allCreatures = state.renderer ? Array.from(state.renderer.creatures.values()) : [];
+    const enemyCreatures = state.enemyAI ? state.enemyAI.getCreatures() : [];
+    const all = [...allCreatures, ...enemyCreatures.filter(ec => !allCreatures.find(ac => ac.id === ec.id))];
+
+    for (const creature of all) {
+        executeEffects('periodic', creature, { gameState: state });
+    }
+    state.renderer.renderMarkers();
+}
+
 // Button States
 // ============================================
 
 function updateButtonStates(base) {
-    const canAct = state.actions > 0;
+    const hasFreeSlot = state.actionSlots.used < state.actionSlots.max;
 
-    // Sigil button: enabled when no existing sigil and can afford
+    // Sigil button: enabled when free slot available, no existing sigil, and can afford
     const hasSigil = base ? state.sigils.has(base.id) : false;
-    const canAffordSigil = state.mana >= SIGIL_MANA_COST;
-    setEnabled(ui.btnSigil, base && !hasSigil && canAct && canAffordSigil);
+    const totalMana = getTotalMana();
+    const canAffordSigil = totalMana >= SIGIL_MANA_COST;
+    setEnabled(ui.btnSigil, base && !hasSigil && hasFreeSlot && canAffordSigil);
 
-    // Summon button: enabled when sigil complete and can afford
+    // Summon button: enabled when sigil complete, free slot, and can afford
     const sigil = base ? state.sigils.get(base.id) : null;
     const sigilReady = sigil && sigil.isComplete;
-    const canAffordSummon = state.mana >= MIN_SUMMON_COST; // minimum summon cost
-    setEnabled(ui.btnSummon, base && sigilReady && canAct && canAffordSummon);
+    const canAffordSummon = totalMana >= MIN_SUMMON_COST;
+    setEnabled(ui.btnSummon, base && sigilReady && hasFreeSlot && canAffordSummon);
 }
 
 function updateUI() {
-    if (ui.tickCount) ui.tickCount.textContent = state.tick;
-    if (ui.manaCount) ui.manaCount.textContent = `${state.mana}/${state.maxMana}`;
-    if (ui.actionsCount) ui.actionsCount.textContent = state.actions;
+    if (ui.tickCount) {
+        const elapsedSec = Math.floor((Date.now() - state.startTime) / 1000);
+        const min = Math.floor(elapsedSec / 60);
+        const sec = elapsedSec % 60;
+        ui.tickCount.textContent = `${min}:${String(sec).padStart(2, '0')}`;
+    }
+    for (const [key, el] of Object.entries(ui.shardValues)) {
+        if (el) el.textContent = state.shards[key];
+    }
+    for (const [key, el] of Object.entries(ui.resourceValues)) {
+        if (el) el.textContent = state.resources[key];
+    }
+    // Update action slot indicators
+    const freeSlots = state.actionSlots.max - state.actionSlots.used;
+    ui.slotEls.forEach((el, i) => {
+        if (el) {
+            if (i < freeSlots) {
+                el.classList.add('slot-free');
+                el.classList.remove('slot-used');
+            } else {
+                el.classList.add('slot-used');
+                el.classList.remove('slot-free');
+            }
+        }
+    });
     if (ui.originName) {
         const origin = state.baseSystem.getById(state.playerOrigin);
         ui.originName.textContent = origin?.name || '-';
@@ -906,23 +1548,52 @@ function setStatus(message) {
 function handleSigilEvent(entity, eventType) {
     switch (eventType) {
         case 'sigil-started':
-            showToast('Crafting Sigil... (2 min)', 'info', 4000);
+            showToast('Crafting Sigil... (20 sec)', 'info', 4000);
             break;
         case 'sigil-complete':
             showToast('Sigil complete!', 'success', 3000);
+            state.actionSlots.used = Math.max(0, state.actionSlots.used - 1);
             break;
         case 'sigil-destroyed':
             showToast('Sigil destroyed', 'warning', 3000);
+            state.actionSlots.used = Math.max(0, state.actionSlots.used - 1);
             break;
         case 'summon-started':
-            showToast(`Summoning ${entity.name} Lv.${entity.level}... (1 min)`, 'info', 4000);
+            showToast(`Summoning ${entity.name} Lv.${entity.level}... (10 sec)`, 'info', 4000);
             break;
         case 'summon-complete':
             promoteSummonedCreature(entity);
+            state.actionSlots.used = Math.max(0, state.actionSlots.used - 1);
             break;
     }
     state.renderer.renderSigilsAndSummoned();
     updateUI();
+}
+
+/**
+ * Handle enemy AI events — show toasts for enemy activity.
+ */
+function handleEnemyEvent(eventType, data) {
+    switch (eventType) {
+        case 'enemy-sigil-started':
+            showToast(`Enemy: Crafting sigil at ${data.baseName}...`, 'warning', 3000);
+            break;
+        case 'enemy-sigil-complete':
+            showToast(`Enemy: Sigil ready at ${data.baseName}!`, 'warning', 3000);
+            break;
+        case 'enemy-summon-started':
+            showToast(`Enemy summoning ${data.creatureName} Lv.${data.level}...`, 'warning', 4000);
+            break;
+        case 'enemy-creature-ready':
+            showToast(`Enemy: ${data.creatureName} Lv.${data.level} joins the enemy army!`, 'error', 4000);
+            // Trigger combat at the base where this creature was summoned
+            if (data.baseId) resolveCombatAtBase(data.baseId);
+            break;
+        case 'enemy-creature-moving':
+            showToast(`Enemy: ${data.creatureName} advancing from ${data.from}!`, 'warning', 3000);
+            break;
+    }
+    state.renderer.renderSigilsAndSummoned();
 }
 
 /**
@@ -934,10 +1605,15 @@ function craftSigil() {
         return;
     }
 
+    if (state.actionSlots.used >= state.actionSlots.max) {
+        setStatus('No free action slots — wait for ongoing operations to complete');
+        return;
+    }
+
     if (!state.sigilManager.canCraftSigil(state.selectedBaseId)) {
         if (state.sigils.has(state.selectedBaseId)) {
             setStatus('This base already has a sigil');
-        } else if (state.mana < SIGIL_MANA_COST) {
+        } else if (getTotalMana() < SIGIL_MANA_COST) {
             setStatus(`Need ${SIGIL_MANA_COST} essence to craft a sigil`);
         }
         return;
@@ -945,7 +1621,7 @@ function craftSigil() {
 
     const sigil = state.sigilManager.craftSigil(state.selectedBaseId);
     if (sigil) {
-        state.actions--;
+        state.actionSlots.used++;
         state.renderer.renderSigilsAndSummoned();
         updateUI();
         updateButtonStates(state.baseSystem.getById(state.selectedBaseId));
@@ -1042,7 +1718,7 @@ function renderCreatureList(continent, listContainer) {
 
     creatures.forEach(entry => {
         const cost = getSummonCost(entry);
-        const canAfford = state.mana >= cost;
+        const canAfford = getTotalMana() >= cost;
 
         const item = document.createElement('div');
         item.className = `creature-selector-item${canAfford ? '' : ' unaffordable'}`;
@@ -1108,7 +1784,7 @@ function confirmSummonCreature(dbEntry, summonCost) {
     );
 
     if (summoned) {
-        state.actions--;
+        state.actionSlots.used++;
         state.renderer.renderSigilsAndSummoned();
         updateUI();
         updateButtonStates(state.baseSystem.getById(state.selectedBaseId));
@@ -1148,29 +1824,64 @@ function promoteSummonedCreature(summoned) {
     const idx = state.summonedCreatures.findIndex(sc => sc.id === summoned.id);
     if (idx !== -1) state.summonedCreatures.splice(idx, 1);
     showToast(`${summoned.name} Lv.${summoned.level} joins your army!`, 'success', 4000);
+    // Run onSummon effects
+    executeEffects('onSummon', creature, { gameState: state, baseId: creature.baseId });
+    // Trigger combat if enemies are at this base
+    resolveCombatAtBase(summoned.baseId);
 }
 
-// Sigil render loop — updates progress rings smoothly AND checks completions
+// Time-based resource regeneration
+function updateRegen() {
+    const now = Date.now();
+    let delta = now - state.lastRegenTime;
+    if (delta <= 0) return;
+    state.lastRegenTime = now;
+
+    // Clamp to prevent massive regen from tab switching
+    delta = Math.min(delta, MAX_REGEN_DELTA_MS);
+
+    // Mana: regen home planet shards
+    const homeKey = state.homePlanet;
+    if (state.shards[homeKey] < state.maxShards) {
+        state.manaRegenAccumulator += delta;
+        const fullMana = Math.floor(state.manaRegenAccumulator / MANA_REGEN_RATE_MS);
+        if (fullMana > 0) {
+            state.shards[homeKey] = Math.min(state.maxShards, state.shards[homeKey] + fullMana);
+            state.manaRegenAccumulator -= fullMana * MANA_REGEN_RATE_MS;
+        }
+    } else {
+        state.manaRegenAccumulator = 0;
+    }
+
+    // Resources: regen all 5 types
+    state.resourceRegenAccumulator += delta;
+    const fullRes = Math.floor(state.resourceRegenAccumulator / RESOURCE_REGEN_RATE_MS);
+    if (fullRes > 0) {
+        for (const key of Object.keys(state.resources)) {
+            state.resources[key] = Math.min(state.maxResources, state.resources[key] + fullRes);
+        }
+        state.resourceRegenAccumulator -= fullRes * RESOURCE_REGEN_RATE_MS;
+    }
+}
+
+// Main game loop — processes real-time systems every animation frame
 function sigilRenderLoop(timestamp) {
     if (state.renderer && state.sigilManager) {
-        // Check for real-time completions every frame
+        updateRegen();
         state.sigilManager.checkCompletions();
         state.renderer.renderSigilsAndSummoned();
-        // Update creature movement interpolations
         state.renderer.updateCreatureMovements();
     }
-    requestAnimationFrame(sigilRenderLoop);
-}
-
-function endTurn() {
-    state.tick++;
-    state.actions = state.maxActions;
-    state.mana = Math.min(state.mana + 2, state.maxMana);
-
+    if (state.enemyAI) {
+        state.enemyAI.update(timestamp);
+    }
+    // Periodic creature effects (every 60s)
+    if (timestamp - state.lastPeriodicEffects > 60000) {
+        runPeriodicEffects();
+        state.lastPeriodicEffects = timestamp;
+    }
     updateUI();
-    state.renderer.renderSigilsAndSummoned();
-    setStatus(`Turn ${state.tick} - ${state.actions} actions available, ${state.mana} essence`);
-    log('Turn ended, tick:', state.tick);
+    requestAnimationFrame(sigilRenderLoop);
 }
 
 // ============================================
