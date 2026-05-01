@@ -19,6 +19,7 @@ import { FogOfWar } from './fogOfWar.js';
 import { ZoneOfControl } from './zones.js';
 import { RegionEditor } from './regionEditor.js';
 import { MaskBrush } from './maskBrush.js';
+import { SmokeBrush } from './smokeBrush.js';
 
 // ============================================
 // Game Constants
@@ -55,6 +56,16 @@ const PLANET_REGIONS = {
 // Mask brush strokes per planet — populated from editor exports
 // Format: [{x, y, r}, ...] — canvas-pixel coordinates
 const PLANET_MASKS = {
+    voxya: [],
+    orilyth: [],
+    korvess: [],
+    sanguis: [],
+    silith9: []
+};
+
+// Smoke brush strokes per planet — populated from editor exports
+// Format: [{x, y, r}, ...]
+const PLANET_SMOKE = {
     voxya: [],
     orilyth: [],
     korvess: [],
@@ -105,6 +116,7 @@ const state = {
     zones: null,                         // ZoneOfControl instance
     regionEditor: null,                  // RegionEditor instance
     maskBrush: null,                     // MaskBrush instance
+    smokeBrush: null,                    // SmokeBrush instance
     lastPeriodicEffects: Date.now(),     // Last time periodic effects were checked
     // Decoration system
     decorationManager: null,             // DecorationManager instance
@@ -255,6 +267,13 @@ async function init() {
 
     // Initialize mask brush (paint-to-hide map areas)
     state.maskBrush = new MaskBrush(svgOverlay, '#map-world .map-bg');
+
+    // Initialize smoke brush (animated smoke particles)
+    state.smokeBrush = new SmokeBrush(svgOverlay, 'smoke-layer');
+    // Load saved smoke strokes if any
+    if (PLANET_SMOKE[planet] && PLANET_SMOKE[planet].length > 0) {
+        state.smokeBrush.loadStrokes(PLANET_SMOKE[planet]);
+    }
     // Load saved mask strokes if any
     if (PLANET_MASKS[planet] && PLANET_MASKS[planet].length > 0) {
         // Delay until image loads — wrapped in a check
@@ -532,6 +551,9 @@ function toggleEditMode() {
         if (state.regionEditor) state.regionEditor.deactivate();
         // Clean up mask brush
         if (state.maskBrush) state.maskBrush.deactivate();
+        // Clean up smoke brush
+        if (state.smokeBrush) state.smokeBrush.deactivate();
+        hideBrushSizeSlider();
         state.renderer.renderDecorations();
     }
 
@@ -585,9 +607,14 @@ function createEditorPalette() {
             <button class="editor-palette-btn editor-palette-accent" data-action="decorations">&#127794;<span class="btn-label"> Decorations</span></button>
             <button class="editor-palette-btn editor-palette-accent" data-action="draw-region">&#11044;<span class="btn-label"> Draw Region</span></button>
             <button class="editor-palette-btn editor-palette-accent" data-action="mask-brush">&#127912;<span class="btn-label"> Mask Brush</span></button>
+            <button class="editor-palette-btn editor-palette-accent" data-action="smoke-brush">&#128168;<span class="btn-label"> Smoke Brush</span></button>
             <button class="editor-palette-btn editor-palette-danger" data-action="remove">&#10007;<span class="btn-label"> Remove</span></button>
             <button class="editor-palette-btn" data-action="export">&#128229;<span class="btn-label"> Export</span></button>
             <button class="editor-palette-btn editor-palette-exit" data-action="exit">&#10005;<span class="btn-label"> Exit</span></button>
+        </div>
+        <div class="editor-brush-size" id="editor-brush-size" style="display:none;margin-top:10px;padding:8px;background:rgba(124,58,237,0.1);border-radius:8px;">
+            <label style="color:#a78bfa;font-size:0.7rem;display:block;margin-bottom:4px;">Brush Size: <span id="brush-size-value">40</span>px</label>
+            <input type="range" id="brush-size-slider" min="5" max="150" value="40" style="width:100%;accent-color:#7c3aed;">
         </div>
     `;
 
@@ -617,6 +644,14 @@ function createEditorPalette() {
         // Clean up mask brush when switching to other tools
         if (action !== 'mask-brush' && state.maskBrush) {
             state.maskBrush.deactivate();
+        }
+        // Clean up smoke brush when switching to other tools
+        if (action !== 'smoke-brush' && state.smokeBrush) {
+            state.smokeBrush.deactivate();
+        }
+        // Hide brush size slider unless on a brush tool
+        if (action !== 'mask-brush' && action !== 'smoke-brush') {
+            hideBrushSizeSlider();
         }
 
         switch (action) {
@@ -689,6 +724,16 @@ function createEditorPalette() {
                     state.maskBrush.activate();
                     setStatus('Mask Brush: Click and drag to paint hidden areas. Brush size: ' + state.maskBrush.getSize() + 'px');
                 }
+                showBrushSizeSlider('mask');
+                break;
+            case 'smoke-brush':
+                btn.classList.add('active');
+                state.renderer._handleModeSwitch();
+                if (state.smokeBrush) {
+                    state.smokeBrush.activate();
+                    setStatus('Smoke Brush: Click and drag to paint animated smoke');
+                }
+                showBrushSizeSlider('smoke');
                 break;
             case 'export':
                 exportFullLayout();
@@ -750,6 +795,48 @@ function hideEditorPalette() {
     }
 }
 
+let _brushSizeSliderWired = false;
+
+function showBrushSizeSlider(mode) {
+    const slider = document.getElementById('editor-brush-size');
+    if (!slider) return;
+    slider.style.display = 'block';
+
+    const sizeInput = document.getElementById('brush-size-slider');
+    const sizeLabel = document.getElementById('brush-size-value');
+    if (!sizeInput) return;
+
+    // Set initial value from the active brush
+    if (mode === 'mask' && state.maskBrush) {
+        sizeInput.value = state.maskBrush.getSize();
+        if (sizeLabel) sizeLabel.textContent = sizeInput.value;
+    } else if (mode === 'smoke' && state.smokeBrush) {
+        sizeInput.value = state.smokeBrush.getSize();
+        if (sizeLabel) sizeLabel.textContent = sizeInput.value;
+    }
+
+    // Wire slider once
+    if (!_brushSizeSliderWired) {
+        _brushSizeSliderWired = true;
+        sizeInput.addEventListener('input', () => {
+            const val = parseInt(sizeInput.value);
+            if (sizeLabel) sizeLabel.textContent = val;
+            // Update whichever brush is active
+            if (state.maskBrush && document.querySelector('[data-action="mask-brush"].active')) {
+                state.maskBrush.setSize(val);
+            }
+            if (state.smokeBrush && document.querySelector('[data-action="smoke-brush"].active')) {
+                state.smokeBrush.setSize(val);
+            }
+        });
+    }
+}
+
+function hideBrushSizeSlider() {
+    const slider = document.getElementById('editor-brush-size');
+    if (slider) slider.style.display = 'none';
+}
+
 /**
  * Export full map layout including bases, regions, and mask strokes.
  */
@@ -757,11 +844,13 @@ function exportFullLayout() {
     const baseData = state.baseSystem ? state.baseSystem.exportToJSON() : {};
     const regions = state.regionEditor ? state.regionEditor.getRegions() : [];
     const maskStrokes = state.maskBrush ? state.maskBrush.getStrokes() : [];
+    const smokeStrokes = state.smokeBrush ? state.smokeBrush.getStrokes() : [];
 
     const full = {
         ...baseData,
         regions: regions,
-        maskStrokes: maskStrokes
+        maskStrokes: maskStrokes,
+        smokeStrokes: smokeStrokes
     };
 
     const json = JSON.stringify(full, null, 2);
