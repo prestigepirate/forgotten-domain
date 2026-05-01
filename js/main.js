@@ -17,6 +17,7 @@ import { executeEffects, getEffectiveStats, parseEffects } from './effects.js';
 import { DecorationManager, ASSET_DEFINITIONS } from './decorations.js';
 import { FogOfWar } from './fogOfWar.js';
 import { ZoneOfControl } from './zones.js';
+import { RegionEditor } from './regionEditor.js';
 
 // ============================================
 // Game Constants
@@ -91,6 +92,7 @@ const state = {
     sigilManager: null,                  // SigilManager instance
     enemyAI: null,                       // EnemyAI instance
     zones: null,                         // ZoneOfControl instance
+    regionEditor: null,                  // RegionEditor instance
     lastPeriodicEffects: Date.now(),     // Last time periodic effects were checked
     // Decoration system
     decorationManager: null,             // DecorationManager instance
@@ -227,6 +229,17 @@ async function init() {
 
     // Load custom polygon regions (populated from editor exports)
     state.zones.loadRegions(PLANET_REGIONS[planet] || []);
+
+    // Initialize region editor (for drawing new regions in edit mode)
+    state.regionEditor = new RegionEditor(svgOverlay, 'region-editor-layer', {
+        onRegionsChanged: () => {
+            // When regions change, also update the gameplay zones
+            const exported = state.regionEditor.getRegions();
+            state.zones.loadRegions(exported);
+        }
+    });
+    // Load saved regions into the editor
+    state.regionEditor.loadRegions(PLANET_REGIONS[planet] || []);
 
     // Setup event listeners BEFORE any async work — so base clicks
     // are handled even while the creature database is loading
@@ -485,6 +498,8 @@ function toggleEditMode() {
         _decorationRemoveMode = false;
         state.selectedDecoId = null;
         hideDecorationAssetPanel();
+        // Clean up region drawing
+        if (state.regionEditor) state.regionEditor.deactivate();
         state.renderer.renderDecorations();
     }
 
@@ -536,6 +551,7 @@ function createEditorPalette() {
             <button class="editor-palette-btn" data-action="add-player">&#9878;<span class="btn-label"> +Player Base</span></button>
             <button class="editor-palette-btn" data-action="add-enemy">&#9760;<span class="btn-label"> +Enemy Base</span></button>
             <button class="editor-palette-btn editor-palette-accent" data-action="decorations">&#127794;<span class="btn-label"> Decorations</span></button>
+            <button class="editor-palette-btn editor-palette-accent" data-action="draw-region">&#11044;<span class="btn-label"> Draw Region</span></button>
             <button class="editor-palette-btn editor-palette-danger" data-action="remove">&#10007;<span class="btn-label"> Remove</span></button>
             <button class="editor-palette-btn" data-action="export">&#128229;<span class="btn-label"> Export</span></button>
             <button class="editor-palette-btn editor-palette-exit" data-action="exit">&#10005;<span class="btn-label"> Exit</span></button>
@@ -560,6 +576,10 @@ function createEditorPalette() {
             _decorationRemoveMode = false;
             state.selectedDecoId = null;
             hideDecorationAssetPanel();
+        }
+        // Clean up region drawing when switching to other tools
+        if (action !== 'draw-region' && state.regionEditor) {
+            state.regionEditor.deactivate();
         }
 
         switch (action) {
@@ -616,6 +636,14 @@ function createEditorPalette() {
                 state.decorationPlaceMode = true;
                 showDecorationAssetPanel();
                 setStatus('Decorations: Choose an asset, then click the map to place');
+                break;
+            case 'draw-region':
+                btn.classList.add('active');
+                state.renderer._handleModeSwitch();
+                if (state.regionEditor) {
+                    state.regionEditor.activate();
+                    setStatus('Draw Region: Click vertices, click near green dot to close, Esc to cancel');
+                }
                 break;
             case 'export':
                 state.renderer.exportLayout();
