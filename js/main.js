@@ -550,7 +550,14 @@ function toggleEditMode() {
         // Clean up region drawing
         if (state.regionEditor) state.regionEditor.deactivate();
         // Clean up mask brush
-        if (state.maskBrush) state.maskBrush.deactivate();
+        if (state.maskBrush) {
+            state.maskBrush.deactivate();
+            if (state.maskBrush.isLassoActive()) {
+                state.maskBrush.cancelLasso();
+            }
+        }
+        _unwireLassoHandlers();
+        _clearLassoPreview();
         // Clean up smoke brush
         if (state.smokeBrush) state.smokeBrush.deactivate();
         hideBrushSizeSlider();
@@ -607,6 +614,7 @@ function createEditorPalette() {
             <button class="editor-palette-btn editor-palette-accent" data-action="decorations">&#127794;<span class="btn-label"> Decorations</span></button>
             <button class="editor-palette-btn editor-palette-accent" data-action="draw-region">&#11044;<span class="btn-label"> Draw Region</span></button>
             <button class="editor-palette-btn editor-palette-accent" data-action="mask-brush">&#127912;<span class="btn-label"> Mask Brush</span></button>
+            <button class="editor-palette-btn editor-palette-accent" data-action="lasso-mask">&#129698;<span class="btn-label"> Lasso Mask</span></button>
             <button class="editor-palette-btn editor-palette-accent" data-action="smoke-brush">&#128168;<span class="btn-label"> Smoke Brush</span></button>
             <button class="editor-palette-btn editor-palette-danger" data-action="remove">&#10007;<span class="btn-label"> Remove</span></button>
             <button class="editor-palette-btn" data-action="export">&#128229;<span class="btn-label"> Export</span></button>
@@ -644,15 +652,21 @@ function createEditorPalette() {
             state.regionEditor.deactivate();
         }
         // Clean up mask brush when switching to other tools
-        if (action !== 'mask-brush' && state.maskBrush) {
+        if (action !== 'mask-brush' && action !== 'lasso-mask' && state.maskBrush) {
             state.maskBrush.deactivate();
+        }
+        // Clean up lasso when switching away
+        if (action !== 'lasso-mask' && state.maskBrush && state.maskBrush.isLassoActive()) {
+            state.maskBrush.cancelLasso();
+            _unwireLassoHandlers();
+            _clearLassoPreview();
         }
         // Clean up smoke brush when switching to other tools
         if (action !== 'smoke-brush' && state.smokeBrush) {
             state.smokeBrush.deactivate();
         }
         // Hide brush size slider unless on a brush tool
-        if (action !== 'mask-brush' && action !== 'smoke-brush') {
+        if (action !== 'mask-brush' && action !== 'smoke-brush' && action !== 'lasso-mask') {
             hideBrushSizeSlider();
         }
 
@@ -727,6 +741,17 @@ function createEditorPalette() {
                     setStatus('Mask Brush: Click and drag to paint hidden areas. Brush size: ' + state.maskBrush.getSize() + 'px');
                 }
                 showBrushSizeSlider('mask');
+                break;
+            case 'lasso-mask':
+                btn.classList.add('active');
+                state.renderer._handleModeSwitch();
+                if (state.maskBrush) {
+                    state.maskBrush.activate();        // sets up canvas
+                    state.maskBrush.startLasso();       // enters polygon mode
+                    _wireLassoHandlers();
+                    setStatus('Lasso Mask: Click vertices on the map. Click near first dot or double-click to close. Esc to cancel.');
+                }
+                showBrushSizeSlider('lasso');
                 break;
             case 'smoke-brush':
                 btn.classList.add('active');
@@ -810,7 +835,7 @@ function showBrushSizeSlider(mode) {
     const featherLabel = document.getElementById('brush-feather-value');
 
     // Set initial values from the active brush
-    if (mode === 'mask' && state.maskBrush) {
+    if ((mode === 'mask' || mode === 'lasso') && state.maskBrush) {
         if (sizeInput) { sizeInput.value = state.maskBrush.getSize(); }
         if (sizeLabel) { sizeLabel.textContent = sizeInput ? sizeInput.value : '40'; }
         if (featherInput) { featherInput.value = Math.round(state.maskBrush.getFeather() * 100); }
@@ -820,7 +845,7 @@ function showBrushSizeSlider(mode) {
         if (sizeLabel) { sizeLabel.textContent = sizeInput ? sizeInput.value : '40'; }
     }
 
-    // Show/hide feather controls (only for mask brush)
+    // Show/hide feather controls (only for mask/lasso brushes)
     const featherLabelEl = document.querySelector('label[for="brush-feather-slider"]') || featherInput?.previousElementSibling;
     if (mode === 'smoke') {
         if (featherInput) featherInput.style.display = 'none';
@@ -837,7 +862,7 @@ function showBrushSizeSlider(mode) {
             sizeInput.addEventListener('input', () => {
                 const val = parseInt(sizeInput.value);
                 if (sizeLabel) sizeLabel.textContent = val;
-                if (state.maskBrush && document.querySelector('[data-action="mask-brush"].active')) {
+                if (state.maskBrush && (document.querySelector('[data-action="mask-brush"].active') || document.querySelector('[data-action="lasso-mask"].active'))) {
                     state.maskBrush.setSize(val);
                 }
                 if (state.smokeBrush && document.querySelector('[data-action="smoke-brush"].active')) {
@@ -888,6 +913,234 @@ function exportFullLayout() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// ============================================
+// Lasso Mask Handlers (Editor)
+// ============================================
+
+/**
+ * Wire SVG click/move/keydown handlers for lasso polygon drawing.
+ */
+function _wireLassoHandlers() {
+    const svg = document.getElementById('map-overlay');
+    if (!svg) return;
+
+    // Remove any existing lasso handlers first
+    _unwireLassoHandlers();
+
+    // Store handler refs so we can remove them
+    _lassoClickHandler = (e) => {
+        if (!state.maskBrush || !state.maskBrush.isLassoActive()) return;
+        e.stopPropagation();
+        e.preventDefault();
+
+        const pt = state.maskBrush.screenToCanvas(e.clientX, e.clientY);
+        if (!pt) return;
+
+        const result = state.maskBrush.addLassoVertex(pt.x, pt.y);
+        _renderLassoPreview();
+
+        if (result === 'closed') {
+            _unwireLassoHandlers();
+            _clearLassoPreview();
+            setStatus('Lasso Mask: Polygon filled! Click Lasso Mask again to draw another.');
+        }
+    };
+
+    _lassoDblClickHandler = (e) => {
+        if (!state.maskBrush || !state.maskBrush.isLassoActive()) return;
+        e.stopPropagation();
+        e.preventDefault();
+
+        state.maskBrush.closeLasso();
+        _unwireLassoHandlers();
+        _clearLassoPreview();
+        setStatus('Lasso Mask: Polygon filled! Click Lasso Mask again to draw another.');
+    };
+
+    _lassoMoveHandler = (e) => {
+        if (!state.maskBrush || !state.maskBrush.isLassoActive()) return;
+        const pt = state.maskBrush.screenToCanvas(e.clientX, e.clientY);
+        if (!pt) return;
+
+        _lassoMousePos = { x: pt.x, y: pt.y };
+        _renderLassoPreview();
+    };
+
+    _lassoKeyHandler = (e) => {
+        if (e.key === 'Escape') {
+            if (state.maskBrush && state.maskBrush.isLassoActive()) {
+                state.maskBrush.cancelLasso();
+                _clearLassoPreview();
+                setStatus('Lasso Mask: Cancelled. Click vertices to start again.');
+            }
+        }
+    };
+
+    svg.addEventListener('click', _lassoClickHandler, true);
+    svg.addEventListener('dblclick', _lassoDblClickHandler, true);
+    svg.addEventListener('mousemove', _lassoMoveHandler);
+    document.addEventListener('keydown', _lassoKeyHandler);
+
+    svg.style.cursor = 'crosshair';
+}
+
+let _lassoClickHandler = null;
+let _lassoDblClickHandler = null;
+let _lassoMoveHandler = null;
+let _lassoKeyHandler = null;
+let _lassoMousePos = null;
+
+/**
+ * Remove lasso SVG handlers.
+ */
+function _unwireLassoHandlers() {
+    const svg = document.getElementById('map-overlay');
+    if (!svg) return;
+
+    if (_lassoClickHandler) svg.removeEventListener('click', _lassoClickHandler, true);
+    if (_lassoDblClickHandler) svg.removeEventListener('dblclick', _lassoDblClickHandler, true);
+    if (_lassoMoveHandler) svg.removeEventListener('mousemove', _lassoMoveHandler);
+    if (_lassoKeyHandler) document.removeEventListener('keydown', _lassoKeyHandler);
+
+    _lassoClickHandler = null;
+    _lassoDblClickHandler = null;
+    _lassoMoveHandler = null;
+    _lassoKeyHandler = null;
+    _lassoMousePos = null;
+
+    svg.style.cursor = '';
+}
+
+/**
+ * Render the lasso polygon preview on the SVG overlay.
+ */
+function _renderLassoPreview() {
+    const layer = document.getElementById('lasso-preview-layer');
+    if (!layer) return;
+
+    layer.innerHTML = '';
+
+    const vertices = state.maskBrush ? state.maskBrush.getLassoVertices() : [];
+    if (!vertices || vertices.length === 0) return;
+
+    const svg = document.getElementById('map-overlay');
+    if (!svg) return;
+
+    // Convert canvas coords to SVG screen coords
+    const dims = _getLassoDims(svg);
+
+    const NS = 'http://www.w3.org/2000/svg';
+
+    // Draw edges between placed vertices
+    for (let i = 0; i < vertices.length - 1; i++) {
+        const a = _canvasToSvg(vertices[i], dims);
+        const b = _canvasToSvg(vertices[i + 1], dims);
+
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', a.x);
+        line.setAttribute('y1', a.y);
+        line.setAttribute('x2', b.x);
+        line.setAttribute('y2', b.y);
+        line.setAttribute('stroke', '#7c3aed');
+        line.setAttribute('stroke-width', '2.5');
+        line.setAttribute('stroke-dasharray', '8 4');
+        line.setAttribute('pointer-events', 'none');
+        layer.appendChild(line);
+    }
+
+    // Rubber-band to mouse
+    if (_lassoMousePos && vertices.length >= 1) {
+        const last = vertices[vertices.length - 1];
+        const a = _canvasToSvg(last, dims);
+        const b = _canvasToSvg(_lassoMousePos, dims);
+
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', a.x);
+        line.setAttribute('y1', a.y);
+        line.setAttribute('x2', b.x);
+        line.setAttribute('y2', b.y);
+        line.setAttribute('stroke', '#fbbf24');
+        line.setAttribute('stroke-width', '1.5');
+        line.setAttribute('stroke-dasharray', '4 4');
+        line.setAttribute('opacity', '0.7');
+        line.setAttribute('pointer-events', 'none');
+        layer.appendChild(line);
+    }
+
+    // Vertex dots
+    vertices.forEach((v, i) => {
+        const pt = _canvasToSvg(v, dims);
+        const dot = document.createElementNS(NS, 'circle');
+        dot.setAttribute('cx', pt.x);
+        dot.setAttribute('cy', pt.y);
+        dot.setAttribute('r', i === 0 ? '7' : '5');
+        dot.setAttribute('fill', i === 0 ? '#22c55e' : '#a78bfa');
+        dot.setAttribute('stroke', i === 0 ? '#16a34a' : '#7c3aed');
+        dot.setAttribute('stroke-width', '2');
+        dot.setAttribute('pointer-events', 'none');
+        layer.appendChild(dot);
+    });
+
+    // Green pulse ring on first vertex when 3+ vertices (close target)
+    if (vertices.length >= 3) {
+        const first = _canvasToSvg(vertices[0], dims);
+        const ring = document.createElementNS(NS, 'circle');
+        ring.setAttribute('cx', first.x);
+        ring.setAttribute('cy', first.y);
+        ring.setAttribute('r', '10');
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#22c55e');
+        ring.setAttribute('stroke-width', '2.5');
+        ring.setAttribute('stroke-dasharray', '4 4');
+        ring.setAttribute('pointer-events', 'none');
+        ring.style.animation = 'pulse 1.5s ease-in-out infinite';
+        layer.appendChild(ring);
+    }
+}
+
+/**
+ * Clear the lasso preview layer.
+ */
+function _clearLassoPreview() {
+    const layer = document.getElementById('lasso-preview-layer');
+    if (layer) layer.innerHTML = '';
+    _lassoMousePos = null;
+}
+
+/**
+ * Get SVG dimensions for coordinate conversion.
+ */
+function _getLassoDims(svg) {
+    if (svg.clientWidth && svg.clientHeight) {
+        return { w: svg.clientWidth, h: svg.clientHeight };
+    }
+    const bbox = svg.getBoundingClientRect();
+    return { w: bbox.width || 1000, h: bbox.height || 800 };
+}
+
+/**
+ * Convert canvas pixel coords to SVG screen coords.
+ * Inverse of MaskBrush.screenToCanvas.
+ */
+function _canvasToSvg(pt, dims) {
+    const maskCanvas = state.maskBrush ? state.maskBrush._canvas : null;
+    if (!maskCanvas) return { x: pt.x, y: pt.y };
+
+    const rect = maskCanvas.getBoundingClientRect();
+    const scaleX = rect.width / maskCanvas.width;
+    const scaleY = rect.height / maskCanvas.height;
+
+    // Canvas px → screen px → SVG local coords
+    const screenX = pt.x * scaleX;
+    const screenY = pt.y * scaleY;
+
+    // Scale screen px to SVG local units
+    return {
+        x: (screenX / rect.width) * dims.w,
+        y: (screenY / rect.height) * dims.h
+    };
 }
 
 // ============================================

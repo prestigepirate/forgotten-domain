@@ -4,17 +4,26 @@
  * Paints a dark overlay on the map to permanently hide areas.
  * Used in the editor to black out regions players should never see.
  *
+ * Two modes: brush (circle strokes) and lasso (polygon fills).
  * Stores strokes as a compact array for export/replay.
  *
  * Usage:
  *   const brush = new MaskBrush(svgElement, mapImageSelector);
- *   brush.activate();
+ *   brush.activate();              // brush mode
  *   brush.deactivate();
- *   brush.setSize(30);          // brush radius in pixels
- *   brush.setFeather(0.5);      // 0=hard edge, 1=fully soft
- *   brush.getStrokes();         // export data
- *   brush.loadStrokes(strokes); // restore from saved data
- *   brush.clear();              // wipe all mask
+ *   brush.setSize(30);             // brush radius in pixels
+ *   brush.setFeather(0.5);         // 0=hard edge, 1=fully soft
+ *
+ *   // Lasso mode
+ *   brush.startLasso();            // enter polygon drawing mode
+ *   brush.addLassoVertex(cx, cy);  // canvas coords
+ *   brush.closeLasso();            // fill polygon + store
+ *   brush.cancelLasso();           // abort
+ *   brush.getLassoVertices();      // for SVG preview rendering
+ *
+ *   brush.getStrokes();            // export data
+ *   brush.loadStrokes(strokes);    // restore from saved data
+ *   brush.clear();                 // wipe all mask
  */
 
 export class MaskBrush {
@@ -31,7 +40,11 @@ export class MaskBrush {
         this._painting = false;
         this._brushSize = 40;       // radius in pixels on the canvas
         this._feather = 0.3;        // 0 = hard edge, 1 = fully soft (gradient starts from center)
-        this._strokes = [];         // [{x, y, r, f}, ...]
+        this._strokes = [];         // [{x, y, r, f} or {type:'polygon', vertices:[{x,y},...], f}, ...]
+
+        // Lasso state
+        this._lassoActive = false;
+        this._lassoVertices = [];   // [{x, y}, ...] in canvas pixel coords
     }
 
     // ── Public API ──
@@ -55,11 +68,15 @@ export class MaskBrush {
     deactivate() {
         this._active = false;
         this._painting = false;
+        // Cancel any active lasso
+        this._lassoActive = false;
+        this._lassoVertices = [];
         if (this._canvas) {
             this._canvas.removeEventListener('mousedown', this._onMouseDown);
             this._canvas.removeEventListener('mousemove', this._onMouseMove);
             this._canvas.removeEventListener('mouseup', this._onMouseUp);
             this._canvas.removeEventListener('mouseleave', this._onMouseUp);
+            this._canvas.style.pointerEvents = 'auto';
         }
         this.svg.style.pointerEvents = 'auto';
     }
@@ -98,6 +115,148 @@ export class MaskBrush {
         if (this._ctx && this._canvas) {
             this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
         }
+    }
+
+    // ── Lasso polygon mode ──
+
+    /**
+     * Enter lasso polygon drawing mode.
+     * Call after activate() has set up the canvas.
+     */
+    startLasso() {
+        if (!this._active) return;
+        this._lassoActive = true;
+        this._lassoVertices = [];
+        this._canvas.style.pointerEvents = 'none'; // let SVG clicks through
+    }
+
+    /**
+     * Add a vertex to the lasso polygon.
+     * @param {number} cx - canvas pixel X
+     * @param {number} cy - canvas pixel Y
+     * @returns {string|null} 'closed' if polygon completed, null otherwise
+     */
+    addLassoVertex(cx, cy) {
+        if (!this._lassoActive) return null;
+
+        // Check if clicking near first vertex to close (need 3+ vertices)
+        if (this._lassoVertices.length >= 3) {
+            const first = this._lassoVertices[0];
+            const dist = Math.sqrt((cx - first.x) ** 2 + (cy - first.y) ** 2);
+            if (dist < 20) {
+                this._finishLassoPolygon();
+                return 'closed';
+            }
+        }
+
+        this._lassoVertices.push({ x: Math.round(cx), y: Math.round(cy) });
+        return null;
+    }
+
+    /**
+     * Close the current lasso polygon (via double-click or button).
+     */
+    closeLasso() {
+        if (!this._lassoActive || this._lassoVertices.length < 3) return;
+        this._finishLassoPolygon();
+    }
+
+    /**
+     * Cancel the current lasso polygon without storing.
+     */
+    cancelLasso() {
+        this._lassoActive = false;
+        this._lassoVertices = [];
+        if (this._canvas) {
+            this._canvas.style.pointerEvents = 'auto';
+        }
+    }
+
+    /**
+     * Get current lasso vertices for SVG preview rendering.
+     * @returns {Array<{x:number, y:number}>}
+     */
+    getLassoVertices() {
+        return this._lassoVertices;
+    }
+
+    /**
+     * Check if lasso mode is active.
+     */
+    isLassoActive() {
+        return this._lassoActive;
+    }
+
+    /**
+     * Finish the lasso polygon: draw on canvas, store stroke, reset.
+     */
+    _finishLassoPolygon() {
+        if (this._lassoVertices.length < 3) return;
+
+        const vertices = [...this._lassoVertices]; // deep copy
+        const f = this._feather;
+
+        // Draw on canvas
+        this._drawPolygonMask(vertices, f);
+
+        // Store as polygon stroke
+        this._strokes.push({
+            type: 'polygon',
+            vertices: vertices,
+            f: f
+        });
+
+        // Reset lasso state
+        this._lassoActive = false;
+        this._lassoVertices = [];
+        if (this._canvas) {
+            this._canvas.style.pointerEvents = 'auto';
+        }
+    }
+
+    /**
+     * Draw a filled polygon on the mask canvas with feathering.
+     * Uses multi-pass outline stroking for the feathered edge.
+     * @param {Array<{x:number, y:number}>} vertices
+     * @param {number} feather - 0=hard edge, 1=fully soft
+     */
+    _drawPolygonMask(vertices, feather) {
+        if (!this._ctx || vertices.length < 3) return;
+
+        const ctx = this._ctx;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(vertices[0].x, vertices[0].y);
+        for (let i = 1; i < vertices.length; i++) {
+            ctx.lineTo(vertices[i].x, vertices[i].y);
+        }
+        ctx.closePath();
+
+        // Solid fill
+        ctx.fillStyle = 'rgba(2, 4, 8, 0.92)';
+        ctx.fill();
+
+        // Feathered edge — multi-pass outline stroking
+        if (feather > 0.01) {
+            const featherPx = feather * 60; // max 60px feather radius
+            const passes = Math.max(1, Math.ceil(featherPx / 3));
+
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            for (let i = 1; i <= passes; i++) {
+                const t = i / passes;
+                const alpha = 0.92 * (1 - t);
+                const width = featherPx * t;
+
+                ctx.strokeStyle = `rgba(2, 4, 8, ${alpha.toFixed(3)})`;
+                ctx.lineWidth = width;
+                ctx.stroke();
+            }
+        }
+
+        ctx.restore();
     }
 
     // ── Canvas setup ──
@@ -156,13 +315,13 @@ export class MaskBrush {
     _handleMouseDown(e) {
         if (!this._active) return;
         this._painting = true;
-        const pt = this._screenToCanvas(e.clientX, e.clientY);
+        const pt = this.screenToCanvas(e.clientX, e.clientY);
         if (pt) this._paint(pt.x, pt.y);
     }
 
     _handleMouseMove(e) {
         if (!this._active || !this._painting) return;
-        const pt = this._screenToCanvas(e.clientX, e.clientY);
+        const pt = this.screenToCanvas(e.clientX, e.clientY);
         if (pt) this._paint(pt.x, pt.y);
     }
 
@@ -227,15 +386,26 @@ export class MaskBrush {
         this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
 
         for (const s of this._strokes) {
-            const r = s.r || this._brushSize;
-            const f = s.f !== undefined ? s.f : this._feather;
-            this._drawFeatheredCircle(s.x, s.y, r, f);
+            if (s.type === 'polygon' && s.vertices && s.vertices.length >= 3) {
+                const f = s.f !== undefined ? s.f : this._feather;
+                this._drawPolygonMask(s.vertices, f);
+            } else {
+                const r = s.r || this._brushSize;
+                const f = s.f !== undefined ? s.f : this._feather;
+                this._drawFeatheredCircle(s.x, s.y, r, f);
+            }
         }
     }
 
     // ── Coordinate conversion ──
 
-    _screenToCanvas(clientX, clientY) {
+    /**
+     * Convert screen coordinates to canvas pixel coordinates.
+     * @param {number} clientX
+     * @param {number} clientY
+     * @returns {{x: number, y: number}|null}
+     */
+    screenToCanvas(clientX, clientY) {
         if (!this._canvas) return null;
         const rect = this._canvas.getBoundingClientRect();
         const scaleX = this._canvas.width / rect.width;
