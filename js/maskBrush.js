@@ -11,6 +11,7 @@
  *   brush.activate();
  *   brush.deactivate();
  *   brush.setSize(30);          // brush radius in pixels
+ *   brush.setFeather(0.5);      // 0=hard edge, 1=fully soft
  *   brush.getStrokes();         // export data
  *   brush.loadStrokes(strokes); // restore from saved data
  *   brush.clear();              // wipe all mask
@@ -28,8 +29,9 @@ export class MaskBrush {
         this._ctx = null;
         this._active = false;
         this._painting = false;
-        this._brushSize = 40; // radius in pixels on the canvas
-        this._strokes = [];   // [{x, y, r}, ...] — canvas-pixel coordinates
+        this._brushSize = 40;       // radius in pixels on the canvas
+        this._feather = 0.3;        // 0 = hard edge, 1 = fully soft (gradient starts from center)
+        this._strokes = [];         // [{x, y, r, f}, ...]
     }
 
     // ── Public API ──
@@ -43,7 +45,6 @@ export class MaskBrush {
             return;
         }
 
-        // Wait for image to load so we get natural dimensions
         if (!img.complete || !img.naturalWidth) {
             img.onload = () => this._createCanvas(img);
             return;
@@ -60,7 +61,6 @@ export class MaskBrush {
             this._canvas.removeEventListener('mouseup', this._onMouseUp);
             this._canvas.removeEventListener('mouseleave', this._onMouseUp);
         }
-        // Don't remove the canvas — it stays visible
         this.svg.style.pointerEvents = 'auto';
     }
 
@@ -70,6 +70,18 @@ export class MaskBrush {
 
     getSize() {
         return this._brushSize;
+    }
+
+    /**
+     * Set feather amount.
+     * @param {number} val - 0 = hard edge, 1 = fully soft (gradient from center)
+     */
+    setFeather(val) {
+        this._feather = Math.max(0, Math.min(1, val));
+    }
+
+    getFeather() {
+        return this._feather;
     }
 
     getStrokes() {
@@ -94,7 +106,6 @@ export class MaskBrush {
         const mapWrapper = document.getElementById('map-wrapper');
         if (!mapWrapper) return;
 
-        // Remove existing canvas if any
         if (this._canvas) {
             this._canvas.remove();
         }
@@ -113,7 +124,6 @@ export class MaskBrush {
             z-index: 5;
         `;
 
-        // Insert between map-world and SVG
         const svg = document.getElementById('map-overlay');
         if (svg) {
             mapWrapper.insertBefore(canvas, svg);
@@ -124,10 +134,8 @@ export class MaskBrush {
         this._canvas = canvas;
         this._ctx = canvas.getContext('2d');
 
-        // Replay existing strokes
         this._replayStrokes();
 
-        // Wire events
         this._onMouseDown = this._handleMouseDown.bind(this);
         this._onMouseMove = this._handleMouseMove.bind(this);
         this._onMouseUp = this._handleMouseUp.bind(this);
@@ -166,24 +174,50 @@ export class MaskBrush {
         if (!this._ctx) return;
 
         const r = this._brushSize;
+        const f = this._feather;
 
-        // Draw a filled circle on the canvas
-        this._ctx.fillStyle = 'rgba(2, 4, 8, 0.92)';
-        this._ctx.beginPath();
-        this._ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        this._ctx.fill();
+        // Draw the feather-adjusted gradient stroke
+        this._drawFeatheredCircle(cx, cy, r, f);
 
-        // Soft edge
-        const gradient = this._ctx.createRadialGradient(cx, cy, r * 0.7, cx, cy, r);
-        gradient.addColorStop(0, 'rgba(2, 4, 8, 0.92)');
-        gradient.addColorStop(1, 'rgba(2, 4, 8, 0)');
-        this._ctx.fillStyle = gradient;
-        this._ctx.beginPath();
-        this._ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        this._ctx.fill();
+        // Store stroke with feather
+        this._strokes.push({
+            x: Math.round(cx),
+            y: Math.round(cy),
+            r: r,
+            f: f
+        });
+    }
 
-        // Store stroke
-        this._strokes.push({ x: Math.round(cx), y: Math.round(cy), r: r });
+    /**
+     * Draw a single feathered circle on the canvas.
+     * @param {number} cx - center x
+     * @param {number} cy - center y
+     * @param {number} r - radius
+     * @param {number} feather - 0=hard edge, 1=gradient from center
+     */
+    _drawFeatheredCircle(cx, cy, r, feather) {
+        const ctx = this._ctx;
+
+        // Solid core — from center to (1-feather)*radius
+        const solidRadius = r * (1 - feather);
+        if (solidRadius > 0.5) {
+            ctx.fillStyle = 'rgba(2, 4, 8, 0.92)';
+            ctx.beginPath();
+            ctx.arc(cx, cy, solidRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Gradient edge — from solidRadius to r
+        const fadeStart = Math.max(0.1, solidRadius);
+        if (r - fadeStart > 0.5) {
+            const gradient = ctx.createRadialGradient(cx, cy, fadeStart, cx, cy, r);
+            gradient.addColorStop(0, 'rgba(2, 4, 8, 0.92)');
+            gradient.addColorStop(1, 'rgba(2, 4, 8, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
     // ── Stroke replay ──
@@ -193,18 +227,9 @@ export class MaskBrush {
         this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
 
         for (const s of this._strokes) {
-            this._ctx.fillStyle = 'rgba(2, 4, 8, 0.92)';
-            this._ctx.beginPath();
-            this._ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-            this._ctx.fill();
-
-            const gradient = this._ctx.createRadialGradient(s.x, s.y, s.r * 0.7, s.x, s.y, s.r);
-            gradient.addColorStop(0, 'rgba(2, 4, 8, 0.92)');
-            gradient.addColorStop(1, 'rgba(2, 4, 8, 0)');
-            this._ctx.fillStyle = gradient;
-            this._ctx.beginPath();
-            this._ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-            this._ctx.fill();
+            const r = s.r || this._brushSize;
+            const f = s.f !== undefined ? s.f : this._feather;
+            this._drawFeatheredCircle(s.x, s.y, r, f);
         }
     }
 
@@ -213,7 +238,6 @@ export class MaskBrush {
     _screenToCanvas(clientX, clientY) {
         if (!this._canvas) return null;
         const rect = this._canvas.getBoundingClientRect();
-        // Canvas is CSS-scaled to 100% — compute the scale factor
         const scaleX = this._canvas.width / rect.width;
         const scaleY = this._canvas.height / rect.height;
         return {

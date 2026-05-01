@@ -615,6 +615,8 @@ function createEditorPalette() {
         <div class="editor-brush-size" id="editor-brush-size" style="display:none;margin-top:10px;padding:8px;background:rgba(124,58,237,0.1);border-radius:8px;">
             <label style="color:#a78bfa;font-size:0.7rem;display:block;margin-bottom:4px;">Brush Size: <span id="brush-size-value">40</span>px</label>
             <input type="range" id="brush-size-slider" min="5" max="150" value="40" style="width:100%;accent-color:#7c3aed;">
+            <label style="color:#a78bfa;font-size:0.7rem;display:block;margin-top:8px;margin-bottom:4px;">Feather: <span id="brush-feather-value">30</span>%</label>
+            <input type="range" id="brush-feather-slider" min="0" max="100" value="30" style="width:100%;accent-color:#7c3aed;">
         </div>
     `;
 
@@ -804,31 +806,54 @@ function showBrushSizeSlider(mode) {
 
     const sizeInput = document.getElementById('brush-size-slider');
     const sizeLabel = document.getElementById('brush-size-value');
-    if (!sizeInput) return;
+    const featherInput = document.getElementById('brush-feather-slider');
+    const featherLabel = document.getElementById('brush-feather-value');
 
-    // Set initial value from the active brush
+    // Set initial values from the active brush
     if (mode === 'mask' && state.maskBrush) {
-        sizeInput.value = state.maskBrush.getSize();
-        if (sizeLabel) sizeLabel.textContent = sizeInput.value;
+        if (sizeInput) { sizeInput.value = state.maskBrush.getSize(); }
+        if (sizeLabel) { sizeLabel.textContent = sizeInput ? sizeInput.value : '40'; }
+        if (featherInput) { featherInput.value = Math.round(state.maskBrush.getFeather() * 100); }
+        if (featherLabel) { featherLabel.textContent = featherInput ? featherInput.value : '30'; }
     } else if (mode === 'smoke' && state.smokeBrush) {
-        sizeInput.value = state.smokeBrush.getSize();
-        if (sizeLabel) sizeLabel.textContent = sizeInput.value;
+        if (sizeInput) { sizeInput.value = state.smokeBrush.getSize(); }
+        if (sizeLabel) { sizeLabel.textContent = sizeInput ? sizeInput.value : '40'; }
     }
 
-    // Wire slider once
+    // Show/hide feather controls (only for mask brush)
+    const featherLabelEl = document.querySelector('label[for="brush-feather-slider"]') || featherInput?.previousElementSibling;
+    if (mode === 'smoke') {
+        if (featherInput) featherInput.style.display = 'none';
+        if (featherLabelEl) featherLabelEl.style.display = 'none';
+    } else {
+        if (featherInput) featherInput.style.display = '';
+        if (featherLabelEl) featherLabelEl.style.display = '';
+    }
+
+    // Wire sliders once
     if (!_brushSizeSliderWired) {
         _brushSizeSliderWired = true;
-        sizeInput.addEventListener('input', () => {
-            const val = parseInt(sizeInput.value);
-            if (sizeLabel) sizeLabel.textContent = val;
-            // Update whichever brush is active
-            if (state.maskBrush && document.querySelector('[data-action="mask-brush"].active')) {
-                state.maskBrush.setSize(val);
-            }
-            if (state.smokeBrush && document.querySelector('[data-action="smoke-brush"].active')) {
-                state.smokeBrush.setSize(val);
-            }
-        });
+        if (sizeInput) {
+            sizeInput.addEventListener('input', () => {
+                const val = parseInt(sizeInput.value);
+                if (sizeLabel) sizeLabel.textContent = val;
+                if (state.maskBrush && document.querySelector('[data-action="mask-brush"].active')) {
+                    state.maskBrush.setSize(val);
+                }
+                if (state.smokeBrush && document.querySelector('[data-action="smoke-brush"].active')) {
+                    state.smokeBrush.setSize(val);
+                }
+            });
+        }
+        if (featherInput) {
+            featherInput.addEventListener('input', () => {
+                const val = parseInt(featherInput.value);
+                if (featherLabel) featherLabel.textContent = val;
+                if (state.maskBrush) {
+                    state.maskBrush.setFeather(val / 100);
+                }
+            });
+        }
     }
 }
 
