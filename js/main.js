@@ -18,6 +18,7 @@ import { DecorationManager, ASSET_DEFINITIONS } from './decorations.js';
 import { FogOfWar } from './fogOfWar.js';
 import { ZoneOfControl } from './zones.js';
 import { RegionEditor } from './regionEditor.js';
+import { MaskBrush } from './maskBrush.js';
 
 // ============================================
 // Game Constants
@@ -44,6 +45,16 @@ const PLANET_DISPLAY = {
 // Custom polygon regions per planet — populated from editor exports
 // Format: [{id, name, vertices: [[x%, y%], ...]}]
 const PLANET_REGIONS = {
+    voxya: [],
+    orilyth: [],
+    korvess: [],
+    sanguis: [],
+    silith9: []
+};
+
+// Mask brush strokes per planet — populated from editor exports
+// Format: [{x, y, r}, ...] — canvas-pixel coordinates
+const PLANET_MASKS = {
     voxya: [],
     orilyth: [],
     korvess: [],
@@ -93,6 +104,7 @@ const state = {
     enemyAI: null,                       // EnemyAI instance
     zones: null,                         // ZoneOfControl instance
     regionEditor: null,                  // RegionEditor instance
+    maskBrush: null,                     // MaskBrush instance
     lastPeriodicEffects: Date.now(),     // Last time periodic effects were checked
     // Decoration system
     decorationManager: null,             // DecorationManager instance
@@ -240,6 +252,24 @@ async function init() {
     });
     // Load saved regions into the editor
     state.regionEditor.loadRegions(PLANET_REGIONS[planet] || []);
+
+    // Initialize mask brush (paint-to-hide map areas)
+    state.maskBrush = new MaskBrush(svgOverlay, '#map-world .map-bg');
+    // Load saved mask strokes if any
+    if (PLANET_MASKS[planet] && PLANET_MASKS[planet].length > 0) {
+        // Delay until image loads — wrapped in a check
+        const tryLoad = () => {
+            const img = document.querySelector('#map-world .map-bg');
+            if (img && img.complete && img.naturalWidth) {
+                state.maskBrush._createCanvas(img);
+                state.maskBrush.loadStrokes(PLANET_MASKS[planet]);
+                state.maskBrush.deactivate(); // keep canvas visible, disable painting
+            } else {
+                setTimeout(tryLoad, 200);
+            }
+        };
+        setTimeout(tryLoad, 500);
+    }
 
     // Setup event listeners BEFORE any async work — so base clicks
     // are handled even while the creature database is loading
@@ -500,6 +530,8 @@ function toggleEditMode() {
         hideDecorationAssetPanel();
         // Clean up region drawing
         if (state.regionEditor) state.regionEditor.deactivate();
+        // Clean up mask brush
+        if (state.maskBrush) state.maskBrush.deactivate();
         state.renderer.renderDecorations();
     }
 
@@ -552,6 +584,7 @@ function createEditorPalette() {
             <button class="editor-palette-btn" data-action="add-enemy">&#9760;<span class="btn-label"> +Enemy Base</span></button>
             <button class="editor-palette-btn editor-palette-accent" data-action="decorations">&#127794;<span class="btn-label"> Decorations</span></button>
             <button class="editor-palette-btn editor-palette-accent" data-action="draw-region">&#11044;<span class="btn-label"> Draw Region</span></button>
+            <button class="editor-palette-btn editor-palette-accent" data-action="mask-brush">&#127912;<span class="btn-label"> Mask Brush</span></button>
             <button class="editor-palette-btn editor-palette-danger" data-action="remove">&#10007;<span class="btn-label"> Remove</span></button>
             <button class="editor-palette-btn" data-action="export">&#128229;<span class="btn-label"> Export</span></button>
             <button class="editor-palette-btn editor-palette-exit" data-action="exit">&#10005;<span class="btn-label"> Exit</span></button>
@@ -580,6 +613,10 @@ function createEditorPalette() {
         // Clean up region drawing when switching to other tools
         if (action !== 'draw-region' && state.regionEditor) {
             state.regionEditor.deactivate();
+        }
+        // Clean up mask brush when switching to other tools
+        if (action !== 'mask-brush' && state.maskBrush) {
+            state.maskBrush.deactivate();
         }
 
         switch (action) {
@@ -645,9 +682,17 @@ function createEditorPalette() {
                     setStatus('Draw Region: Click vertices, click near green dot to close, Esc to cancel');
                 }
                 break;
+            case 'mask-brush':
+                btn.classList.add('active');
+                state.renderer._handleModeSwitch();
+                if (state.maskBrush) {
+                    state.maskBrush.activate();
+                    setStatus('Mask Brush: Click and drag to paint hidden areas. Brush size: ' + state.maskBrush.getSize() + 'px');
+                }
+                break;
             case 'export':
-                state.renderer.exportLayout();
-                setStatus('Layout exported to JSON');
+                exportFullLayout();
+                setStatus('Layout exported to JSON (bases, regions, mask)');
                 break;
             case 'exit':
                 toggleEditMode();
@@ -703,6 +748,32 @@ function hideEditorPalette() {
     } catch (err) {
         console.error('[Editor] hideEditorPalette error:', err.message);
     }
+}
+
+/**
+ * Export full map layout including bases, regions, and mask strokes.
+ */
+function exportFullLayout() {
+    const baseData = state.baseSystem ? state.baseSystem.exportToJSON() : {};
+    const regions = state.regionEditor ? state.regionEditor.getRegions() : [];
+    const maskStrokes = state.maskBrush ? state.maskBrush.getStrokes() : [];
+
+    const full = {
+        ...baseData,
+        regions: regions,
+        maskStrokes: maskStrokes
+    };
+
+    const json = JSON.stringify(full, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'voxya-full-layout.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // ============================================

@@ -1,0 +1,234 @@
+/**
+ * MaskBrush — Permanent map mask painting tool.
+ *
+ * Paints a dark overlay on the map to permanently hide areas.
+ * Used in the editor to black out regions players should never see.
+ *
+ * Stores strokes as a compact array for export/replay.
+ *
+ * Usage:
+ *   const brush = new MaskBrush(svgElement, mapImageSelector);
+ *   brush.activate();
+ *   brush.deactivate();
+ *   brush.setSize(30);          // brush radius in pixels
+ *   brush.getStrokes();         // export data
+ *   brush.loadStrokes(strokes); // restore from saved data
+ *   brush.clear();              // wipe all mask
+ */
+
+export class MaskBrush {
+    /**
+     * @param {SVGSVGElement} svg - The map SVG (used for coordinate reference)
+     * @param {string} mapImageSelector - CSS selector for the map <img> element
+     */
+    constructor(svg, mapImageSelector) {
+        this.svg = svg;
+        this.mapImageSelector = mapImageSelector;
+        this._canvas = null;
+        this._ctx = null;
+        this._active = false;
+        this._painting = false;
+        this._brushSize = 40; // radius in pixels on the canvas
+        this._strokes = [];   // [{x, y, r}, ...] — canvas-pixel coordinates
+    }
+
+    // ── Public API ──
+
+    activate() {
+        if (this._active) return;
+
+        const img = document.querySelector(this.mapImageSelector);
+        if (!img) {
+            console.error('[MaskBrush] Map image not found:', this.mapImageSelector);
+            return;
+        }
+
+        // Wait for image to load so we get natural dimensions
+        if (!img.complete || !img.naturalWidth) {
+            img.onload = () => this._createCanvas(img);
+            return;
+        }
+        this._createCanvas(img);
+    }
+
+    deactivate() {
+        this._active = false;
+        this._painting = false;
+        if (this._canvas) {
+            this._canvas.removeEventListener('mousedown', this._onMouseDown);
+            this._canvas.removeEventListener('mousemove', this._onMouseMove);
+            this._canvas.removeEventListener('mouseup', this._onMouseUp);
+            this._canvas.removeEventListener('mouseleave', this._onMouseUp);
+        }
+        // Don't remove the canvas — it stays visible
+        this.svg.style.pointerEvents = 'auto';
+    }
+
+    setSize(radius) {
+        this._brushSize = Math.max(5, Math.min(200, radius));
+    }
+
+    getSize() {
+        return this._brushSize;
+    }
+
+    getStrokes() {
+        return this._strokes;
+    }
+
+    loadStrokes(strokes) {
+        this._strokes = strokes || [];
+        this._replayStrokes();
+    }
+
+    clear() {
+        this._strokes = [];
+        if (this._ctx && this._canvas) {
+            this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+        }
+    }
+
+    // ── Canvas setup ──
+
+    _createCanvas(img) {
+        const mapWrapper = document.getElementById('map-wrapper');
+        if (!mapWrapper) return;
+
+        // Remove existing canvas if any
+        if (this._canvas) {
+            this._canvas.remove();
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.id = 'mask-canvas';
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        canvas.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        `;
+
+        // Insert between map-world and SVG
+        const svg = document.getElementById('map-overlay');
+        if (svg) {
+            mapWrapper.insertBefore(canvas, svg);
+        } else {
+            mapWrapper.appendChild(canvas);
+        }
+
+        this._canvas = canvas;
+        this._ctx = canvas.getContext('2d');
+
+        // Replay existing strokes
+        this._replayStrokes();
+
+        // Wire events
+        this._onMouseDown = this._handleMouseDown.bind(this);
+        this._onMouseMove = this._handleMouseMove.bind(this);
+        this._onMouseUp = this._handleMouseUp.bind(this);
+
+        canvas.addEventListener('mousedown', this._onMouseDown);
+        canvas.addEventListener('mousemove', this._onMouseMove);
+        canvas.addEventListener('mouseup', this._onMouseUp);
+        canvas.addEventListener('mouseleave', this._onMouseUp);
+
+        canvas.style.pointerEvents = 'auto';
+        canvas.style.cursor = 'crosshair';
+
+        this._active = true;
+    }
+
+    // ── Painting ──
+
+    _handleMouseDown(e) {
+        if (!this._active) return;
+        this._painting = true;
+        const pt = this._screenToCanvas(e.clientX, e.clientY);
+        if (pt) this._paint(pt.x, pt.y);
+    }
+
+    _handleMouseMove(e) {
+        if (!this._active || !this._painting) return;
+        const pt = this._screenToCanvas(e.clientX, e.clientY);
+        if (pt) this._paint(pt.x, pt.y);
+    }
+
+    _handleMouseUp() {
+        this._painting = false;
+    }
+
+    _paint(cx, cy) {
+        if (!this._ctx) return;
+
+        const r = this._brushSize;
+
+        // Draw a filled circle on the canvas
+        this._ctx.fillStyle = 'rgba(2, 4, 8, 0.92)';
+        this._ctx.beginPath();
+        this._ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        this._ctx.fill();
+
+        // Soft edge
+        const gradient = this._ctx.createRadialGradient(cx, cy, r * 0.7, cx, cy, r);
+        gradient.addColorStop(0, 'rgba(2, 4, 8, 0.92)');
+        gradient.addColorStop(1, 'rgba(2, 4, 8, 0)');
+        this._ctx.fillStyle = gradient;
+        this._ctx.beginPath();
+        this._ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        this._ctx.fill();
+
+        // Store stroke
+        this._strokes.push({ x: Math.round(cx), y: Math.round(cy), r: r });
+    }
+
+    // ── Stroke replay ──
+
+    _replayStrokes() {
+        if (!this._ctx || !this._canvas) return;
+        this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+
+        for (const s of this._strokes) {
+            this._ctx.fillStyle = 'rgba(2, 4, 8, 0.92)';
+            this._ctx.beginPath();
+            this._ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            this._ctx.fill();
+
+            const gradient = this._ctx.createRadialGradient(s.x, s.y, s.r * 0.7, s.x, s.y, s.r);
+            gradient.addColorStop(0, 'rgba(2, 4, 8, 0.92)');
+            gradient.addColorStop(1, 'rgba(2, 4, 8, 0)');
+            this._ctx.fillStyle = gradient;
+            this._ctx.beginPath();
+            this._ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            this._ctx.fill();
+        }
+    }
+
+    // ── Coordinate conversion ──
+
+    _screenToCanvas(clientX, clientY) {
+        if (!this._canvas) return null;
+        const rect = this._canvas.getBoundingClientRect();
+        // Canvas is CSS-scaled to 100% — compute the scale factor
+        const scaleX = this._canvas.width / rect.width;
+        const scaleY = this._canvas.height / rect.height;
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    destroy() {
+        this.deactivate();
+        if (this._canvas) {
+            this._canvas.remove();
+            this._canvas = null;
+            this._ctx = null;
+        }
+        this._strokes = [];
+    }
+}
